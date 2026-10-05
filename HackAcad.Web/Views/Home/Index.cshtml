@@ -1,0 +1,67 @@
+@{
+    ViewData["Title"] = "Home";
+}
+
+<section class="bg-dark text-light py-5">
+    <div class="container py-4 text-center">
+        <h1 class="display-5 fw-bold">Learn by doing, not just reading</h1>
+        <p class="lead col-lg-8 mx-auto text-light-emphasis">
+            HackAcad is a hands-on learning platform. Take courses built by real teachers,
+            then prove what you've learned with CTF-style challenges and a safe simulated
+            terminal — all in one place.
+        </p>
+        <div class="d-flex justify-content-center gap-3 mt-4">
+            <a class="btn btn-light btn-lg" href="/Identity/Account/Register">Get started — it's free</a>
+            @* Points at CourseController, which doesn't exist in this skeleton yet
+               (that's Member 2's Week 5 build, per Implementation_Specification.md
+               Section 11). This link will 404 until then — that's expected. *@
+            <a class="btn btn-outline-light btn-lg" asp-controller="Course" asp-action="Index">Browse courses</a>
+        </div>
+    </div>
+</section>
+
+<section class="container py-5">
+    <div class="row g-4 text-center">
+        <div class="col-md-4">
+            <div class="p-4 h-100 border rounded-4">
+                <div class="fs-1 mb-2">📚</div>
+                <h3 class="h5">Structured courses</h3>
+                <p class="text-muted">
+                    Enrol in a course and pick up right where you left off — your progress
+                    is always saved.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-4 h-100 border rounded-4">
+                <div class="fs-1 mb-2">🚩</div>
+                <h3 class="h5">CTF-style challenges</h3>
+                <p class="text-muted">
+                    Put what you learned to the test. Every course has its own set of
+                    challenges to solve.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-4 h-100 border rounded-4">
+                <div class="fs-1 mb-2">💻</div>
+                <h3 class="h5">Simulated terminal</h3>
+                <p class="text-muted">
+                    Practice real commands in a safe, built-in terminal — no setup, nothing
+                    to break.
+                </p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="bg-body-tertiary py-5">
+    <div class="container text-center py-3">
+        <h2 class="h4">Teaching something yourself?</h2>
+        <p class="text-muted col-lg-6 mx-auto">
+            Teacher accounts can build their own courses, challenges, and simulation
+            exercises from scratch. Ask an admin to upgrade your account once you've
+            signed up.
+        </p>
+    </div>
+</section>
