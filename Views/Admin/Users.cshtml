@@ -1,0 +1,20 @@
+@model UserListModel
+@{ ViewData["Title"] = "Manage users"; }
+<div class="container module-shell">
+    <partial name="_AdminNav" />
+    <div class="page-heading"><div><h1>Manage users</h1><p class="text-secondary">@Model.Total account(s) match your filters.</p></div><a class="btn btn-dark" asp-action="CreateUser">Create account</a></div>
+    <form asp-action="Users" method="get" class="filter-bar">
+        <div class="filter-search"><label for="search" class="form-label">Search users</label><input id="search" name="search" value="@Model.Search" class="form-control" placeholder="Name or email" maxlength="256" /></div>
+        <div><label for="role" class="form-label">Role</label><select id="role" name="role" class="form-select"><option value="">All roles</option>@foreach (var role in AccountRoles.All) { <option value="@role" selected="@(Model.Role == role)">@role</option> }</select></div>
+        <div><label for="status" class="form-label">Status</label><select id="status" name="status" class="form-select"><option value="">All statuses</option><option value="active" selected="@(Model.Status == "active")">Active</option><option value="disabled" selected="@(Model.Status == "disabled")">Disabled</option></select></div>
+        <button class="btn btn-dark" type="submit">Apply filters</button><a asp-action="Users" class="btn btn-outline-secondary">Clear</a>
+    </form>
+    @if (Model.Users.Count == 0) { <div class="empty-state"><h2 class="h5">No users found</h2><p>Try another name, email or filter.</p><a asp-action="Users">Clear filters</a></div> }
+    else {
+        <div class="table-responsive"><table class="table align-middle module-table"><caption class="visually-hidden">Registered accounts and their access status</caption>
+            <thead><tr><th scope="col">User</th><th scope="col">Role</th><th scope="col">Status</th><th scope="col">Joined (UTC)</th><th scope="col">Actions</th></tr></thead>
+            <tbody>@foreach (var account in Model.Users) { <tr><td><span class="fw-semibold">@account.DisplayName</span><span class="record-secondary">@account.Email</span></td><td><span class="role-badge">@account.Role</span></td><td><span class="status-label @(account.IsDisabled ? "status-disabled" : "status-active")">@(account.IsDisabled ? "Disabled" : "Active")</span></td><td class="text-nowrap">@account.JoinedDate.ToString("dd MMM yyyy")</td><td><div class="table-actions"><a asp-action="EditUser" asp-route-id="@account.Id" aria-label="Edit @account.Email">Edit</a><a asp-action="DeleteUser" asp-route-id="@account.Id" class="text-danger" aria-label="Delete @account.Email">Delete</a></div></td></tr> }</tbody>
+        </table></div>
+    }
+    <nav class="pagination-bar" aria-label="User pages"><span>Page @Model.Page of @Model.PageCount</span><div class="d-flex gap-3">@if (Model.Page > 1) { <a asp-action="Users" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search" asp-route-role="@Model.Role" asp-route-status="@Model.Status">Previous</a> } @if (Model.Page < Model.PageCount) { <a asp-action="Users" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search" asp-route-role="@Model.Role" asp-route-status="@Model.Status">Next</a> }</div></nav>
+</div>

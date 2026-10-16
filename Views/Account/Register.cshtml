@@ -1,0 +1,30 @@
+@model RegisterModel
+@{ Layout = "_AuthLayout"; ViewData["Title"] = "Create an account"; }
+<h1 id="auth-title">Start learning</h1>
+<p class="text-secondary mb-4">Create your Student account.</p>
+<form asp-action="Register" method="post">
+    <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+    <div class="mb-3">
+        <label asp-for="DisplayName" class="form-label"></label>
+        <input asp-for="DisplayName" aria-invalid="@(ViewData.ModelState["DisplayName"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="nickname" maxlength="100" required autofocus  aria-describedby="DisplayName-error" />
+        <span id="DisplayName-error" asp-validation-for="DisplayName" class="field-error"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" aria-invalid="@(ViewData.ModelState["Email"]?.Errors.Count > 0 ? "true" : null)" class="form-control" type="email" autocomplete="username" maxlength="256" required  aria-describedby="Email-error" />
+        <span id="Email-error" asp-validation-for="Email" class="field-error"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Password" class="form-label"></label>
+        <input asp-for="Password" aria-invalid="@(ViewData.ModelState["Password"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="new-password" minlength="8" maxlength="100" aria-describedby="password-help Password-error" required />
+        <p id="password-help" class="form-text">Use 8–100 characters with an uppercase letter, a lowercase letter, a number and a symbol.</p>
+        <span id="Password-error" asp-validation-for="Password" class="field-error"></span>
+    </div>
+    <div class="mb-4">
+        <label asp-for="ConfirmPassword" class="form-label"></label>
+        <input asp-for="ConfirmPassword" aria-invalid="@(ViewData.ModelState["ConfirmPassword"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="new-password" data-match-password="Password" required  aria-describedby="ConfirmPassword-error" />
+        <span id="ConfirmPassword-error" asp-validation-for="ConfirmPassword" class="field-error"></span>
+    </div>
+    <button class="btn btn-dark w-100" type="submit">Create account</button>
+</form>
+<p class="mt-4 mb-0">Already have an account? <a asp-action="Login">Log in</a></p>

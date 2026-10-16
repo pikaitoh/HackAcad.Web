@@ -1,0 +1,26 @@
+@model ProfileModel
+@{ ViewData["Title"] = "My profile"; }
+<div class="container module-shell">
+    <nav aria-label="Breadcrumb" class="mb-4"><a asp-action="Dashboard">My account</a> <span aria-hidden="true">/</span> Profile</nav>
+    <div class="page-heading"><div><h1>My profile</h1><p class="text-secondary">Keep your name up to date and manage your password.</p></div></div>
+    <div class="profile-layout">
+        <section aria-labelledby="details-title">
+            <h2 class="h4" id="details-title">Account details</h2>
+            <dl class="detail-list">
+                <dt>Email</dt><dd>@Model.Email</dd>
+                <dt>Role</dt><dd><span class="role-badge">@Model.Role</span></dd>
+                <dt>Joined</dt><dd>@Model.JoinedDate.ToString("dd MMM yyyy") <span class="text-secondary">(UTC)</span></dd>
+            </dl>
+            <a asp-action="ChangePassword">Change password</a>
+        </section>
+        <form asp-action="Profile" method="post" class="form-measure">
+            <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+            <div class="mb-4">
+                <label asp-for="DisplayName" class="form-label"></label>
+                <input asp-for="DisplayName" aria-invalid="@(ViewData.ModelState["DisplayName"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="nickname" maxlength="100" required  aria-describedby="DisplayName-error" />
+                <span id="DisplayName-error" asp-validation-for="DisplayName" class="field-error"></span>
+            </div>
+            <button type="submit" class="btn btn-dark">Save profile</button>
+        </form>
+    </div>
+</div>

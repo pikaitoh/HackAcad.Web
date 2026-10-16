@@ -1,4 +1,5 @@
 using HackAcad.Web.Models.Entities;
+using HackAcad.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -8,44 +9,23 @@ public static class DbInitializer
 {
     public static async Task SeedAsync(IServiceProvider services)
     {
-        var context = services.GetRequiredService<ApplicationDbContext>();
-
-        // Applies any pending EF Core migrations.
-        await context.Database.MigrateAsync();
-
-        // Default Admin account so there's always someone who can log in and
-        // promote other users to Teacher. CHANGE THIS PASSWORD before any real demo.
-        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        const string adminEmail = "admin@hackacad.local";
-
-        var admin = await userManager.FindByEmailAsync(adminEmail);
-        if (admin is null)
+        var db = services.GetRequiredService<ApplicationDbContext>();
+        await db.Database.MigrateAsync();
+        // Shared development fixtures, not production credentials. Existing
+        // accounts (including the original admin) are never reset or re-promoted.
+        if (!services.GetRequiredService<IWebHostEnvironment>().IsDevelopment()) return;
+        var users = services.GetRequiredService<UserManager<ApplicationUser>>();
+        var accounts = services.GetRequiredService<UserAccounts>();
+        foreach (var role in AccountRoles.All)
         {
-            admin = new ApplicationUser
+            var email = $"demo.{role.ToLowerInvariant()}@hackacad.local";
+            if (await users.FindByEmailAsync(email) is not null) continue;
+            var result = await accounts.CreateAsync(new ApplicationUser
             {
-                UserName = adminEmail,
-                Email = adminEmail,
-                DisplayName = "Platform Administrator",
-                EmailConfirmed = true
-            };
-
-            var result = await userManager.CreateAsync(admin, "Admin@123");
+                UserName = email, Email = email, DisplayName = $"Demo {role}", EmailConfirmed = true
+            }, "HackAcad@123!", role);
             if (!result.Succeeded)
-            {
-                return;
-            }
+                throw new InvalidOperationException($"Could not create the {role} development fixture: {string.Join("; ", result.Errors.Select(e => e.Description))}");
         }
-
-        // Role membership lives in the Admins table (v3.0), not AspNetRoles —
-        // see Database_Schema.md and RoleClaimsTransformation.cs.
-        if (!context.Admins.Any(a => a.UserId == admin.Id))
-        {
-            context.Admins.Add(new Admin { UserId = admin.Id });
-            await context.SaveChangesAsync();
-        }
-
-        // Note: every other registration (via /Identity/Account/Register) should
-        // insert a matching row into Students — that logic lives wherever your
-        // team wires up registration (Member 1's module), not here.
     }
 }

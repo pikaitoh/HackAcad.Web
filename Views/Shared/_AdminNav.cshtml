@@ -1,0 +1,6 @@
+@{ var action = ViewContext.RouteData.Values["action"]?.ToString() ?? ""; }
+<nav class="admin-nav" aria-label="Administration">
+    <a asp-controller="Admin" asp-action="Index" aria-current="@(action == "Index" ? "page" : null)">Overview</a>
+    <a asp-controller="Admin" asp-action="Users" aria-current="@(action.Contains("User") ? "page" : null)">Users</a>
+    <a asp-controller="Admin" asp-action="Courses" aria-current="@(action.Contains("Course") ? "page" : null)">Courses</a>
+</nav>

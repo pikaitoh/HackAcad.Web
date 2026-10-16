@@ -1,0 +1,15 @@
+@model EditUserModel
+@{ ViewData["Title"] = "Edit account"; }
+<div class="container module-shell">
+    <partial name="_AdminNav" />
+    <div class="page-heading"><div><h1>Edit account</h1><p class="text-secondary">@Model.Email</p></div></div>
+    <form asp-action="EditUser" asp-route-id="@Model.Id" method="post" class="form-measure">
+        <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+        <div class="mb-3"><label asp-for="DisplayName" class="form-label"></label><input asp-for="DisplayName" aria-invalid="@(ViewData.ModelState["DisplayName"]?.Errors.Count > 0 ? "true" : null)" class="form-control" maxlength="100" required  aria-describedby="DisplayName-error" /><span id="DisplayName-error" asp-validation-for="DisplayName" class="field-error"></span></div>
+        <div class="mb-3"><label asp-for="Email" class="form-label"></label><input asp-for="Email" aria-invalid="@(ViewData.ModelState["Email"]?.Errors.Count > 0 ? "true" : null)" class="form-control" type="email" maxlength="256" required  aria-describedby="Email-error" /><span id="Email-error" asp-validation-for="Email" class="field-error"></span></div>
+        <div class="mb-3"><label asp-for="Role" class="form-label"></label><select asp-for="Role" aria-invalid="@(ViewData.ModelState["Role"]?.Errors.Count > 0 ? "true" : null)" class="form-select" aria-describedby="Role-error">@foreach (var role in AccountRoles.All) { <option value="@role">@role</option> }</select><span id="Role-error" asp-validation-for="Role" class="field-error"></span></div>
+        <div class="form-check mb-2"><input asp-for="IsDisabled" class="form-check-input" aria-describedby="status-help" /><label asp-for="IsDisabled" class="form-check-label"></label></div>
+        <p id="status-help" class="form-text mb-4">Disabled users cannot log in. Changing role or status ends their existing sessions. Teachers who own courses must keep their Teacher role until their courses are transferred.</p>
+        <div class="form-actions"><button class="btn btn-dark" type="submit">Save changes</button><a asp-action="Users" class="btn btn-outline-secondary">Cancel</a></div>
+    </form>
+</div>

@@ -1,0 +1,15 @@
+@model AdminOverviewModel
+@{ ViewData["Title"] = "Admin overview"; }
+<div class="container module-shell">
+    <partial name="_AdminNav" />
+    <div class="page-heading"><div><h1>Platform overview</h1><p class="text-secondary">Account access, learning content and platform activity.</p></div><a class="btn btn-dark" asp-action="CreateUser">Create account</a></div>
+    <div class="overview-layout">
+        <section aria-labelledby="platform-title"><h2 id="platform-title" class="h4">Current activity</h2>
+            <dl class="overview-facts"><div><dt>Registered users</dt><dd>@Model.Users</dd></div><div><dt>Disabled accounts</dt><dd>@Model.DisabledUsers</dd></div><div><dt>Teachers</dt><dd>@Model.Teachers</dd></div><div><dt>Courses</dt><dd>@Model.Courses</dd></div><div><dt>Published courses</dt><dd>@Model.PublishedCourses</dd></div><div><dt>Course enrolments</dt><dd>@Model.Enrollments</dd></div></dl>
+        </section>
+        <section aria-labelledby="recent-title"><div class="section-heading"><h2 id="recent-title" class="h4">Recently joined</h2><a asp-action="Users">View all users</a></div>
+            @if (Model.RecentUsers.Count == 0) { <p class="empty-state">No accounts have been registered yet.</p> }
+            else { <ul class="recent-users">@foreach (var account in Model.RecentUsers) { <li><div><a asp-action="EditUser" asp-route-id="@account.Id">@account.DisplayName</a><span class="record-secondary">@account.Email</span></div><span class="role-badge">@account.Role</span></li> }</ul> }
+        </section>
+    </div>
+</div>

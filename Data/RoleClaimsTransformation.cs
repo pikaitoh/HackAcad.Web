@@ -1,61 +1,37 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using HackAcad.Web.Services;
 
 namespace HackAcad.Web.Data;
 
-// Makes Students/Teachers/Admins the single source of truth for role
-// membership, instead of Identity's AspNetRoles. Runs once per request after
-// login; attaches a standard Role claim so [Authorize(Roles = "Teacher")]
-// keeps working exactly as before. See Database_Schema.md v3.0.
-public class RoleClaimsTransformation : IClaimsTransformation
+// Resolve permissions from the role tables on each request, never from a
+// posted form or an old role claim in a cookie.
+public class RoleClaimsTransformation(ApplicationDbContext db, ILogger<RoleClaimsTransformation> logger) : IClaimsTransformation
 {
-    private readonly ApplicationDbContext _db;
-    private readonly ILogger<RoleClaimsTransformation> _logger;
-
-    public RoleClaimsTransformation(ApplicationDbContext db, ILogger<RoleClaimsTransformation> logger)
-    {
-        _db = db;
-        _logger = logger;
-    }
-
     public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
         var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId is null || principal.HasClaim(c => c.Type == ClaimTypes.Role))
-        {
-            return principal; // not logged in, or already transformed this request
-        }
-
+        if (userId is null || principal.Identity is not ClaimsIdentity identity || !identity.IsAuthenticated) return principal;
+        foreach (var claim in identity.FindAll(identity.RoleClaimType).ToList()) identity.RemoveClaim(claim);
         try
         {
-            string? role = null;
-            if (await _db.Admins.AnyAsync(a => a.UserId == userId))
+            var user = await db.Users.AsNoTracking().Where(u => u.Id == userId).Select(u => new
             {
-                role = "Admin";
-            }
-            else if (await _db.Teachers.AnyAsync(t => t.UserId == userId))
-            {
-                role = "Teacher";
-            }
-            else if (await _db.Students.AnyAsync(s => s.UserId == userId))
-            {
-                role = "Student";
-            }
-
-            if (role is not null && principal.Identity is ClaimsIdentity identity)
-            {
-                identity.AddClaim(new Claim(ClaimTypes.Role, role));
-            }
+                u.IsDisabled,
+                IsAdmin = db.Admins.Any(a => a.UserId == u.Id),
+                IsTeacher = db.Teachers.Any(t => t.UserId == u.Id),
+                IsStudent = db.Students.Any(s => s.UserId == u.Id)
+            }).SingleOrDefaultAsync();
+            if (user is null || user.IsDisabled) return new ClaimsPrincipal(new ClaimsIdentity());
+            var role = user.IsAdmin ? AccountRoles.Admin : user.IsTeacher ? AccountRoles.Teacher : user.IsStudent ? AccountRoles.Student : null;
+            if (role is not null) identity.AddClaim(new Claim(identity.RoleClaimType, role));
         }
         catch (Exception ex)
         {
-            // Database not reachable (e.g. MySQL not set up yet) — skip role
-            // resolution so the site still serves pages. Same philosophy as the
-            // seeding try/catch in Program.cs.
-            _logger.LogWarning(ex, "Role claims resolution skipped — is MySQL running?");
+            // Fail closed: authenticated requests get no role if role lookup fails.
+            logger.LogWarning(ex, "Unable to resolve account permissions.");
         }
-
         return principal;
     }
 }

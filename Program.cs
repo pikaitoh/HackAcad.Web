@@ -1,4 +1,6 @@
 using HackAcad.Web.Data;
+using HackAcad.Web.Services;
+using Microsoft.AspNetCore.Mvc;
 using HackAcad.Web.Models.Entities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -35,14 +37,28 @@ builder.Services
     .AddIdentity<ApplicationUser, IdentityRole>(options =>
     {
         options.SignIn.RequireConfirmedAccount = false;
+        options.User.RequireUniqueEmail = true;
+        options.Password.RequiredLength = 8;
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultUI()
     .AddDefaultTokenProviders();
 
 builder.Services.AddTransient<IClaimsTransformation, RoleClaimsTransformation>();
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<UserAccounts>();
+// Check security stamps on every request so disabling / changing roles revokes
+// existing cookies immediately. Suitable for this locally hosted class project.
+builder.Services.Configure<SecurityStampValidatorOptions>(options => options.ValidationInterval = TimeSpan.Zero);
+builder.Services.ConfigureApplicationCookie(options =>
+{
+    options.LoginPath = "/Identity/Account/Login";
+    options.AccessDeniedPath = "/Identity/Account/AccessDenied";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+});
+builder.Services.AddControllersWithViews(options => options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
 builder.Services.AddRazorPages();
 
 var app = builder.Build();
@@ -66,7 +82,7 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
 
-// --- Seed a default Admin account ---
+// --- Apply migrations and seed development accounts ---
 // Wrapped in try/catch on purpose: if MySQL isn't installed/running yet,
 // the site still starts and serves pages, it just skips seeding and logs a
 // warning. This lets you confirm "does dotnet run even work" before the
