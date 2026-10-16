@@ -1,0 +1,27 @@
+.auth-layout { display: grid; grid-template-columns: 1.1fr 1fr; gap: 4rem; padding-top: 3rem; padding-bottom: 1rem; max-width: 1140px; }
+.auth-aside { background: var(--ha-dark); color: white; padding: 3rem; border-radius: var(--ha-radius); }
+.auth-aside h2 { color: white; font-size: 2.5rem; line-height: 1.2; margin-bottom: 1.5rem; }
+.auth-aside > p { color: var(--ha-on-dark); max-width: 35ch; line-height: 1.8; }
+.auth-aside .auth-note { border-top: 1px solid #52787a; padding-top: 1.5rem; margin-bottom: 0; font-size: .8125rem; }
+.auth-form { align-self: center; min-width: 0; padding: 2.5rem; max-width: 29rem; width: 100%; background: var(--ha-surface); border: 1px solid var(--ha-line); border-radius: var(--ha-radius); }
+.auth-form > p:last-child { font-size: .875rem; }
+.auth-form h1 { font-size: 2rem; }
+.auth-aside .learning-path div > span { color: var(--ha-on-dark); }
+.auth-aside .learning-path li:not(:last-child)::after { background: #52787a; }
+.auth-aside .path-marker { border: 0; background: var(--ha-action); color: var(--ha-ink); }
+.profile-layout { display: grid; grid-template-columns: 1fr 1.3fr; gap: 4rem; max-width: 65rem; }
+.detail-list { margin: 1.5rem 0; }
+.detail-list dt { font-size: .8125rem; font-weight: 500; color: var(--ha-muted); margin-top: 1rem; }
+.detail-list dd { margin: .25rem 0 0; overflow-wrap: anywhere; }
+.activity-summary { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 2rem; background: white; border: 1px solid var(--ha-line); border-radius: var(--ha-radius); padding: 1.75rem; margin: 1.5rem 0; font-variant-numeric: tabular-nums; }
+.activity-summary > div { min-width: 0; overflow-wrap: anywhere; }
+.activity-summary dt { font-weight: 500; color: var(--ha-muted); font-size: .875rem; }
+.activity-summary dd { font-size: 2rem; font-weight: 650; margin: .5rem 0 0; color: var(--ha-ink); }
+.account-next-step { margin-top: 3rem; max-width: 42rem; }
+.account-next-step p { color: var(--ha-muted); }
+@media (max-width: 991px) { .auth-layout { gap: 2.5rem; } .auth-aside { padding: 2rem; } .auth-aside h2 { font-size: 2rem; } }
+@media (max-width: 767px) {
+ .auth-layout { grid-template-columns: 1fr; padding-top: 1.5rem; gap: 0; } .auth-aside { display: none; } .auth-form { max-width: 28rem; margin-inline: auto; padding: 1.5rem; }
+ .profile-layout > * { min-width: 0; }
+ .profile-layout { grid-template-columns: 1fr; gap: 2rem; } .activity-summary { gap: 1rem; padding: 1.25rem; } .activity-summary dt { font-size: .75rem; } .activity-summary dd { font-size: 1.75rem; }
+}

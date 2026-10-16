@@ -1,15 +1,15 @@
 @{ Layout = "_Layout"; }
 <div class="auth-layout container">
     <aside class="auth-aside">
-        <a class="text-decoration-none fw-semibold" asp-controller="Home" asp-action="Index">Back to HackAcad</a>
-        <h2>One account.<br />Room to keep learning.</h2>
-        <p>Work through cybersecurity lessons, practise your skills and keep your learning progress in one place.</p>
-        <p class="auth-note">New accounts start as Students. An administrator can grant Teacher access when you are ready to create courses.</p>
+        <h2>Build skills.<br />Keep your progress.</h2>
+        <p>A place to learn cybersecurity, put it into practice and see how far you have come.</p>
+        <ol class="learning-path">
+            <li><span class="path-marker" aria-hidden="true">1</span><div><strong>Learn the foundations</strong><span>Follow teacher-led courses.</span></div></li>
+            <li><span class="path-marker" aria-hidden="true">2</span><div><strong>Put them into practice</strong><span>Work through challenges and simulations.</span></div></li>
+            <li><span class="path-marker" aria-hidden="true">3</span><div><strong>Keep moving forward</strong><span>Return to your learning progress.</span></div></li>
+        </ol>
+        <p class="auth-note">Teaching here? Start with a Student account, then ask an administrator for Teacher access.</p>
     </aside>
-    <section class="auth-form" aria-labelledby="auth-title">
-        @RenderBody()
-    </section>
+    <section class="auth-form" aria-labelledby="auth-title">@RenderBody()</section>
 </div>
-@section Scripts {
-    @await RenderSectionAsync("Scripts", required: false)
-}
+@section Scripts { @await RenderSectionAsync("Scripts", required: false) }

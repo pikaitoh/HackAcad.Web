@@ -69,7 +69,10 @@ created_email = 'created.' + uuid.uuid4().hex[:12] + '@hackacad.local'
 temporary_users = [test_email, created_email]
 
 try:
-    check(student.request('/')[0] == 200, 'home page is available')
+    status, url, body = student.request('/')
+    check(status == 200 and 'class="landing-hero"' in body, 'anonymous visitors see the Home page')
+    check('>Home</a>' in body and 'aria-label="HackAcad home"' in body,
+        'visitor navigation includes Home and the home logo')
     check('/Identity/Account/Login' in student.request('/Admin')[1], 'anonymous users are redirected to login')
     check(student.request('/Identity/Account/Register', {'Role': 'Admin'})[0] == 400, 'POST without CSRF token is rejected')
     invalid = student.post('/Identity/Account/Register', {'DisplayName': 'Smoke', 'Email': test_email,
@@ -78,6 +81,12 @@ try:
     status, url, body = student.post('/Identity/Account/Register', {'DisplayName': 'Smoke learner', 'Email': test_email,
         'Password': PASSWORD, 'ConfirmPassword': PASSWORD, 'Role': 'Admin'})
     check(status == 200 and 'Dashboard' in url and '>Student</span>' in body, 'registration creates a Student and ignores an injected Admin role')
+    for home_path in ('/', '/Home', '/Home/Index'):
+        home_status, home_url, home_body = student.request(home_path)
+        check(home_status == 200 and '/Identity/Account/Dashboard' in home_url
+            and 'class="landing-hero"' not in home_body, 'signed-in Home request redirects to Dashboard: ' + home_path)
+    check('>Home</a>' not in home_body and 'aria-label="HackAcad dashboard"' in home_body,
+        'signed-in navigation omits Home and the logo targets Dashboard')
     check(student.request('/Admin')[0] == 403, 'Student cannot open admin pages')
     check(student.request('/Admin/Courses')[0] == 403, 'Student cannot moderate courses')
     invalid = student.post('/Identity/Account/Profile', {'DisplayName': ''})
@@ -100,7 +109,19 @@ try:
     check('Unable to sign in' in fresh.login(test_email)[2], 'old password no longer authenticates')
     check('Dashboard' in fresh.login(test_email, 'Changed@123!', 'https://example.invalid/')[1], 'external return URL cannot redirect a successful login')
 
-    check('Dashboard' in admin.login('demo.admin@hackacad.local')[1], 'development Admin can log in')
+    admin_status, admin_url, admin_body = admin.login('demo.admin@hackacad.local')
+    check(admin_status == 200 and urllib.parse.urlparse(admin_url).path == '/Admin'
+        and '<h1>Admin dashboard</h1>' in admin_body, 'Admin signs in directly to the Admin dashboard')
+    for entry_path in ('/', '/Home/Index', '/Identity/Account/Dashboard', '/Identity/Account/Login', '/Identity/Account/Register'):
+        check(urllib.parse.urlparse(admin.request(entry_path)[1]).path == '/Admin',
+            'signed-in Admin entry resolves to the Admin dashboard: ' + entry_path)
+    brand = re.search(r'<a[^>]*class="navbar-brand"[^>]*>', admin_body).group(0)
+    check('href="/Admin"' in brand and '>Dashboard</a>' in admin_body and '>Administration</a>' not in admin_body,
+        'Admin logo and single Dashboard navigation point to administration')
+    returned = Client().login('demo.admin@hackacad.local', return_url='/Admin/Users')
+    check(urllib.parse.urlparse(returned[1]).path == '/Admin/Users', 'Admin login preserves a valid local return destination')
+    external = Client().login('demo.admin@hackacad.local', return_url='https://example.invalid/')
+    check(urllib.parse.urlparse(external[1]).path == '/Admin', 'external return URL falls back to the Admin dashboard')
     check(admin.request('/Admin')[0] == 200, 'Admin can open the overview')
     check(admin.request('/Admin/Courses')[0] == 200, 'Admin can open course moderation')
     path = edit_path(admin, test_email)
@@ -110,6 +131,7 @@ try:
     check('/Admin/Users' in promoted[1], 'Admin can promote a Student to Teacher')
     check('/Login' in fresh.request('/Identity/Account/Dashboard')[1], 'role change revokes existing sessions immediately')
     check('>Teacher</span>' in fresh.login(test_email, 'Changed@123!')[2], 'promoted user receives Teacher claims')
+    check('/Identity/Account/Dashboard' in fresh.request('/')[1], 'signed-in Teacher is redirected from Home to Dashboard')
     check(fresh.request('/Admin')[0] == 403, 'Teacher cannot open admin pages')
 
     disabled = admin.post(path, edit_data(test_email, role='Teacher', disabled=True))
@@ -170,7 +192,9 @@ try:
     check('/Admin/Users' in deleted_user[1] and admin.request(created_path)[0] == 404, 'Admin deletes an unused account and its role marker')
     temporary_users.remove(created_email)
     check(fresh.request('/Identity/Account/Logout')[0] == 405, 'logout cannot be triggered by a GET request')
-    fresh.post('/Identity/Account/Logout', {})
+    logout_status, logout_url, logout_body = fresh.post('/Identity/Account/Logout', {})
+    check(logout_status == 200 and 'class="landing-hero"' in logout_body and '>Home</a>' in logout_body,
+        'logout returns the visitor to Home with public navigation')
     check('/Login' in fresh.request('/Identity/Account/Dashboard')[1], 'logout removes access to authenticated pages')
     print(f'All {checks} assertions passed.')
 finally:

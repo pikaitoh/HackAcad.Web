@@ -1,7 +1,6 @@
 @model CreateUserModel
 @{ ViewData["Title"] = "Create account"; }
-<div class="container module-shell">
-    <partial name="_AdminNav" />
+<div class="admin-content">
     <div class="page-heading"><div><h1>Create account</h1><p class="text-secondary">Create a user and assign their initial access.</p></div></div>
     <form asp-action="CreateUser" method="post" class="form-measure">
         <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
@@ -10,6 +9,6 @@
         <div class="mb-3"><label asp-for="Role" class="form-label"></label><select asp-for="Role" aria-invalid="@(ViewData.ModelState["Role"]?.Errors.Count > 0 ? "true" : null)" class="form-select" aria-describedby="Role-error">@foreach (var role in AccountRoles.All) { <option value="@role">@role</option> }</select><span id="Role-error" asp-validation-for="Role" class="field-error"></span></div>
         <div class="mb-3"><label asp-for="Password" class="form-label">Initial password</label><input asp-for="Password" aria-invalid="@(ViewData.ModelState["Password"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="new-password" minlength="8" maxlength="100" aria-describedby="password-help Password-error" required /><p id="password-help" class="form-text">Use 8–100 characters with uppercase, lowercase, a number and a symbol. The user can change it in their profile.</p><span id="Password-error" asp-validation-for="Password" class="field-error"></span></div>
         <div class="mb-4"><label asp-for="ConfirmPassword" class="form-label"></label><input asp-for="ConfirmPassword" aria-invalid="@(ViewData.ModelState["ConfirmPassword"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="new-password" data-match-password="Password" required  aria-describedby="ConfirmPassword-error" /><span id="ConfirmPassword-error" asp-validation-for="ConfirmPassword" class="field-error"></span></div>
-        <div class="form-actions"><button class="btn btn-dark" type="submit">Create account</button><a asp-action="Users" class="btn btn-outline-secondary">Cancel</a></div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit">Create account</button><a asp-action="Users" class="btn btn-outline-secondary">Cancel</a></div>
     </form>
 </div>

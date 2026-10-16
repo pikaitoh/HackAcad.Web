@@ -1,0 +1,67 @@
+/* Learning-platform patterns shared with module owners. See UI_GUIDE.md. */
+.learning-outline { min-width: 0; }
+.learning-outline details { border-bottom: 1px solid var(--ha-line); }
+.learning-outline details:first-child { border-top: 1px solid var(--ha-line); }
+.learning-outline summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.25rem .25rem; cursor: pointer; list-style: none; }
+.learning-outline summary::-webkit-details-marker { display: none; }
+.learning-outline summary::after { content: ""; width: 8px; height: 8px; border: solid currentColor; border-width: 0 1.5px 1.5px 0; transform: rotate(45deg); margin-right: .5rem; flex-shrink: 0; }
+.learning-outline details[open] > summary::after { transform: rotate(225deg); }
+.learning-outline summary strong,.learning-outline summary span > span { display: block; }
+.learning-outline summary strong { font-size: .9375rem; font-weight: 650; }
+.learning-outline summary span > span { color: var(--ha-muted); font-size: .8125rem; margin-top: .25rem; }
+.learning-outline summary:hover { color: var(--ha-primary); }
+.outline-content { padding: 0 .25rem 1.25rem; }
+.outline-content > p { color: var(--ha-muted); font-size: .875rem; line-height: 1.8; max-width: 65ch; }
+.outcome-list { margin: 0; font-size: .8125rem; }
+.outcome-list div { display: flex; gap: 1rem; align-items: baseline; }
+.outcome-list dt { color: var(--ha-ink); font-weight: 650; white-space: nowrap; }
+.outcome-list dd { color: var(--ha-muted); margin: 0; }
+.dashboard-layout { display: grid; grid-template-columns: minmax(0,1.85fr) minmax(16rem,1fr); gap: 2rem; align-items: start; }
+.workspace-start { background: var(--ha-dark); border-radius: var(--ha-radius); padding: 2rem; }
+.workspace-start h2 { color: white; font-size: 1.75rem; margin-bottom: .85rem; max-width: 28ch; }
+.workspace-start p { color: var(--ha-on-dark); max-width: 58ch; font-size: .9375rem; margin-bottom: 1.5rem; }
+.dashboard-activity { margin-top: 2.5rem; }
+.dashboard-activity .section-heading > span { font-size: .8125rem; }
+.dashboard-activity .activity-summary { margin-top: 0; }
+.learning-empty { padding-top: .5rem; }
+.learning-empty h3 { font-size: 1rem; margin-bottom: .5rem; }
+.learning-empty p { color: var(--ha-muted); font-size: .875rem; max-width: 65ch; }
+.dashboard-account { background: white; border: 1px solid var(--ha-line); border-radius: var(--ha-radius); padding: 1.75rem; }
+.dashboard-account > h2 { font-size: 1.125rem; }
+.dashboard-account > p { font-size: .8125rem; }
+.account-shortcuts > a { display: flex; align-items: center; gap: 1rem; justify-content: space-between; border-bottom: 1px solid var(--ha-line); padding: 1.1rem 0; color: var(--ha-ink); text-decoration: none; }
+.account-shortcuts strong,.account-shortcuts span > span { display: block; }
+.account-shortcuts strong { font-size: .875rem; font-weight: 620; }
+.account-shortcuts span > span { color: var(--ha-muted); font-size: .8125rem; margin-top: .3rem; }
+.account-shortcuts > a:hover strong { color: var(--ha-primary); text-decoration: underline; text-underline-offset: .2em; }
+.account-shortcuts svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.5; fill: none; flex-shrink: 0; }
+.account-access { margin-top: 1.5rem; }
+.account-access h3 { font-size: .875rem; }
+.account-access p { color: var(--ha-muted); font-size: .8125rem; margin: .6rem 0 0; }
+.review-queue { display: grid; grid-template-columns: 1fr 1.15fr; gap: 1.5rem; align-items: center; margin-block: 0 2rem; padding-block: .5rem 1.75rem; border-bottom: 1px solid var(--ha-line); }
+.review-queue h2 { font-size: 1.0625rem; margin-bottom: .4rem; }
+.review-queue p { font-size: .8125rem; color: var(--ha-muted); margin: 0; }
+.review-queue nav { display: grid; gap: .5rem; }
+.review-queue a { display: flex; justify-content: space-between; gap: 1rem; color: var(--ha-ink); font-size: .8125rem; text-decoration: none; padding-block: .5rem; }
+.review-queue a:hover span { color: var(--ha-primary); text-decoration: underline; }
+.review-queue strong { color: var(--ha-primary); font-variant-numeric: tabular-nums; }
+/* Demonstration on UiGuide only: module owners supply real records and actions. */
+.course-preview { padding: 1.75rem; border: 1px solid var(--ha-line); border-radius: var(--ha-radius); background: white; }
+.course-preview h3 { font-size: 1.25rem; margin-block: 1rem .75rem; }
+.course-preview > p { color: var(--ha-muted); font-size: .875rem; max-width: 60ch; }
+.course-metadata { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; color: var(--ha-muted); font-size: .8125rem; }
+.course-metadata > span { display: inline-flex; align-items: center; gap: .4rem; }
+.course-metadata svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.5; }
+.learning-progress { margin-block: 1.5rem 0; font-size: .8125rem; }
+.learning-progress > div { display: flex; justify-content: space-between; gap: 1rem; margin-bottom: .6rem; }
+.learning-progress progress { display: block; width: 100%; height: 7px; appearance: none; border: 0; border-radius: 4px; overflow: hidden; background: var(--ha-tint); accent-color: var(--ha-primary); }
+.learning-progress progress::-webkit-progress-bar { background: var(--ha-tint); }
+.learning-progress progress::-webkit-progress-value { background: var(--ha-primary); }
+.learning-progress progress::-moz-progress-bar { background: var(--ha-primary); }
+.guide-learning { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 2.5rem; margin-top: 1.5rem; }
+.guide-example-note { padding: 1rem 1.25rem; background: var(--ha-tint); border-radius: .5rem; color: var(--ha-primary-hover); font-size: .875rem; }
+@media (max-width: 991px) { .dashboard-layout { grid-template-columns: minmax(0,1.4fr) minmax(15rem,1fr); gap: 1.5rem; } .workspace-start { padding: 1.5rem; } .workspace-start h2 { font-size: 1.5rem; } .dashboard-account { padding: 1.25rem; } .review-queue { grid-template-columns: 1fr; gap: .75rem; } }
+@media (max-width: 767px) {
+ .dashboard-layout,.guide-learning { grid-template-columns: 1fr; gap: 2rem; }
+ .dashboard-activity { margin-top: 2rem; } .workspace-start { padding: 1.5rem; } .outcome-list div { display: block; } .outcome-list dt { margin-bottom: .3rem; } .course-preview { padding: 1.25rem; }
+}

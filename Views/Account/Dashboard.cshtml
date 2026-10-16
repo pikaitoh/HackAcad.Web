@@ -1,22 +1,26 @@
 @model DashboardModel
-@{ ViewData["Title"] = "My account"; }
+@{ ViewData["Title"] = "Dashboard"; var isTeacher = User.IsInRole(AccountRoles.Teacher); }
 <div class="container module-shell">
-    <div class="page-heading">
-        <div><h1>Hello, @Model.DisplayName</h1><p class="text-secondary">Your HackAcad account and learning activity.</p></div>
-        <a class="btn btn-outline-dark" asp-action="Profile">Edit profile</a>
+    <div class="page-heading"><div><h1>Hello, @Model.DisplayName</h1><p class="text-secondary">Your learning activity and account workspace.</p></div><span class="role-badge" data-role="@Model.Role">@Model.Role</span></div>
+    <div class="dashboard-layout">
+        <div class="dashboard-primary">
+            <section class="workspace-start" aria-labelledby="next-title">
+                <h2 id="next-title">@(isTeacher ? "Your teaching and learning account." : "Your next step starts here.")</h2>
+                <p>Your account is ready. Keep your profile up to date and use this dashboard to review your learning activity.</p><a class="btn btn-primary" asp-action="Profile">Review my profile</a>
+            </section>
+            <section aria-labelledby="learning-title" class="dashboard-activity"><div class="section-heading"><h2 id="learning-title">Learning activity</h2><span class="text-secondary">Your totals</span></div>
+                <dl class="activity-summary"><div><dt>Course enrolments</dt><dd>@Model.EnrollmentCount</dd></div><div><dt>Activities completed</dt><dd>@Model.CompletedActivities</dd></div><div><dt>Challenges solved</dt><dd>@Model.SolvedChallenges</dd></div></dl>
+                @if (Model.EnrollmentCount == 0) { <div class="learning-empty"><h3>Your learning record is ready.</h3><p>There are no course enrolments on this account yet. Your totals will update as you take part in learning activities.</p></div> }
+                else { <p class="text-secondary">These totals reflect the learning records saved to your account.</p> }
+            </section>
+        </div>
+        <aside class="dashboard-account" aria-labelledby="workspace-account-title">
+            <h2 id="workspace-account-title">Your account</h2><p class="text-secondary">Profile, password and access.</p>
+            <nav class="account-shortcuts" aria-label="Account settings"><a asp-action="Profile"><span><strong>My profile</strong><span>View account details and edit your name.</span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></a><a asp-action="ChangePassword"><span><strong>Password &amp; security</strong><span>Change your password securely.</span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></a></nav>
+            <div class="account-access"><h3>@Model.Role access</h3>
+                @if (isTeacher) { <p>Your account has Teacher access and can own courses. Your personal learning activity stays on this account.</p> }
+                else { <p>Your account has Student access. If you need to teach, ask an administrator to review your role.</p> }
+            </div>
+        </aside>
     </div>
-    <p class="mb-4">Signed in as <span class="role-badge">@Model.Role</span></p>
-    <section aria-labelledby="learning-title">
-        <h2 id="learning-title" class="h4">Learning activity</h2>
-        <dl class="activity-summary">
-            <div><dt>Course enrolments</dt><dd>@Model.EnrollmentCount</dd></div>
-            <div><dt>Activities completed</dt><dd>@Model.CompletedActivities</dd></div>
-            <div><dt>Challenges solved</dt><dd>@Model.SolvedChallenges</dd></div>
-        </dl>
-        @if (Model.EnrollmentCount == 0) { <p class="text-secondary">Your course enrolments and completed activities will appear here as you learn.</p> }
-    </section>
-    @if (User.IsInRole(AccountRoles.Admin))
-    {
-        <section class="account-next-step"><h2 class="h4">Platform administration</h2><p>Manage accounts, review platform activity and moderate courses.</p><a class="btn btn-dark" asp-controller="Admin" asp-action="Index">Open admin overview</a></section>
-    }
 </div>

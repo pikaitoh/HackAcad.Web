@@ -75,4 +75,10 @@ python tests/auth_smoke.py http://127.0.0.1:5097
 
 Python uses only its standard library. Set `HACKACAD_DEMO_PASSWORD` if the seeded Admin password has been changed. Optional `TEST_COURSE_RETAINED_ID` and `TEST_COURSE_UNUSED_ID` enable moderation checks with fixtures in the dedicated database; the unused course is deleted by the check.
 
-The skeleton's public Browse courses link still depends on the team's Course controller. Learning / badge authoring modules have not been implemented as part of the Admin work.
+## Shared UI
+
+Read the [team UI guide](UI_GUIDE.md) before building module pages. Start a Development instance and open `/Home/UiGuide` for shared component examples. This route returns 404 outside Development.
+
+The Dashboard leads with role-aware tasks and real learning totals, alongside profile and password links. Admin overview links disabled-account and unpublished-course counts to existing filters. Course, outline and progress examples in the UI guide are illustrative; their module owners supply real data and working learning routes.
+
+The public home page offers Account registration or login; signed-in users can open their Dashboard. Learning and badge authoring modules remain with their team owners.
