@@ -2,14 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace HackAcad.Web.Models.ViewModels;
 
-public class ResendVerificationModel
-{
-    [Required(ErrorMessage = "Enter your email address."), EmailAddress(ErrorMessage = AccountValidation.EmailMessage), StringLength(256)]
-    [RegularExpression(AccountValidation.EmailPattern, ErrorMessage = AccountValidation.EmailMessage)]
-    public string Email { get => email; set => email = value?.Trim() ?? ""; }
-    private string email = "";
-}
-
 public class LoginModel
 {
     [Required(ErrorMessage = "Enter your email address."), EmailAddress(ErrorMessage = AccountValidation.EmailMessage), StringLength(256)]
@@ -73,6 +65,7 @@ public class PhoneCodeInput
 
 public class AccountSettingsModel
 {
+    public bool GoogleConnected { get; set; }
     public bool TwoFactorEnabled { get; set; }
     public string Email { get; set; } = "";
     public bool EmailConfirmed { get; set; }
@@ -97,6 +90,10 @@ public class ChangeEmailModel
 
 public class ChangePasswordModel
 {
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public bool HasPassword { get; set; } = true;
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public bool RecentGoogleLogin { get; set; }
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
     public DateTime? LastLoginUtc { get; set; }
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]

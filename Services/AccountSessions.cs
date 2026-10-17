@@ -10,6 +10,7 @@ namespace HackAcad.Web.Services;
 
 public class AccountSessions(ApplicationDbContext db)
 {
+    public const string GoogleTimeClaim = "hackacad:google-auth-time";
     public const string ClaimName = "hackacad:session";
 
     public async Task SigningInAsync(CookieSigningInContext context)

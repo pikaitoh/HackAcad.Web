@@ -1,0 +1,10 @@
+@model string
+@inject Microsoft.AspNetCore.Identity.SignInManager<ApplicationUser> GoogleSignIn
+@if ((await GoogleSignIn.GetExternalAuthenticationSchemesAsync()).Any(s => s.Name == "Google"))
+{
+    <form asp-controller="Account" asp-action="GoogleLogin" method="post" class="google-login-form">
+        <input type="hidden" name="returnUrl" value="@Model" />
+        <button type="submit" class="btn google-login-button"><partial name="_GoogleMark" /><span>Continue with Google</span></button>
+    </form>
+    <div class="auth-divider"><span>or use your email</span></div>
+}

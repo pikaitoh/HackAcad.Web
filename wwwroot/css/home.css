@@ -60,33 +60,3 @@
 .landing-questions details[open] summary::after { transform: rotate(225deg); }
 .landing-questions p { color: var(--landing-muted); font-size: .9375rem; line-height: 1.75; margin: 0 1.5rem 1.2rem 0; }
 .home-landing .site-footer { margin-top: 0; }
-@media (max-width: 1199px) {
- .landing-student { width: 330px; left: -30px; } .landing-preview { width: 250px; right: 18px; padding: 1.25rem; }
- .landing-hero-copy { width: 62%; } .landing-hero-copy h1 { font-size: 3rem; } .landing-hero-copy > p { max-width: 44ch; }
- .landing-practice { gap: 3rem; }
-}
-@media (max-width: 991px) {
- .landing-hero-inner { min-height: 760px; } .landing-hero-copy { width: 90%; padding-top: 2.5rem; padding-bottom: 24rem; }
- .landing-student { width: 310px; left: 25px; } .landing-preview { bottom: 32px; right: 45px; width: 250px; }
- .landing-formats-inner { gap: 1.5rem; } .landing-formats h2 { font-size: 1.125rem; }
- .landing-practice-copy h2 { font-size: 1.85rem; } .landing-faq { gap: 3rem; }
-}
-@media (max-width: 767px) {
- .landing-hero-inner { min-height: 770px; } .landing-hero-copy { width: auto; margin-inline: 1.25rem; padding-top: 2rem; padding-bottom: 22rem; }
- .landing-hero-copy h1 { font-size: 2.375rem; line-height: 1.14; margin-bottom: 1.25rem; }
- .landing-hero-copy > p { font-size: 1rem; max-width: 34ch; line-height: 1.7; }
- .landing-actions { gap: .75rem; margin-top: 1.5rem; } .landing-actions .btn { font-size: .875rem; padding: .8rem 1.35rem; }
- .landing-student { width: 265px; left: -30px; }
- .landing-preview { width: 180px; right: 12px; bottom: 24px; padding: 1rem; transform: rotate(2deg); }
- .preview-brand { font-size: .75rem; margin-bottom: .75rem; } .landing-preview h2 { font-size: .9375rem; margin-bottom: .75rem; }
- .landing-preview li { gap: .45rem; padding-block: .7rem; } .landing-preview li > svg { width: 14px; height: 14px; }
- .landing-preview li strong { font-size: .75rem; } .landing-preview li span { font-size: .6875rem; } .landing-preview > p { font-size: .6875rem; }
- .landing-formats { padding-block: 2rem; } .landing-formats-inner { grid-template-columns: 1fr; gap: 1.5rem; text-align: left; }
- .landing-formats-inner > div { padding-bottom: 1.5rem; border-bottom: 1px solid #52787a; } .landing-formats-inner > div:last-child { padding-bottom: 0; border: 0; }
- .landing-formats h2 { font-size: 1.125rem; } .landing-formats p { max-width: none; margin: 0; font-size: .875rem; }
- .landing-practice { grid-template-columns: 1fr; gap: 2rem; padding-block: 3rem; } .landing-practice-copy h2 { font-size: 2rem; }
- .terminal-content { padding: 1.25rem; } .terminal-content pre { font-size: .75rem; } .landing-terminal figcaption { padding: 1rem 1.25rem; }
- .landing-teaching-inner { flex-direction: column; align-items: flex-start; gap: 1.5rem; } .landing-teaching h2 { font-size: 1.5rem; }
- .landing-faq { grid-template-columns: 1fr; gap: 1.5rem; padding-block: 3rem; } .landing-faq h2 { font-size: 1.5rem; }
- .landing-questions summary { font-size: .9375rem; } .landing-questions p { font-size: .875rem; }
-}

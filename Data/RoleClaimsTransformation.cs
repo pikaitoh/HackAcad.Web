@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using HackAcad.Web.Services;
 
@@ -12,7 +13,9 @@ public class RoleClaimsTransformation(ApplicationDbContext db, ILogger<RoleClaim
     public async Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
     {
         var userId = principal.FindFirstValue(ClaimTypes.NameIdentifier);
-        if (userId is null || principal.Identity is not ClaimsIdentity identity || !identity.IsAuthenticated) return principal;
+        // External Google subjects are not local account IDs; preserve their temporary identity ticket.
+        if (userId is null || principal.Identity is not ClaimsIdentity identity || !identity.IsAuthenticated
+            || identity.AuthenticationType != IdentityConstants.ApplicationScheme) return principal;
         foreach (var claim in identity.FindAll(identity.RoleClaimType).ToList()) identity.RemoveClaim(claim);
         try
         {

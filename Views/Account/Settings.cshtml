@@ -10,4 +10,17 @@
         @if (!Model.EmailConfirmed) { <a asp-action="ResendVerification" class="btn btn-outline-secondary">Resend verification email</a> }
         </div>
     </section>
+    <section class="form-measure mt-4" aria-labelledby="google-title">
+        <h2 id="google-title">Google sign-in</h2>
+        @if (TempData["Error"] is string error) { <p class="field-error" role="alert">@error</p> }
+        @if (Model.GoogleConnected) { <p class="status-label status-active">Connected</p><p class="text-secondary mb-0">You can use Google to log in to this account.</p> }
+        else
+        {
+            <p class="text-secondary">Connect the Google account that uses your current HackAcad email.</p>
+            @inject Microsoft.AspNetCore.Identity.SignInManager<ApplicationUser> GoogleSignIn
+            @if ((await GoogleSignIn.GetExternalAuthenticationSchemesAsync()).Any(s => s.Name == "Google"))
+            { <form asp-action="GoogleLogin" method="post"><input type="hidden" name="connect" value="true" /><button type="submit" class="btn google-login-button"><partial name="_GoogleMark" /><span>Connect Google</span></button></form> }
+            else { <p class="text-secondary mb-0">Google sign-in is currently unavailable.</p> }
+        }
+    </section>
 </div>

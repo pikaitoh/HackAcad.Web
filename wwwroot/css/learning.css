@@ -60,8 +60,3 @@
 .learning-progress progress::-moz-progress-bar { background: var(--ha-primary); }
 .guide-learning { display: grid; grid-template-columns: 1fr 1fr; align-items: start; gap: 2.5rem; margin-top: 1.5rem; }
 .guide-example-note { padding: 1rem 1.25rem; background: var(--ha-tint); border-radius: .5rem; color: var(--ha-primary-hover); font-size: .875rem; }
-@media (max-width: 991px) { .dashboard-layout { grid-template-columns: minmax(0,1.4fr) minmax(15rem,1fr); gap: 1.5rem; } .workspace-start { padding: 1.5rem; } .workspace-start h2 { font-size: 1.5rem; } .dashboard-account { padding: 1.25rem; } .review-queue { grid-template-columns: 1fr; gap: .75rem; } }
-@media (max-width: 767px) {
- .dashboard-layout,.guide-learning { grid-template-columns: 1fr; gap: 2rem; }
- .dashboard-activity { margin-top: 2rem; } .workspace-start { padding: 1.5rem; } .outcome-list div { display: block; } .outcome-list dt { margin-bottom: .3rem; } .course-preview { padding: 1.25rem; }
-}

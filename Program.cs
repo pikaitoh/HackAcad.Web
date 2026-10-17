@@ -34,7 +34,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, serverVersion);
 });
 
-// --- Identity: login/password only. Roles live in Students/Teachers/Admins,
+// --- Identity: password and Google sign-in. Roles live in Students/Teachers/Admins,
 // not AspNetRoles — see Data/RoleClaimsTransformation.cs and Database_Schema.md v3.0. ---
 builder.Services
     .AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -50,10 +50,35 @@ builder.Services
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+// Register Google only when both credentials are configured locally.
+var googleId = builder.Configuration["Authentication:Google:ClientId"];
+var googleSecret = builder.Configuration["Authentication:Google:ClientSecret"];
+if (!string.IsNullOrWhiteSpace(googleId) && !string.IsNullOrWhiteSpace(googleSecret))
+{
+    builder.Services.AddAuthentication().AddGoogle(options =>
+    {
+        options.ClientId = googleId;
+        options.ClientSecret = googleSecret;
+        options.SignInScheme = IdentityConstants.ExternalScheme;
+        options.UsePkce = true;
+        options.SaveTokens = false;
+        options.ClaimActions.MapJsonKey("google:email_verified", "email_verified");
+        options.ClaimActions.MapJsonKey("google:hosted_domain", "hd");
+        options.Events.OnRemoteFailure = context =>
+        {
+            context.HandleResponse();
+            context.Response.Redirect("/Identity/Account/Login?googleError=failed");
+            return Task.CompletedTask;
+        };
+    });
+}
+builder.Services.ConfigureExternalCookie(options => options.ExpireTimeSpan = TimeSpan.FromMinutes(10));
+
 builder.Services.AddTransient<IClaimsTransformation, RoleClaimsTransformation>();
 
 builder.Services.AddScoped<UserAccounts>();
 builder.Services.AddScoped<EmailVerification>();
+builder.Services.AddHttpClient<GmailEmail>(client => client.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddScoped<AccountRecords>();
 builder.Services.AddScoped<AccountSessions>();
 builder.Services.AddSingleton<PhoneVerification>();
@@ -95,8 +120,9 @@ builder.Services.Configure<SecurityStampValidatorOptions>(options =>
     options.ValidationInterval = TimeSpan.Zero;
     options.OnRefreshingPrincipal = context =>
     {
-        var session = context.CurrentPrincipal?.FindFirst(AccountSessions.ClaimName);
-        if (session is not null && context.NewPrincipal?.Identity is ClaimsIdentity identity) identity.AddClaim(session);
+        if (context.NewPrincipal?.Identity is ClaimsIdentity identity)
+            foreach (var type in new[] { AccountSessions.ClaimName, AccountSessions.GoogleTimeClaim })
+                if (context.CurrentPrincipal?.FindFirst(type) is { } claim) identity.AddClaim(claim);
         return Task.CompletedTask;
     };
 });

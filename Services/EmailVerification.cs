@@ -1,7 +1,5 @@
 using System.Text;
 using HackAcad.Web.Models.Entities;
-using MailKit.Net.Smtp;
-using MailKit.Security;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Caching.Memory;
@@ -10,7 +8,7 @@ using MimeKit;
 namespace HackAcad.Web.Services;
 
 public class EmailVerification(UserManager<ApplicationUser> users, IConfiguration config,
-    IWebHostEnvironment environment, IMemoryCache cache, ILogger<EmailVerification> logger)
+    IWebHostEnvironment environment, IMemoryCache cache, GmailEmail gmail, ILogger<EmailVerification> logger)
 {
     private static readonly object CooldownLock = new();
 
@@ -22,14 +20,13 @@ public class EmailVerification(UserManager<ApplicationUser> users, IConfiguratio
         var recipient = newEmail ?? user.Email!;
         var pickup = environment.IsDevelopment() ? config["Email:DevelopmentPickupDirectory"] : null;
         var address = config["Email:GmailAddress"];
-        var password = config["Email:AppPassword"]?.Replace(" ", "");
         if (!Uri.TryCreate(config["Email:PublicBaseUrl"], UriKind.Absolute, out var origin)
             || origin.AbsolutePath != "/" || !string.IsNullOrEmpty(origin.Query)
             || !string.IsNullOrEmpty(origin.Fragment) || !string.IsNullOrEmpty(origin.UserInfo)
             || (origin.Scheme != "https" && !(environment.IsDevelopment() && origin.Scheme == "http" && origin.IsLoopback))
-            || (string.IsNullOrWhiteSpace(pickup) && (string.IsNullOrWhiteSpace(address) || string.IsNullOrWhiteSpace(password))))
+            || (string.IsNullOrWhiteSpace(pickup) && (string.IsNullOrWhiteSpace(address) || !gmail.IsConfigured)))
         {
-            logger.LogWarning("Email verification delivery is not configured. Set Email settings locally.");
+            logger.LogWarning("Email verification delivery is not configured. Authorize the Gmail API sender locally.");
             return false;
         }
 
@@ -72,18 +69,14 @@ public class EmailVerification(UserManager<ApplicationUser> users, IConfiguratio
                 return true;
             }
 
-            using var smtp = new SmtpClient { Timeout = 15000 };
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            await smtp.ConnectAsync("smtp.gmail.com", 587, SecureSocketOptions.StartTls, timeout.Token);
-            await smtp.AuthenticateAsync(address!, password!, timeout.Token);
-            await smtp.SendAsync(message, timeout.Token);
-            await smtp.DisconnectAsync(true, timeout.Token);
+            await gmail.SendAsync(message, timeout.Token);
             return true;
         }
         catch (Exception error)
         {
             cache.Remove(key);
-            // SMTP exception text can contain private addresses. Do not log bodies, tokens or credentials.
+            // Provider exception text can contain private addresses. Do not log bodies, tokens or credentials.
             logger.LogWarning("Verification email delivery failed ({ErrorType}).", error.GetType().Name);
             return false;
         }

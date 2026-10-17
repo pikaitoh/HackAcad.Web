@@ -207,9 +207,9 @@ try:
     email_main=a.request(ACCOUNT+'Settings')[2].split('<main',1)[1].split('</main>',1)[0]
     check('Change email' in email_main and 'name="Phone.PhoneNumber"' not in email_main, 'email and phone forms are separate functions')
     student_nav=student.request(ACCOUNT+'Settings')[2]
-    check('>Two-factor authentication</span>' not in student_nav, 'Student account navigation preserves the Admin-only 2FA setup rule')
+    check('>Two-factor authentication</span>' in student_nav, 'Student account navigation offers personal 2FA setup')
 
-    check(student.request(ACCOUNT+'TwoFactor')[0]==403, 'initial authenticator setup is restricted to Admin')
+    check(student.request(ACCOUNT+'TwoFactor')[0]==200, 'Student can open personal authenticator settings')
     check('/TwoFactor' in a.request(ACCOUNT+'EnableAuthenticator')[1], 'setup key is unavailable without recent password confirmation')
     wrong=a.post(ACCOUNT+'BeginAuthenticator',{'CurrentPassword':'Wrong@123!'},source=ACCOUNT+'TwoFactor')
     check('Your current password is incorrect.' in wrong[2] and 'data:image/png' not in wrong[2], 'incorrect password cannot reveal an authenticator setup key')

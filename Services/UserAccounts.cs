@@ -43,6 +43,19 @@ public class UserAccounts(ApplicationDbContext db, UserManager<ApplicationUser> 
         return IdentityResult.Success;
     }
 
+    public async Task<IdentityResult> CreateGoogleAsync(ApplicationUser user, UserLoginInfo login)
+    {
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var result = await users.CreateAsync(user);
+        if (!result.Succeeded) return result;
+        result = await users.AddLoginAsync(user, login);
+        if (!result.Succeeded) return result;
+        AddRole(user.Id, AccountRoles.Student);
+        await db.SaveChangesAsync();
+        await transaction.CommitAsync();
+        return IdentityResult.Success;
+    }
+
     public async Task<IdentityResult> UpdateAsync(ApplicationUser user, EditUserModel input, string actorId)
     {
         if (!AccountRoles.All.Contains(input.Role)) return Error("Choose a valid role.");

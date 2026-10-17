@@ -1,16 +1,18 @@
+@model string
 @{ Layout = "_AuthLayout"; ViewData["Title"] = "Verify your email"; }
 <h1 id="auth-title">Check your email</h1>
+<p>Verify <strong class="text-break">@Model</strong> to finish creating your account.</p>
 @if (TempData["VerificationDeliveryFailed"] is true)
 {
-    <p role="alert">Your account was created, but we couldn't send the verification email. You need to verify your email before logging in.</p>
-    <p class="text-secondary mb-4">Try requesting another email below. If it still doesn't arrive, contact an administrator.</p>
+    <div class="alert alert-danger" role="alert">We couldn't send the verification email. Try again below. If it still doesn't arrive, contact an administrator.</div>
 }
-else
+else if (TempData["VerificationRequested"] is true)
 {
-    <p>Open the verification email from HackAcad and follow the link to finish setting up your account.</p>
-    <p class="text-secondary mb-4">The link expires in 10 minutes. Check your spam folder if you don't see it, and allow a minute before requesting another email.</p>
+    <div class="alert alert-success" role="status">Verification email requested. Check your inbox and spam folder. Allow a minute before requesting another email.</div>
 }
-<div class="form-actions">
-    <a asp-action="Login" class="btn btn-primary">Go to log in</a>
-    <a asp-action="ResendVerification">Resend verification email</a>
-</div>
+<p class="text-secondary mb-4">Open the link in your HackAcad verification email. The link expires in 10 minutes. Check your spam folder if you don't see it.</p>
+<form asp-action="ResendVerification" method="post" class="mb-3" data-account-form>
+    <button type="submit" class="btn btn-primary w-100">Resend verification email</button>
+</form>
+<p class="text-secondary">You can request another email once a minute.</p>
+<a asp-action="Login" class="btn btn-outline-secondary">Go to log in</a>

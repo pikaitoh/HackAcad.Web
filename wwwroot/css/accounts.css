@@ -49,14 +49,8 @@
 .phone-confirmation { margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--ha-line); }
 .phone-confirmation strong { overflow-wrap: anywhere; }
 .otp-input { max-width: 14rem; font-variant-numeric: tabular-nums; letter-spacing: .15em; }
-@media (max-width: 991px) { .auth-layout { gap: 2.5rem; } .auth-aside { padding: 2rem; } .auth-aside h2 { font-size: 2rem; } }
-@media (max-width: 767px) {
- .auth-layout { grid-template-columns: 1fr; padding-top: 1.5rem; gap: 0; } .auth-aside { display: none; } .auth-form { max-width: 28rem; margin-inline: auto; padding: 1.5rem; }
- .profile-layout > * { min-width: 0; }
- .profile-layout { grid-template-columns: 1fr; gap: 2rem; } .activity-summary { gap: 1rem; padding: 1.25rem; } .activity-summary dt { font-size: .75rem; } .activity-summary dd { font-size: 1.75rem; }
- .signed-in-nav { gap: 1rem; } .phone-settings { padding: 1.5rem; }
- .profile-photo { gap: 1rem; } .profile-avatar { width: 88px; height: 88px; }
-}
+
+
 
 /* Manage account uses one stable navigation shell for all security functions. */
 .account-workspace { display: grid; grid-template-columns: 220px minmax(0, 1fr); align-items: start; gap: 3rem; padding-top: 2.5rem; min-height: 70vh; }
@@ -71,10 +65,16 @@
 .account-panel > .page-heading { margin-bottom: 2rem; }
 .account-panel .form-measure { width: 100%; max-width: 42rem; }
 .account-panel .security-explanation { max-width: 65ch; }
-@media (max-width: 991px) { .account-workspace { grid-template-columns: 200px minmax(0, 1fr); gap: 2rem; } .account-panel .form-measure { padding: 1.5rem; } }
-@media (max-width: 767px) {
- .account-workspace { grid-template-columns: 1fr; gap: 2rem; padding-top: 1.5rem; }
- .account-sidebar-title { margin: 0 0 .75rem; }
- .account-settings-nav { flex-direction: row; overflow-x: auto; padding: .2rem .2rem .6rem; gap: .35rem; }
- .account-settings-nav a { flex-shrink: 0; white-space: nowrap; }
-}
+
+
+
+.google-login-button { display: inline-flex; align-items: center; justify-content: center; gap: .75rem; min-height: 44px; border: 1px solid #747775; border-radius: 6px; color: #1f1f1f; background: white; font-family: Arial, sans-serif; font-size: .875rem; font-weight: 500; } /* impeccable-disable-line overused-font: Google provider branding uses neutral Arial; HackAcad retains Figtree. */
+.google-login-button svg { flex-shrink: 0; }
+.google-login-button:hover { background: #f3f5f4; border-color: #474a48; color: #1f1f1f; }
+.google-login-form .google-login-button { width: 100%; }
+.auth-divider { display: flex; align-items: center; gap: 1rem; margin-block: 1.5rem; color: var(--ha-muted); font-size: .8125rem; }
+.auth-divider::before, .auth-divider::after { content: ""; flex: 1; height: 1px; background: var(--ha-line); }
+.google-account-email { display: flex; align-items: center; gap: .75rem; margin-block: 1.5rem; overflow-wrap: anywhere; }
+.google-account-email svg { flex-shrink: 0; }
+.google-account-email span { min-width: 0; }
+.google-notice { color: var(--ha-ink); background: var(--ha-tint); border-radius: 8px; padding: 1rem; font-size: .875rem; }

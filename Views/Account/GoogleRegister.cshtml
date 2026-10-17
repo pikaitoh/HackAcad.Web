@@ -1,0 +1,13 @@
+@model GoogleRegisterModel
+@{ Layout = "_AuthLayout"; ViewData["Title"] = "Finish creating your account"; }
+<h1 id="auth-title">Make yourself at home</h1>
+<p class="text-secondary">Choose the username people will see on HackAcad.</p>
+<p class="google-account-email"><partial name="_GoogleMark" /><span>@Model.Email</span></p>
+<form asp-action="GoogleRegister" method="post" data-account-form>
+    <input asp-for="ReturnUrl" type="hidden" />
+    <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+    <div class="mb-4"><label asp-for="DisplayName" class="form-label"></label><input asp-for="DisplayName" class="form-control" autocomplete="nickname" minlength="2" maxlength="50" required autofocus aria-invalid="@(ViewData.ModelState["DisplayName"]?.Errors.Count > 0 ? "true" : null)" aria-describedby="DisplayName-help DisplayName-error" /><p id="DisplayName-help" class="form-text">2–50 characters. Use letters, numbers, spaces, . _ - or apostrophes.</p><span asp-validation-for="DisplayName" id="DisplayName-error" class="field-error" aria-live="polite"></span></div>
+    <p class="form-text">Your account starts as a Student. You can set a HackAcad password later in Manage account.</p>
+    <button class="btn btn-primary w-100" type="submit">Create Student account</button>
+</form>
+<p class="mt-3 mb-0"><a asp-action="Login" class="btn btn-outline-secondary btn-sm">Cancel</a></p>

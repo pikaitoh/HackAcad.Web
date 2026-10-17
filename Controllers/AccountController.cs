@@ -31,25 +31,39 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         // The public form cannot choose or bind a privileged role.
         var result = await accounts.CreateAsync(user, input.Password, AccountRoles.Student);
         if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result); return View(input); }
+        TempData["VerificationEmail"] = user.Email;
         TempData["VerificationDeliveryFailed"] = !await verification.SendAsync(user);
         return RedirectToAction(nameof(VerificationPending));
     }
 
     [AllowAnonymous, HttpGet]
-    public IActionResult VerificationPending() => View();
+    public async Task<IActionResult> VerificationPending()
+    {
+        var user = await PendingVerificationUser();
+        if (user is null) return RedirectToAction(nameof(Login));
+        if (user.EmailConfirmed) return RedirectToAction(nameof(Login));
+        return View(model: user.Email);
+    }
 
-    [AllowAnonymous, HttpGet]
-    public IActionResult ResendVerification() => View(new ResendVerificationModel());
+    private async Task<ApplicationUser?> PendingVerificationUser()
+    {
+        if (User.Identity?.IsAuthenticated == true) return await users.GetUserAsync(User);
+        // Cookie TempData is protected by ASP.NET; never accept a recipient from the form or URL.
+        return TempData.Peek("VerificationEmail") is string email ? await users.FindByEmailAsync(email) : null;
+    }
+
+    [AllowAnonymous, HttpGet, ActionName(nameof(ResendVerification))]
+    public IActionResult ResendVerificationPage() => RedirectToAction(nameof(VerificationPending));
 
     [AllowAnonymous, HttpPost, EnableRateLimiting("verification-email")]
-    public async Task<IActionResult> ResendVerification(ResendVerificationModel input)
+    public async Task<IActionResult> ResendVerification()
     {
-        if (!ModelState.IsValid) return View(input);
-        var user = await users.FindByEmailAsync(input.Email);
-        if (user is not null) await verification.SendAsync(user);
-        // Same response for unknown, disabled, confirmed and pending accounts.
+        var user = await PendingVerificationUser();
+        if (user is null) return RedirectToAction(nameof(Login));
+        if (user.EmailConfirmed) return RedirectToAction(nameof(Login));
+        TempData["VerificationDeliveryFailed"] = !await verification.SendAsync(user);
         TempData["VerificationRequested"] = true;
-        return RedirectToAction(nameof(ResendVerification));
+        return RedirectToAction(nameof(VerificationPending));
     }
 
     [AllowAnonymous, HttpGet]
@@ -75,8 +89,12 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     }
 
     [AllowAnonymous, HttpGet]
-    public IActionResult Login(string? returnUrl = null) => User.Identity?.IsAuthenticated == true
-        ? RedirectToAction(nameof(Dashboard)) : View(new LoginModel { ReturnUrl = returnUrl });
+    public IActionResult Login(string? returnUrl = null, string? googleError = null)
+    {
+        if (User.Identity?.IsAuthenticated == true) return RedirectToAction(nameof(Dashboard));
+        if (googleError is not null) ModelState.AddModelError("", "Google sign-in could not be completed. Try again or use your email and password.");
+        return View(new LoginModel { ReturnUrl = returnUrl });
+    }
 
     [AllowAnonymous, HttpPost]
     public async Task<IActionResult> Login(LoginModel input)
@@ -98,6 +116,17 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
                 return RedirectToAction(nameof(LoginTwoFactor), new { input.RememberMe, input.ReturnUrl });
             }
             await records.LoginAsync(user.Id, result.IsLockedOut ? "Locked out" : "Failed");
+            if (result.IsNotAllowed && !user.EmailConfirmed && !await users.IsLockedOutAsync(user))
+            {
+                if (await users.CheckPasswordAsync(user, input.Password))
+                {
+                    await users.ResetAccessFailedCountAsync(user);
+                    TempData["VerificationEmail"] = user.Email;
+                    return RedirectToAction(nameof(VerificationPending));
+                }
+                // Identity checks confirmation before passwords; recovery must still count failed attempts.
+                await users.AccessFailedAsync(user);
+            }
         }
         ModelState.AddModelError("", "Unable to sign in. Check your email and password, verify your email, or try again later if access is temporarily locked. Contact an administrator if access is disabled.");
         return View(input);
@@ -223,7 +252,10 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     public async Task<IActionResult> Settings()
     {
         var user = await users.GetUserAsync(User);
-        return user is null ? Challenge() : View(SettingsData(user));
+        if (user is null) return Challenge();
+        var model = SettingsData(user);
+        model.GoogleConnected = (await users.GetLoginsAsync(user)).Any(l => l.LoginProvider == "Google");
+        return View(model);
     }
 
     [HttpGet]
@@ -359,8 +391,10 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     public async Task<IActionResult> ChangePassword()
     {
         var row = await accounts.Query().SingleOrDefaultAsync(u => u.Id == users.GetUserId(User));
-        return row is null ? Challenge() : View(new ChangePasswordModel {
-            LastLoginUtc = row.LastLoginUtc, LastPasswordChangedUtc = row.LastPasswordChangedUtc });
+        if (row is null) return Challenge();
+        var user = await users.FindByIdAsync(row.Id);
+        return View(new ChangePasswordModel { LastLoginUtc = row.LastLoginUtc, LastPasswordChangedUtc = row.LastPasswordChangedUtc,
+            HasPassword = await users.HasPasswordAsync(user!), RecentGoogleLogin = HasRecentGoogleLogin() });
     }
 
     [HttpPost]
@@ -371,10 +405,18 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         var row = await accounts.Query().SingleAsync(u => u.Id == user.Id);
         input.LastLoginUtc = row.LastLoginUtc;
         input.LastPasswordChangedUtc = row.LastPasswordChangedUtc;
+        input.HasPassword = await users.HasPasswordAsync(user);
+        input.RecentGoogleLogin = HasRecentGoogleLogin();
+        if (!input.HasPassword)
+        {
+            ModelState.Remove(nameof(input.CurrentPassword));
+            if (!input.RecentGoogleLogin) ModelState.AddModelError("", "Sign in with Google again before setting your HackAcad password.");
+        }
         if (!ModelState.IsValid) return View(input);
         await using (var transaction = await db.Database.BeginTransactionAsync())
         {
-            var result = await users.ChangePasswordAsync(user, input.CurrentPassword, input.NewPassword);
+            var result = input.HasPassword ? await users.ChangePasswordAsync(user, input.CurrentPassword, input.NewPassword)
+                : await users.AddPasswordAsync(user, input.NewPassword);
             if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result, "NewPassword"); return View(input); }
             user.LastPasswordChangedUtc = DateTime.UtcNow;
             await db.SaveChangesAsync();

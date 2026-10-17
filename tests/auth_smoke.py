@@ -183,7 +183,7 @@ try:
         'registration requires email verification instead of signing in')
     check('ConfirmEmail?' not in body and '/Login' in student.request('/Identity/Account/Dashboard')[1],
         'pending account receives no browser verification token and no authenticated access')
-    check('Unable to sign in' in student.login(test_email)[2], 'unverified email cannot log in with a correct password')
+    check('VerificationPending' in student.login(test_email)[1], 'correct password returns an unverified account to the verification page without signing in')
     links = mail_links(test_email)
     check(len(links) == 1, 'registration sends one captured verification email')
     invalid_link = re.sub(r'code=[^&]+', 'code=not-a-valid-token', links[-1])
@@ -360,11 +360,13 @@ try:
     pending.post('/Identity/Account/Register', {'DisplayName': 'Pending check', 'Email': pending_email,
         'Password': PASSWORD, 'ConfirmPassword': PASSWORD})
     pending_links = mail_links(pending_email)
-    resent = pending.post('/Identity/Account/ResendVerification', {'Email': pending_email})
-    unknown = Client().post('/Identity/Account/ResendVerification', {'Email': 'unknown.' + uuid.uuid4().hex + '@hackacad.local'})
-    confirmed_resend = Client().post('/Identity/Account/ResendVerification', {'Email': test_email})
-    check('a link will arrive shortly' in resent[2] and 'a link will arrive shortly' in unknown[2]
-        and 'a link will arrive shortly' in confirmed_resend[2], 'resend does not reveal account existence or verification state')
+    resent = pending.post('/Identity/Account/ResendVerification', {'Email': test_email})
+    unknown = Client().post('/Identity/Account/ResendVerification', {'Email': pending_email})
+    confirmed_resend = student.post('/Identity/Account/ResendVerification', {'Email': pending_email})
+    check('VerificationPending' in resent[1] and pending_email in resent[2] and 'name="Email"' not in resent[2],
+        'resend retains the registration recipient without another email input')
+    check('/Login' in unknown[1] and 'VerificationPending' not in confirmed_resend[1],
+        'missing context and confirmed accounts cannot resend to an injected recipient')
     check(len(mail_links(pending_email)) == len(pending_links), 'immediate resend respects the per-account email cooldown')
     pending_path = edit_path(admin, pending_email)
     admin.post(pending_path, edit_data(pending_email, disabled=True))

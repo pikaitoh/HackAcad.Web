@@ -17,6 +17,11 @@ public partial class AccountController
 {
     private async Task<bool> ConfirmCurrentPassword(ApplicationUser user, string password)
     {
+        if (!await users.HasPasswordAsync(user))
+        {
+            ModelState.AddModelError("CurrentPassword", "Set a HackAcad password in Password settings before using this security action.");
+            return false;
+        }
         var result = await signIn.CheckPasswordSignInAsync(user, password, lockoutOnFailure: true);
         if (result.Succeeded) return true;
         ModelState.AddModelError("CurrentPassword", result.IsLockedOut
@@ -86,14 +91,13 @@ public partial class AccountController
     {
         var user = await users.GetUserAsync(User);
         if (user is null) return Challenge();
-        if (!User.IsInRole(AccountRoles.Admin) && !user.TwoFactorEnabled) return Forbid();
         return View(await TwoFactorData(user));
     }
 
     private async Task<TwoFactorModel> TwoFactorData(ApplicationUser user) => new()
     { Enabled = user.TwoFactorEnabled, RecoveryCodesLeft = await users.CountRecoveryCodesAsync(user) };
 
-    [HttpPost, Authorize(Roles = AccountRoles.Admin), EnableRateLimiting("security-action")]
+    [HttpPost, EnableRateLimiting("security-action")]
     public async Task<IActionResult> BeginAuthenticator(CurrentPasswordModel input)
     {
         var user = await users.GetUserAsync(User);
@@ -123,7 +127,7 @@ public partial class AccountController
         return input;
     }
 
-    [HttpGet, Authorize(Roles = AccountRoles.Admin)]
+    [HttpGet]
     public async Task<IActionResult> EnableAuthenticator()
     {
         var user = await users.GetUserAsync(User);
@@ -131,7 +135,7 @@ public partial class AccountController
         return HasSetupGrant(user) ? View(await AuthenticatorData(user)) : RedirectToAction(nameof(TwoFactor));
     }
 
-    [HttpPost, Authorize(Roles = AccountRoles.Admin), EnableRateLimiting("security-action")]
+    [HttpPost, EnableRateLimiting("security-action")]
     public async Task<IActionResult> EnableAuthenticator(EnableAuthenticatorModel input)
     {
         var user = await users.GetUserAsync(User);
