@@ -63,6 +63,7 @@ input,textarea { caret-color: var(--ha-primary); }
 .validation-summary-errors { background: #fff0f2; border-radius: .5rem; padding: 1rem; margin-bottom: 1.25rem; }
 .validation-summary ul { padding-left: 1.1rem; margin: 0; }
 .input-validation-error { border-color: var(--ha-danger); }
+.form-control.input-validation-error:focus,.form-select.input-validation-error:focus { border-color: var(--ha-danger); outline-color: var(--ha-danger); }
 .alert { border-radius: .75rem; font-size: .9375rem; }
 .alert-success { --bs-alert-color: #1d694b; --bs-alert-bg: #e1f2e9; --bs-alert-border-color: #b6d5c5; }
 .module-shell { padding-block: 3rem 1rem; }
@@ -76,7 +77,7 @@ input,textarea { caret-color: var(--ha-primary); }
 .table-actions,.form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem; }
 .form-actions { padding-top: .5rem; }
 .role-badge { display: inline-block; padding: .25rem .7rem; background: var(--ha-tint); color: #355d54; border-radius: 999px; font-size: .75rem; font-weight: 650; white-space: nowrap; }
-.role-badge[data-role="Admin"] { background: #d7ebe2; color: #255b50; }
+.role-badge[data-role="Admin"] { background: #eee6f7; color: #624080; }
 .role-badge[data-role="Teacher"] { background: #fff3c9; color: #6b5416; }
 .record-secondary { display: block; color: var(--ha-muted); font-size: .8125rem; margin-top: .2rem; overflow-wrap: anywhere; }
 .status-label { display: inline-flex; align-items: center; gap: .4rem; font-size: .8125rem; font-weight: 550; }

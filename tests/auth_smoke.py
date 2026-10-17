@@ -53,6 +53,10 @@ class Client:
     def login(self, email, password=PASSWORD, return_url=''):
         return self.post('/Identity/Account/Login', {'Email': email, 'Password': password, 'ReturnUrl': return_url})
 
+def field_error(body, name):
+    match = re.search(r'id="' + re.escape(name) + r'-error"[^>]*>(.*?)</span>', body, re.S)
+    return html.unescape(re.sub('<[^>]+>', '', match.group(1))).strip() if match else ''
+
 def edit_path(admin, email):
     body = admin.request('/Admin/Users?search=' + urllib.parse.quote(email))[2]
     match = re.search(r'href="(/Admin/EditUser/[^"]+)"', body)
@@ -65,7 +69,7 @@ def edit_data(email, role='Student', disabled=False, name='Smoke learner'):
 
 admin, student = Client(), Client()
 test_email = 'smoke.' + uuid.uuid4().hex[:12] + '@hackacad.local'
-created_email = 'created.' + uuid.uuid4().hex[:12] + '@hackacad.local'
+created_email = "created.o'connor+" + uuid.uuid4().hex[:12] + '@hackacad.local'
 temporary_users = [test_email, created_email]
 
 try:
@@ -78,6 +82,26 @@ try:
     invalid = student.post('/Identity/Account/Register', {'DisplayName': 'Smoke', 'Email': test_email,
         'Password': 'weak', 'ConfirmPassword': 'weak'})
     check('Dashboard' not in invalid[1] and 'field-validation-error' in invalid[2], 'server rejects weak registration passwords')
+    # A weak password keeps these probes non-mutating even if an email rule regresses.
+    for email in ('qw@e', 'user@localhost', 'user@-example.com', 'user@example..com', 'first..last@example.com'):
+        result = student.post('/Identity/Account/Register', {'DisplayName': 'Smoke learner', 'Email': email,
+            'Password': 'weak', 'ConfirmPassword': 'weak'})
+        check(field_error(result[2], 'Email') and field_error(result[2], 'Password')
+            and 'validation-summary-errors' not in result[2], 'server rejects malformed email inline: ' + email)
+    for email in ('sdf@king.com', 'learner@company.edu.my'):
+        result = student.post('/Identity/Account/Register', {'DisplayName': 'Learner', 'Email': email,
+            'Password': 'weak', 'ConfirmPassword': 'weak'})
+        check(not field_error(result[2], 'Email') and field_error(result[2], 'Password'),
+            'complete custom-domain email format is accepted without creating an account: ' + email)
+    for name in ('A', '   ', 'A' * 51, '--', '<script>name</script>', 'Line\nBreak'):
+        result = student.post('/Identity/Account/Register', {'DisplayName': name, 'Email': test_email,
+            'Password': 'weak', 'ConfirmPassword': 'weak'})
+        check(field_error(result[2], 'DisplayName'), 'server rejects an invalid display name: ' + repr(name))
+    for password in ('abcdefgh1!', 'ABCDEFGH1!', 'Abcdefgh!!', 'Abcdefgh12'):
+        result = student.post('/Identity/Account/Register', {'DisplayName': 'Smoke learner', 'Email': test_email,
+            'Password': password, 'ConfirmPassword': password})
+        check(field_error(result[2], 'Password') and 'validation-summary-errors' not in result[2],
+            'password complexity failure stays beside Password: ' + password)
     status, url, body = student.post('/Identity/Account/Register', {'DisplayName': 'Smoke learner', 'Email': test_email,
         'Password': PASSWORD, 'ConfirmPassword': PASSWORD, 'Role': 'Admin'})
     check(status == 200 and 'Dashboard' in url and '>Student</span>' in body, 'registration creates a Student and ignores an injected Admin role')
@@ -93,14 +117,19 @@ try:
     check('field-validation-error' in invalid[2], 'server rejects an empty profile name')
     check('aria-invalid="true"' in invalid[2] and 'DisplayName-error' in invalid[2], 'server validation is associated with the invalid input')
     profile = student.post('/Identity/Account/Profile', {'DisplayName': 'QA <script>unsafe</script>', 'Role': 'Admin'})
-    check(profile[0] == 200 and '&lt;script&gt;' in profile[2] and '<script>unsafe</script>' not in profile[2], 'profile saves and HTML-encodes user content')
+    check(profile[0] == 200 and field_error(profile[2], 'DisplayName') and '&lt;script&gt;' in profile[2] and '<script>unsafe</script>' not in profile[2], 'profile safely encodes rejected markup in a display name')
     check(student.request('/Admin')[0] == 403, 'profile input cannot change role')
+    profile = student.post('/Identity/Account/Profile', {'DisplayName': "  陈明 O'Connor-2  "})
+    check('has been updated' in profile[2] and "陈明 O'Connor-2" in html.unescape(profile[2]) and "  陈明" not in html.unescape(profile[2]),
+        'Unicode names and common punctuation are accepted and trimmed')
+    long_name = student.post('/Identity/Account/Profile', {'DisplayName': 'A' * 50})
+    check('has been updated' in long_name[2], 'display names accept the 50-character boundary')
 
     other_session = Client()
     check('Dashboard' in other_session.login(test_email)[1], 'account can sign in in a second session')
     wrong_password = student.post('/Identity/Account/ChangePassword', {'CurrentPassword': 'Incorrect@123!',
         'NewPassword': 'Changed@123!', 'ConfirmPassword': 'Changed@123!'})
-    check('validation-summary-errors' in wrong_password[2], 'password change requires the current password')
+    check(field_error(wrong_password[2], 'CurrentPassword') and 'validation-summary-errors' not in wrong_password[2], 'wrong current password appears only beside its field')
     changed = student.post('/Identity/Account/ChangePassword', {'CurrentPassword': PASSWORD,
         'NewPassword': 'Changed@123!', 'ConfirmPassword': 'Changed@123!'})
     check('Profile' in changed[1] and 'password has been changed' in changed[2], 'password change succeeds')
@@ -149,13 +178,20 @@ try:
     own_delete = admin.post(own_path.replace('EditUser', 'DeleteUser'), {'emailConfirmation': 'demo.admin@hackacad.local'})
     check('cannot delete your own account' in own_delete[2], 'Admin cannot delete their own account')
 
+    invalid_account = admin.post('/Admin/CreateUser', {'DisplayName': 'A', 'Email': 'qw@e',
+        'Password': '12345678', 'ConfirmPassword': 'other', 'Role': 'Teacher'})
+    check(all(field_error(invalid_account[2], field) for field in ('DisplayName', 'Email', 'Password', 'ConfirmPassword'))
+        and 'validation-summary-errors' not in invalid_account[2], 'Admin creation reports each invalid field without a duplicate summary')
+    invalid_edit = admin.post(path, edit_data('qw@e', name='A'))
+    check(field_error(invalid_edit[2], 'Email') and field_error(invalid_edit[2], 'DisplayName'),
+        'Admin edit uses the same name and email rules')
     created = admin.post('/Admin/CreateUser', {'DisplayName': 'Created teacher', 'Email': created_email,
         'Password': PASSWORD, 'ConfirmPassword': PASSWORD, 'Role': 'Teacher'})
-    check('/Admin/Users' in created[1], 'Admin can create a Teacher account')
+    check('/Admin/Users' in created[1], 'Admin can create a Teacher account with apostrophe/plus email characters')
     check('>Teacher</span>' in Client().login(created_email)[2], 'Admin-created account can authenticate with its assigned role')
     duplicate = admin.post('/Admin/CreateUser', {'DisplayName': 'Duplicate', 'Email': created_email,
         'Password': PASSWORD, 'ConfirmPassword': PASSWORD, 'Role': 'Student'})
-    check('validation-summary-errors' in duplicate[2], 'duplicate email addresses are rejected')
+    check(field_error(duplicate[2], 'Email') and 'validation-summary-errors' not in duplicate[2], 'duplicate email appears only beside the email field')
 
     locked_email = 'lockout.' + uuid.uuid4().hex[:12] + '@hackacad.local'
     temporary_users.append(locked_email)
@@ -186,9 +222,13 @@ try:
 
     created_path = edit_path(admin, created_email)
     delete_path = created_path.replace('EditUser', 'DeleteUser')
-    refused_delete = admin.post(delete_path, {'emailConfirmation': 'wrong@hackacad.local'})
-    check("Enter the account" in refused_delete[2], 'account deletion requires the matching email confirmation')
-    deleted_user = admin.post(delete_path, {'emailConfirmation': created_email})
+    for confirmation in ('', 'sdf@', 'wrong@hackacad.local'):
+        refused_delete = admin.post(delete_path, {'emailConfirmation': confirmation})
+        check(refused_delete[0] == 200 and field_error(refused_delete[2], 'emailConfirmation')
+            and 'validation-summary-errors' not in refused_delete[2],
+            'deletion confirmation error stays beside the input: ' + repr(confirmation))
+    check(admin.request(created_path)[0] == 200, 'invalid deletion confirmations leave the account intact')
+    deleted_user = admin.post(delete_path, {'emailConfirmation': '  ' + created_email.upper() + '  '})
     check('/Admin/Users' in deleted_user[1] and admin.request(created_path)[0] == 404, 'Admin deletes an unused account and its role marker')
     temporary_users.remove(created_email)
     check(fresh.request('/Identity/Account/Logout')[0] == 405, 'logout cannot be triggered by a GET request')

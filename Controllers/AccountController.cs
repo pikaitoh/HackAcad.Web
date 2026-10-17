@@ -25,7 +25,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         var user = new ApplicationUser { UserName = input.Email.Trim(), Email = input.Email.Trim(), DisplayName = input.DisplayName.Trim() };
         // The public form cannot choose or bind a privileged role.
         var result = await accounts.CreateAsync(user, input.Password, AccountRoles.Student);
-        if (!result.Succeeded) { AddErrors(result); return View(input); }
+        if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result); return View(input); }
         await signIn.SignInAsync(user, isPersistent: false);
         TempData["Success"] = "Your account is ready. You are signed in as a Student.";
         return RedirectToAction(nameof(Dashboard));
@@ -96,7 +96,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         if (!ModelState.IsValid) return View(input);
         user.DisplayName = input.DisplayName.Trim();
         var result = await users.UpdateAsync(user);
-        if (!result.Succeeded) { AddErrors(result); return View(input); }
+        if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result); return View(input); }
         await signIn.RefreshSignInAsync(user);
         TempData["Success"] = "Your profile has been updated.";
         return RedirectToAction(nameof(Profile));
@@ -112,7 +112,7 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         var user = await users.GetUserAsync(User);
         if (user is null) return Challenge();
         var result = await users.ChangePasswordAsync(user, input.CurrentPassword, input.NewPassword);
-        if (!result.Succeeded) { AddErrors(result); return View(input); }
+        if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result, "NewPassword"); return View(input); }
         await signIn.RefreshSignInAsync(user);
         TempData["Success"] = "Your password has been changed. Other existing sessions will need to sign in again.";
         return RedirectToAction(nameof(Profile));
@@ -125,8 +125,4 @@ public class AccountController(UserManager<ApplicationUser> users, SignInManager
         return View();
     }
 
-    private void AddErrors(IdentityResult result)
-    {
-        foreach (var error in result.Errors) ModelState.AddModelError("", error.Description);
-    }
 }

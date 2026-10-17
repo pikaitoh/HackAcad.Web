@@ -45,7 +45,7 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         if (!ModelState.IsValid) return View(input);
         var user = new ApplicationUser { UserName = input.Email.Trim(), Email = input.Email.Trim(), DisplayName = input.DisplayName.Trim() };
         var result = await accounts.CreateAsync(user, input.Password, input.Role);
-        if (!result.Succeeded) { AddErrors(result); return View(input); }
+        if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result); return View(input); }
         TempData["Success"] = $"Account created for {user.Email}.";
         return RedirectToAction(nameof(Users));
     }
@@ -68,7 +68,7 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         try
         {
             var result = await accounts.UpdateAsync(user, input, users.GetUserId(User)!);
-            if (!result.Succeeded) { AddErrors(result); return View(input); }
+            if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result); return View(input); }
         }
         catch (DbUpdateException)
         {
@@ -93,14 +93,14 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         var user = await users.FindByIdAsync(id);
         if (user is null) return NotFound();
         if (!string.Equals(emailConfirmation?.Trim(), user.Email, StringComparison.OrdinalIgnoreCase))
-            ModelState.AddModelError("", "Enter the account's email address to confirm deletion.");
+            ModelState.AddModelError(nameof(emailConfirmation), "Enter the account's email address to confirm deletion.");
         if (ModelState.IsValid)
         {
             try
             {
                 var result = await accounts.DeleteAsync(user, users.GetUserId(User)!);
                 if (result.Succeeded) { TempData["Success"] = "Account deleted."; return RedirectToAction(nameof(Users)); }
-                AddErrors(result);
+                AccountValidation.AddIdentityErrors(ModelState, result);
             }
             catch (DbUpdateException) { ModelState.AddModelError("", "This account has linked records that prevent deletion. Disable it to preserve its content."); }
         }
@@ -180,8 +180,4 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
     }
 
     private async Task<string> TeacherName(string id) => await db.Users.Where(u => u.Id == id).Select(u => u.DisplayName).FirstOrDefaultAsync() ?? "Unknown teacher";
-    private void AddErrors(IdentityResult result)
-    {
-        foreach (var error in result.Errors) ModelState.AddModelError("", error.Description);
-    }
 }

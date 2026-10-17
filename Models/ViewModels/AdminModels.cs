@@ -26,10 +26,14 @@ public class UserListModel
 public class EditUserModel
 {
     public string Id { get; set; } = "";
-    [Required, StringLength(100), Display(Name = "Display name")]
-    public string DisplayName { get; set; } = "";
-    [Required, EmailAddress, StringLength(256)]
-    public string Email { get; set; } = "";
+    [Required(ErrorMessage = "Enter a display name."), StringLength(50, MinimumLength = 2, ErrorMessage = AccountValidation.NameLengthMessage), Display(Name = "Display name")]
+    [RegularExpression(AccountValidation.NamePattern, ErrorMessage = AccountValidation.NameMessage)]
+    public string DisplayName { get => displayName; set => displayName = value?.Trim() ?? ""; }
+    private string displayName = "";
+    [Required(ErrorMessage = "Enter your email address."), EmailAddress(ErrorMessage = AccountValidation.EmailMessage), StringLength(256)]
+    [RegularExpression(AccountValidation.EmailPattern, ErrorMessage = AccountValidation.EmailMessage)]
+    public string Email { get => email; set => email = value?.Trim() ?? ""; }
+    private string email = "";
     [Required]
     public string Role { get; set; } = "Student";
     [Display(Name = "Disable this account")]

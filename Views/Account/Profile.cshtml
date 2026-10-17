@@ -13,12 +13,12 @@
             </dl>
             <a asp-action="ChangePassword">Change password</a>
         </section>
-        <form asp-action="Profile" method="post" class="form-measure">
+        <form asp-action="Profile" method="post" data-account-form class="form-measure">
             <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
             <div class="mb-4">
                 <label asp-for="DisplayName" class="form-label"></label>
-                <input asp-for="DisplayName" aria-invalid="@(ViewData.ModelState["DisplayName"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="nickname" maxlength="100" required  aria-describedby="DisplayName-error" />
-                <span id="DisplayName-error" asp-validation-for="DisplayName" class="field-error"></span>
+                <input asp-for="DisplayName" data-trim aria-invalid="@(ViewData.ModelState["DisplayName"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="nickname" minlength="2" maxlength="50" required  aria-describedby="DisplayName-help DisplayName-error" />
+                <p id="DisplayName-help" class="form-text">2–50 characters. Use letters, numbers, spaces, . _ - or apostrophes.</p><span id="DisplayName-error" asp-validation-for="DisplayName" class="field-error" aria-live="polite"></span>
             </div>
             <button type="submit" class="btn btn-primary">Save profile</button>
         </form>
