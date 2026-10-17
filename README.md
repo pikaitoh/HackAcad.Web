@@ -148,3 +148,8 @@ Read the [team UI guide](UI_GUIDE.md) before building module pages. Start a Deve
 The Dashboard leads with role-aware tasks and real learning totals, alongside profile and password links. Admin overview links disabled-account and unpublished-course counts to existing filters. Course, outline and progress examples in the UI guide are illustrative; their module owners supply real data and working learning routes.
 
 The public home page offers Account registration or login; signed-in users can open their Dashboard. Learning and badge authoring modules remain with their team owners.
+
+
+Admin navigation keeps Overview, Users, Courses, Login logs and My activity on separate routes. `/Admin/LoginLogs` shows known accounts' recorded sign-in attempts with username/email search, result and inclusive Malaysia-date filters, and 20 rows per page. It is Admin-only; personal Login history remains in Manage account. Unknown-email attempts are not stored, and deleting an account also deletes its login records. Device labels are inferred from the browser header, not verified device identities.
+
+Users shows Last login, derived from the latest completed successful sign-in (including completed 2FA/recovery sign-ins). Edit account and your Password page show both Last login and Last password changed with seconds, in Malaysia time (UTC+8); stored timestamps remain UTC. Failed attempts and unfinished 2FA do not advance Last login. `AddPasswordChangedTimestamp` adds nullable `AspNetUsers.LastPasswordChangedUtc`; it is saved atomically with successful password changes. Older unknown password-change times display No record. These read-only values cannot be set by form submissions.

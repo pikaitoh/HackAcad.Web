@@ -160,6 +160,9 @@ namespace HackAcad.Web.Data.Migrations
                     b.Property<DateTime>("JoinedDate")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<DateTime?>("LastPasswordChangedUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("tinyint(1)");
 

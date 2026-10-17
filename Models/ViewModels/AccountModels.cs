@@ -97,6 +97,10 @@ public class ChangeEmailModel
 
 public class ChangePasswordModel
 {
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public DateTime? LastLoginUtc { get; set; }
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public DateTime? LastPasswordChangedUtc { get; set; }
     [Required, DataType(DataType.Password), Display(Name = "Current password")]
     public string CurrentPassword { get; set; } = "";
     [Required(ErrorMessage = "Enter a new password."), StringLength(100, MinimumLength = 8, ErrorMessage = AccountValidation.PasswordMessage), DataType(DataType.Password), Display(Name = "New password")]

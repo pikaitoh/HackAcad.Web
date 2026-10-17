@@ -4,6 +4,7 @@ Use an isolated Development database with Email__DevelopmentPickupDirectory.
 No SMS/email is sent. Creates and removes random local fixtures only.
 python tests/security_smoke.py http://127.0.0.1:5099
 """
+from datetime import datetime, timedelta, timezone
 import base64
 import hashlib
 import hmac
@@ -87,6 +88,15 @@ def totp(key):
 def session_ids(body): return re.findall(r'name="sessionId" value="([a-f0-9]+)"',body)
 def codes(body): return re.findall(r'<li><code>([^<]+)</code></li>',body)
 
+def account_time(body, field):
+    content=re.search(r'<dd id="'+field+r'">(.*?)</dd>',body,re.S)[1]
+    found=re.search(r'datetime="([^"]+)"',content)
+    return found[1] if found else None
+
+def logs(client, **filters):
+    return client.request('/Admin/LoginLogs?'+urllib.parse.urlencode(filters))
+
+
 admin=Client()
 fixtures=[]
 suffix=uuid.uuid4().hex[:10]
@@ -104,9 +114,40 @@ try:
     check('/Admin' in admin.login('demo.admin@hackacad.local')[1], 'fixture Admin can sign in')
     create(admin,main_email,'Admin','Security admin '+suffix)
     create(admin,student_email,'Student','Security student '+suffix)
+    main_path=edit_path(admin,main_email)
+    pristine=admin.request(main_path)[2]
+    check(account_time(pristine,'last-login') is None and account_time(pristine,'last-password-change') is None, 'new account has no invented login or password-change timestamp')
     a,b,student=Client(),Client('Mozilla/5.0 (X11; Linux x86_64) Firefox/130.0'),Client('Mozilla/5.0 (Android) Chrome/130.0')
     check('/Admin' in a.login(main_email)[1] and '/Admin' in b.login(main_email)[1], 'one account can have two independent browser sessions')
     student.login(student_email)
+    successful_login=account_time(admin.request(main_path)[2],'last-login')
+    check(successful_login is not None and 'Last login (UTC+8)' in admin.request('/Admin/Users')[2], 'completed login is displayed in user management')
+    Client().login(main_email,'Wrong@123!')
+    check(account_time(admin.request(main_path)[2],'last-login')==successful_login, 'wrong password does not advance last successful login')
+    global_logs=logs(admin)[2]
+    check(main_email in global_logs and student_email in global_logs, 'Admin Login logs includes attempts from different users')
+    check(student.request('/Admin/LoginLogs')[0]==403 and '/Login' in Client().request('/Admin/LoginLogs')[1], 'global login logs reject Student and anonymous access')
+    filtered=logs(admin,search=main_email,result='failed')[2]
+    check(main_email in filtered and student_email not in filtered and '>Signed in</span>' not in filtered and '>Failed</span>' in filtered, 'global logs filter by account and failed result')
+    successful=logs(admin,search=main_email,result='success')[2]
+    check(main_email in successful and '>Failed</span>' not in successful, 'global logs successful filter excludes failures')
+    today=datetime.now(timezone(timedelta(hours=8))).date()
+    check(main_email in logs(admin,search=main_email,**{'from':str(today),'to':str(today)})[2], 'same-day date filters include Malaysia sign-ins')
+    check('No sign-ins to show' in logs(admin,search=main_email,**{'from':str(today+timedelta(days=1))})[2], 'future date range excludes current records')
+    date_error=logs(admin,**{'from':'2026-10-20','to':'2026-10-19'})[2]
+    check('Choose an end date on or after' in date_error and 'aria-invalid="true"' in date_error, 'reversed date range gives an accessible inline error')
+    check('No sign-ins to show' not in date_error and 'recorded attempt(s)' not in date_error, 'invalid date filters do not claim that no records exist')
+    check('workspace-note' not in global_logs and 'Account &amp; platform access' not in global_logs and 'sidebar-back' not in global_logs, 'Administration sidebar ends after its navigation')
+    check(logs(admin,**{'from':'invalid'})[0]==200 and logs(admin,**{'from':'0001-01-01'})[0]==200, 'malformed and underflow dates do not crash the logs page')
+    check('No sign-ins to show' in logs(admin,search='no-account-'+suffix)[2], 'unmatched search has an honest empty state')
+    pw_before=account_time(student.request(ACCOUNT+'ChangePassword')[2],'last-password-change')
+    bad_password=student.post(ACCOUNT+'ChangePassword',{'CurrentPassword':'Wrong@123!','NewPassword':'NewSecure@456!','ConfirmPassword':'NewSecure@456!','LastPasswordChangedUtc':'2000-01-01'})
+    check('incorrect' in bad_password[2].lower() and account_time(bad_password[2],'last-password-change')==pw_before, 'failed password change and forged timestamp leave recorded time unchanged')
+    updated_password='NewSecure@456!'
+    changed=student.post(ACCOUNT+'ChangePassword',{'CurrentPassword':PASSWORD,'NewPassword':updated_password,'ConfirmPassword':updated_password})
+    password_time=account_time(student.request(ACCOUNT+'ChangePassword')[2],'last-password-change')
+    check('/Settings' in changed[1] and password_time is not None and account_time(admin.request(edit_path(admin,student_email))[2],'last-password-change')==password_time, 'successful password change persists the same timestamp in personal and Admin views')
+    student.post(ACCOUNT+'ChangePassword',{'CurrentPassword':updated_password,'NewPassword':PASSWORD,'ConfirmPassword':PASSWORD})
     full_name="陈明 O'Connor"
     saved=a.post(ACCOUNT+'Profile',{'DisplayName':'Security admin '+suffix,'FullName':'  '+full_name+'  ', 'Id':edit_path(admin,student_email).rsplit('/',1)[1]})
     stored=html.unescape(a.request(ACCOUNT+'Profile')[2])
@@ -181,13 +222,16 @@ try:
     first_codes=codes(enabled[2])
     check(len(first_codes)==10 and 'Save your recovery codes' in enabled[2], 'valid authenticator proof enables 2FA and returns ten recovery codes once')
     check('/Admin' in a.request('/Admin')[1] and 'authenticator-key' not in a.request(ACCOUNT+'EnableAuthenticator')[2], 'enabling 2FA retains the current browser and hides the setup secret afterward')
+    before_second_factor=account_time(admin.request(main_path)[2],'last-login')
     new=Client()
     pending=new.login(main_email)
+    check(account_time(admin.request(main_path)[2],'last-login')==before_second_factor, 'unfinished second factor does not advance Last login')
     check('/LoginTwoFactor' in pending[1] and '/Login' in new.request('/Admin')[1], 'correct password alone cannot access Admin when 2FA is enabled')
     failed=new.post(ACCOUNT+'LoginTwoFactor',{'Code':'000000' if totp(key)!='000000' else '111111'})
     check('That code is incorrect' in failed[2] and 'aria-invalid="true"' in failed[2], 'wrong authenticator code is rejected inline')
     success=new.post(ACCOUNT+'LoginTwoFactor',{'Code':totp(key),'ReturnUrl':'https://example.com'})
     check('/Admin' in success[1] and success[1].startswith(BASE), 'valid TOTP completes sign-in and rejects an external redirect')
+    check(account_time(admin.request(main_path)[2],'last-login')!=before_second_factor, 'completed second factor advances Last login')
     recovery=Client()
     recovery.login(main_email)
     recovered=recovery.post(ACCOUNT+'LoginRecoveryCode',{'Code':first_codes[0]})
@@ -212,6 +256,13 @@ try:
     check('/LoginRecoveryCode' not in stale.request(ACCOUNT+'LoginRecoveryCode')[1], 'turning off 2FA invalidates an old pending challenge')
     check('Signed in with 2FA' in a.request(ACCOUNT+'LoginHistory')[2] and 'Verification failed' in a.request(ACCOUNT+'LoginHistory')[2], 'login history includes completed and failed second-factor checks')
     check(a.post(ACCOUNT+'Logout',{},source=ACCOUNT+'Sessions')[0]==200 and '/Login' in a.request(ACCOUNT+'Sessions')[1], 'normal logout revokes the current session')
+    for _ in range(21): Client().login(student_email)
+    paged=logs(admin,search=student_email,result='success',**{'from':str(today),'to':str(today)})[2]
+    next_link=re.search(r'href="([^"]+)"[^>]*>Next</a>',paged)
+    check(paged.count('<tr>')==21 and next_link is not None, 'global logs limit the first page to twenty attempts')
+    second=admin.request(html.unescape(next_link[1]))[2]
+    check(student_email in second and main_email not in second and 'Page 2 of' in second and '>Failed</span>' not in second, 'next page preserves user, result and date filters')
+    check('Page 1 of' in logs(admin,search=student_email,page=-20)[2] and 'No sign-ins to show' not in logs(admin,search=student_email,page=9999)[2], 'out-of-range pages clamp to existing records')
     print(f'All {checks} security assertions passed.', flush=True)
 finally:
     for email in fixtures:

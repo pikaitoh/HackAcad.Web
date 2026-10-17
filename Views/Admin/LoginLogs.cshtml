@@ -1,0 +1,38 @@
+@model LoginLogsModel
+@{ ViewData["Title"] = "Login logs"; }
+<div class="admin-content">
+    <div class="page-heading"><div><h1>Login logs</h1><p class="text-secondary">Sign-in attempts across user accounts. Malaysia time (UTC+8).</p></div></div>
+    <form asp-action="LoginLogs" method="get" class="filter-bar login-log-filters">
+        <div class="filter-search"><label asp-for="Search" class="form-label">Search users</label><input asp-for="Search" class="form-control" placeholder="Username or email" maxlength="256" /></div>
+        <div><label asp-for="Result" class="form-label"></label><select asp-for="Result" class="form-select"><option value="">All results</option><option value="success">Successful</option><option value="failed">Failed</option><option value="locked">Locked out</option></select></div>
+        <div><label asp-for="From" class="form-label">From date</label><input asp-for="From" type="date" class="form-control" aria-invalid="@(ViewData.ModelState["From"]?.Errors.Count > 0 ? "true" : null)" aria-describedby="from-error" /><span asp-validation-for="From" id="from-error" class="field-error"></span></div>
+        <div><label asp-for="To" class="form-label">To date</label><input asp-for="To" type="date" class="form-control" aria-invalid="@(ViewData.ModelState["To"]?.Errors.Count > 0 ? "true" : null)" aria-describedby="to-error" /><span asp-validation-for="To" id="to-error" class="field-error"></span></div>
+        <div class="login-log-filter-actions"><button class="btn btn-primary" type="submit">Apply filters</button><a asp-action="LoginLogs" class="btn btn-outline-secondary">Clear</a></div>
+    </form>
+    @if (ViewData.ModelState.IsValid && Model.Records.Count == 0)
+    {
+        <div class="empty-state"><h2 class="h5">No sign-ins to show</h2><p>Try another user, date range or result. New sign-in attempts will appear here.</p></div>
+    }
+    else if (ViewData.ModelState.IsValid)
+    {
+        <p class="text-secondary small">@Model.Total recorded attempt(s) match your filters.</p>
+        <div class="table-responsive" tabindex="0" role="region" aria-label="All users' login logs; scroll horizontally on small screens">
+            <table class="table align-middle module-table"><caption class="visually-hidden">User sign-in attempts in Malaysia time, newest first</caption>
+                <thead><tr><th scope="col">User</th><th scope="col">Time (UTC+8)</th><th scope="col">Result</th><th scope="col">Device / IP address</th></tr></thead>
+                <tbody>
+                @foreach (var record in Model.Records)
+                {
+                    <tr><td><a class="btn btn-outline-secondary btn-sm" asp-action="EditUser" asp-route-id="@record.UserId" aria-label="View account for @record.Email">@record.Username</a><span class="record-secondary">@record.Email</span></td>
+                        <td class="text-nowrap"><time datetime="@(DateTime.SpecifyKind(record.OccurredUtc, DateTimeKind.Utc).ToString("O"))">@record.OccurredUtc.AddHours(8).ToString("dd MMM yyyy")<span class="record-secondary">@record.OccurredUtc.AddHours(8).ToString("HH:mm:ss")</span></time></td>
+                        <td><span class="status-label @(record.Outcome.StartsWith("Signed in") ? "status-active" : "status-disabled")">@record.Outcome</span></td>
+                        <td>@record.Device<span class="record-secondary">@record.IpAddress</span></td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <nav class="pagination-bar" aria-label="Login log pages"><span>Page @Model.Page of @Model.PageCount</span><div class="form-actions">
+            @if (Model.Page > 1) { <a class="btn btn-outline-secondary btn-sm" asp-action="LoginLogs" asp-route-page="@(Model.Page - 1)" asp-route-search="@Model.Search" asp-route-result="@Model.Result" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">Previous</a> }
+            @if (Model.Page < Model.PageCount) { <a class="btn btn-outline-secondary btn-sm" asp-action="LoginLogs" asp-route-page="@(Model.Page + 1)" asp-route-search="@Model.Search" asp-route-result="@Model.Result" asp-route-from="@Model.From?.ToString("yyyy-MM-dd")" asp-route-to="@Model.To?.ToString("yyyy-MM-dd")">Next</a> }
+        </div></nav>
+    }
+</div>

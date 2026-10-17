@@ -2,6 +2,11 @@
 @{ ViewData["Title"] = "Edit account"; }
 <div class="admin-content">
     <div class="page-heading"><div><h1>Edit account</h1><p class="text-secondary">@Model.Email</p></div></div>
+    <dl class="account-timestamps">
+        <div><dt>Last login</dt><dd id="last-login">@if (Model.LastLoginUtc is { } login) { <time datetime="@(DateTime.SpecifyKind(login, DateTimeKind.Utc).ToString("O"))">@login.AddHours(8).ToString("dd MMM yyyy, HH:mm:ss")</time> } else { <span>No record</span> }</dd></div>
+        <div><dt>Last password changed</dt><dd id="last-password-change">@if (Model.LastPasswordChangedUtc is { } changed) { <time datetime="@(DateTime.SpecifyKind(changed, DateTimeKind.Utc).ToString("O"))">@changed.AddHours(8).ToString("dd MMM yyyy, HH:mm:ss")</time> } else { <span>No record</span> }</dd></div>
+    </dl>
+    <p class="form-text mb-4">Malaysia time (UTC+8). Older password changes were not recorded.</p>
     <form asp-action="EditUser" asp-route-id="@Model.Id" method="post" data-account-form class="form-measure">
         <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
         <div class="mb-3"><label asp-for="DisplayName" class="form-label"></label><input asp-for="DisplayName" data-trim aria-invalid="@(ViewData.ModelState["DisplayName"]?.Errors.Count > 0 ? "true" : null)" class="form-control" minlength="2" maxlength="50" required  aria-describedby="DisplayName-help DisplayName-error" /><p id="DisplayName-help" class="form-text">2–50 characters. Use letters, numbers, spaces, . _ - or apostrophes.</p><span id="DisplayName-error" asp-validation-for="DisplayName" class="field-error" aria-live="polite"></span></div>

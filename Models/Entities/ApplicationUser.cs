@@ -10,6 +10,7 @@ public class ApplicationUser : IdentityUser
     public string DisplayName { get; set; } = string.Empty;
     [MaxLength(100)]
     public string? FullName { get; set; }
+    public DateTime? LastPasswordChangedUtc { get; set; }
     public DateTime JoinedDate { get; set; } = DateTime.UtcNow;
     [Column(TypeName = "mediumblob")]
     public byte[]? AvatarImage { get; set; }

@@ -11,6 +11,10 @@ public class UserRow
     public bool IsDisabled { get; set; }
     public bool EmailConfirmed { get; set; }
     public DateTime JoinedDate { get; set; }
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public DateTime? LastLoginUtc { get; set; }
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public DateTime? LastPasswordChangedUtc { get; set; }
 }
 
 public class UserListModel
@@ -26,6 +30,10 @@ public class UserListModel
 
 public class EditUserModel
 {
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public DateTime? LastLoginUtc { get; set; }
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public DateTime? LastPasswordChangedUtc { get; set; }
     public string Id { get; set; } = "";
     [Required(ErrorMessage = "Enter a username."), StringLength(50, MinimumLength = 2, ErrorMessage = AccountValidation.NameLengthMessage), Display(Name = "Username")]
     [RegularExpression(AccountValidation.NamePattern, ErrorMessage = AccountValidation.NameMessage)]
@@ -93,4 +101,28 @@ public class EditCourseModel
     [Display(Name = "Publish this course")]
     public bool IsPublished { get; set; }
     public string Teacher { get; set; } = "";
+}
+
+public class LoginLogRow
+{
+    public long Id { get; set; }
+    public string UserId { get; set; } = "";
+    public string Username { get; set; } = "";
+    public string Email { get; set; } = "";
+    public DateTime OccurredUtc { get; set; }
+    public string Outcome { get; set; } = "";
+    public string Device { get; set; } = "";
+    public string IpAddress { get; set; } = "";
+}
+
+public class LoginLogsModel
+{
+    public string? Search { get; set; }
+    public string? Result { get; set; }
+    public DateOnly? From { get; set; }
+    public DateOnly? To { get; set; }
+    public int Page { get; set; } = 1;
+    public int Total { get; set; }
+    public int PageCount => Math.Max(1, (int)Math.Ceiling(Total / 20d));
+    public List<LoginLogRow> Records { get; set; } = [];
 }

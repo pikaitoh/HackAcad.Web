@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HackAcad.Web.Controllers;
 
 [Authorize(Roles = AccountRoles.Admin)]
+[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
     SignInManager<ApplicationUser> signIn, UserAccounts accounts, EmailVerification verification, AccountRecords records) : Controller
 {
@@ -36,6 +37,38 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
     }
 
     [HttpGet]
+    public async Task<IActionResult> LoginLogs(string? search, string? result, DateOnly? from, DateOnly? to, int page = 1)
+    {
+        var model = new LoginLogsModel { Search = search?.Trim(), Result = result, From = from, To = to };
+        if (from > to) ModelState.AddModelError("To", "Choose an end date on or after the start date.");
+        DateTime? start = null, end = null;
+        try
+        {
+            start = from?.ToDateTime(TimeOnly.MinValue).AddHours(-8);
+            end = to?.ToDateTime(TimeOnly.MaxValue).AddHours(-8);
+        }
+        catch (ArgumentOutOfRangeException) { ModelState.AddModelError("From", "Choose a valid start date."); }
+        if (!ModelState.IsValid) return View(model);
+        var query = from record in db.LoginRecords.AsNoTracking()
+                    join user in db.Users on record.UserId equals user.Id
+                    select new LoginLogRow { Id = record.Id, UserId = user.Id, Username = user.DisplayName,
+                        Email = user.Email ?? "", OccurredUtc = record.OccurredUtc, Outcome = record.Outcome,
+                        Device = record.Device, IpAddress = record.IpAddress };
+        if (!string.IsNullOrEmpty(model.Search))
+            query = query.Where(r => r.Username.Contains(model.Search) || r.Email.Contains(model.Search));
+        if (result == "success") query = query.Where(r => r.Outcome.StartsWith("Signed in"));
+        if (result == "failed") query = query.Where(r => r.Outcome == "Failed" || r.Outcome == "Verification failed");
+        if (result == "locked") query = query.Where(r => r.Outcome == "Locked out");
+        if (start.HasValue) query = query.Where(r => r.OccurredUtc >= start.Value);
+        if (end.HasValue) query = query.Where(r => r.OccurredUtc <= end.Value);
+        model.Total = await query.CountAsync();
+        model.Page = Math.Clamp(page, 1, model.PageCount);
+        model.Records = await query.OrderByDescending(r => r.OccurredUtc).ThenByDescending(r => r.Id)
+            .Skip((model.Page - 1) * 20).Take(20).ToListAsync();
+        return View(model);
+    }
+
+    [HttpGet]
     public IActionResult CreateUser() => View(new CreateUserModel());
 
     [HttpPost]
@@ -58,7 +91,8 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
     {
         var row = await accounts.Query().SingleOrDefaultAsync(u => u.Id == id);
         return row is null ? NotFound() : View(new EditUserModel { Id = row.Id, DisplayName = row.DisplayName,
-            Email = row.Email, Role = row.Role, IsDisabled = row.IsDisabled });
+            Email = row.Email, Role = row.Role, IsDisabled = row.IsDisabled,
+            LastLoginUtc = row.LastLoginUtc, LastPasswordChangedUtc = row.LastPasswordChangedUtc });
     }
 
     [HttpPost]
@@ -67,6 +101,9 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         input.Id = id;
         var user = await users.FindByIdAsync(id);
         if (user is null) return NotFound();
+        var row = await accounts.Query().SingleAsync(u => u.Id == id);
+        input.LastLoginUtc = row.LastLoginUtc;
+        input.LastPasswordChangedUtc = row.LastPasswordChangedUtc;
         if (!ModelState.IsValid) return View(input);
         var emailChanged = !string.Equals(user.Email, input.Email, StringComparison.OrdinalIgnoreCase);
         try

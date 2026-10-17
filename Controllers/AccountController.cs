@@ -356,16 +356,30 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     }
 
     [HttpGet]
-    public IActionResult ChangePassword() => View(new ChangePasswordModel());
+    public async Task<IActionResult> ChangePassword()
+    {
+        var row = await accounts.Query().SingleOrDefaultAsync(u => u.Id == users.GetUserId(User));
+        return row is null ? Challenge() : View(new ChangePasswordModel {
+            LastLoginUtc = row.LastLoginUtc, LastPasswordChangedUtc = row.LastPasswordChangedUtc });
+    }
 
     [HttpPost]
     public async Task<IActionResult> ChangePassword(ChangePasswordModel input)
     {
-        if (!ModelState.IsValid) return View(input);
         var user = await users.GetUserAsync(User);
         if (user is null) return Challenge();
-        var result = await users.ChangePasswordAsync(user, input.CurrentPassword, input.NewPassword);
-        if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result, "NewPassword"); return View(input); }
+        var row = await accounts.Query().SingleAsync(u => u.Id == user.Id);
+        input.LastLoginUtc = row.LastLoginUtc;
+        input.LastPasswordChangedUtc = row.LastPasswordChangedUtc;
+        if (!ModelState.IsValid) return View(input);
+        await using (var transaction = await db.Database.BeginTransactionAsync())
+        {
+            var result = await users.ChangePasswordAsync(user, input.CurrentPassword, input.NewPassword);
+            if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result, "NewPassword"); return View(input); }
+            user.LastPasswordChangedUtc = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
         await signIn.RefreshSignInAsync(user);
         TempData["Success"] = "Your password has been changed. Other existing sessions will need to sign in again.";
         return RedirectToAction(nameof(Settings));

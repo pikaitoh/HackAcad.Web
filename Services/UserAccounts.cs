@@ -22,6 +22,9 @@ public class UserAccounts(ApplicationDbContext db, UserManager<ApplicationUser> 
     {
         Id = u.Id, DisplayName = u.DisplayName, Email = u.Email ?? "",
         IsDisabled = u.IsDisabled, EmailConfirmed = u.EmailConfirmed, JoinedDate = u.JoinedDate,
+        LastPasswordChangedUtc = u.LastPasswordChangedUtc,
+        LastLoginUtc = db.LoginRecords.Where(r => r.UserId == u.Id && r.Outcome.StartsWith("Signed in"))
+            .Select(r => (DateTime?)r.OccurredUtc).Max(),
         Role = db.Admins.Any(a => a.UserId == u.Id) ? AccountRoles.Admin
             : db.Teachers.Any(t => t.UserId == u.Id) ? AccountRoles.Teacher
             : db.Students.Any(s => s.UserId == u.Id) ? AccountRoles.Student : "Unassigned"

@@ -7,10 +7,6 @@
 .admin-nav svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.6; flex-shrink: 0; }
 .admin-nav a:hover { background: var(--ha-tint); color: var(--ha-ink); }
 .admin-nav a[aria-current="page"] { color: var(--ha-primary); background: #d7ebe2; font-weight: 650; }
-.workspace-note { border-top: 1px solid var(--ha-line); margin: 2rem .7rem 1rem; padding-top: 1.5rem; font-size: .75rem; color: var(--ha-muted); }
-.workspace-note strong { display: block; font-weight: 620; color: var(--ha-ink); margin-bottom: .5rem; }
-.workspace-note p { line-height: 1.8; }
-.sidebar-back { display: flex; gap: .75rem; margin: 1rem .7rem; color: var(--ha-muted); font-size: .75rem; }
 .admin-main { min-width: 0; }
 .admin-content .page-heading { margin-bottom: 2rem; }
 .admin-content .page-heading > .btn { flex-shrink: 0; }
@@ -63,7 +59,14 @@
 @media (max-width: 991px) { .platform-summary { grid-template-columns: 1fr; gap: .75rem; } .summary-intro h2 { color: white; max-width: none; } .summary-intro p { max-width: 50ch; } }
 @media (max-width: 767px) {
  .admin-workspace { grid-template-columns: 1fr; gap: 1.75rem; padding-top: 1.5rem; } .workspace-title { margin: 0 0 1rem; } .admin-nav { flex-direction: row; flex-wrap: wrap; gap: .35rem; }
- .admin-nav a { padding: .65rem .8rem; font-size: .8125rem; } .admin-nav svg { width: 17px; height: 17px; } .workspace-note,.sidebar-back { display: none; }
+ .admin-nav a { padding: .65rem .8rem; font-size: .8125rem; } .admin-nav svg { width: 17px; height: 17px; }
  .platform-summary { padding: 1.5rem; } .filter-bar .form-control,.filter-bar .form-select { font-size: 1rem; } .summary-intro h2 { color: white; font-size: 1.5rem; } .filter-bar > div { flex: 1 1 100%; } .filter-bar > .btn { flex: 1; }
  .surface-panel { padding: 1.25rem; } .section-heading { gap: .75rem; } .recent-users .person-avatar { display: none; } .recent-users .role-badge { padding-inline: .4rem; } .pagination-bar { flex-wrap: wrap; }
 }
+
+/* Keep field tops aligned when a date error wraps; actions have their own row. */
+.login-log-filters { display: grid; grid-template-columns: minmax(12rem, 1.6fr) minmax(8rem, 1fr) repeat(2, minmax(9rem, 1fr)); align-items: start; }
+.login-log-filters > div, .login-log-filters input { min-width: 0; }
+.login-log-filter-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .75rem; }
+@media (max-width: 1199px) { .login-log-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 575px) { .login-log-filters { grid-template-columns: minmax(0, 1fr); } .login-log-filter-actions > .btn { flex: 1; } }

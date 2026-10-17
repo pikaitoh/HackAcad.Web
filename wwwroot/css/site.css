@@ -130,3 +130,7 @@ input,textarea { caret-color: var(--ha-primary); }
 .recovery-codes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem; padding: 1.5rem 0; list-style: none; }
 .recovery-codes code { color: #263e47; font-size: 1rem; }
 @media(max-width: 575px) { .session-row { align-items: flex-start; flex-direction: column; } .recovery-codes { grid-template-columns: 1fr; } }
+
+.account-timestamps { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; margin-block: 1.5rem .5rem; }
+.account-timestamps dt { color: var(--ha-muted); font-size: .8125rem; font-weight: 500; margin-bottom: .4rem; }
+.account-timestamps dd { margin: 0; font-size: .875rem; font-variant-numeric: tabular-nums; }
