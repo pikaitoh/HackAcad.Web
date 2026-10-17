@@ -150,6 +150,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         input.EmailConfirmed = user.EmailConfirmed;
         if (!ModelState.IsValid) return View(input);
         user.DisplayName = input.DisplayName.Trim();
+        user.FullName = input.FullName;
         var result = await users.UpdateAsync(user);
         if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result); return View(input); }
         await signIn.RefreshSignInAsync(user);
@@ -159,7 +160,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
 
     private async Task<ProfileModel> ProfileData(ApplicationUser user) => new()
     {
-        DisplayName = user.DisplayName, Email = user.Email ?? "", JoinedDate = user.JoinedDate,
+        DisplayName = user.DisplayName, FullName = user.FullName, Email = user.Email ?? "", JoinedDate = user.JoinedDate,
         HasAvatar = user.AvatarImage is not null, EmailConfirmed = user.EmailConfirmed,
         Role = await accounts.Query().Where(u => u.Id == user.Id).Select(u => u.Role).SingleAsync()
     };
@@ -225,6 +226,13 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         return user is null ? Challenge() : View(SettingsData(user));
     }
 
+    [HttpGet]
+    public async Task<IActionResult> PhoneNumber()
+    {
+        var user = await users.GetUserAsync(User);
+        return user is null ? Challenge() : View(SettingsData(user));
+    }
+
     [HttpPost, EnableRateLimiting("phone-otp-send")]
     public async Task<IActionResult> SendPhoneCode([Bind(Prefix = "Phone")] PhoneNumberInput input)
     {
@@ -238,12 +246,12 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             if (error is null)
             {
                 TempData["Success"] = phones.IsTestMode ? "A test verification code was captured locally. No SMS was sent." : "Verification SMS requested. Enter the code when it arrives.";
-                return RedirectToAction(nameof(Settings));
+                return RedirectToAction(nameof(PhoneNumber));
             }
             ModelState.AddModelError("Phone.PhoneNumber", error);
         }
         var model = SettingsData(user); model.Phone = input;
-        return View("Settings", model);
+        return View("PhoneNumber", model);
     }
 
     [HttpPost, EnableRateLimiting("phone-otp-check")]
@@ -262,21 +270,21 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
                 {
                     await signIn.RefreshSignInAsync(user);
                     TempData["Success"] = "Your phone number is verified. Other existing sessions will need to log in again.";
-                    return RedirectToAction(nameof(Settings));
+                    return RedirectToAction(nameof(PhoneNumber));
                 }
                 ModelState.AddModelError("", "The account changed before the phone number could be saved. Reload and request another code.");
             }
             else ModelState.AddModelError("Confirmation.Code", check.Error!);
         }
         ModelState.SetModelValue("Confirmation.Code", "", "");
-        return View("Settings", SettingsData(user));
+        return View("PhoneNumber", SettingsData(user));
     }
 
     [HttpPost]
     public async Task<IActionResult> CancelPhoneVerification()
     {
         phones.Cancel(users.GetUserId(User)!);
-        return RedirectToAction(nameof(Settings));
+        return RedirectToAction(nameof(PhoneNumber));
     }
 
     [HttpPost]
@@ -292,7 +300,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             await signIn.RefreshSignInAsync(user);
         }
         TempData["Success"] = result.Succeeded ? "Your phone number has been removed." : "The phone number could not be removed. Reload and try again.";
-        return RedirectToAction(nameof(Settings));
+        return RedirectToAction(nameof(PhoneNumber));
     }
 
     [HttpGet]
@@ -360,7 +368,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result, "NewPassword"); return View(input); }
         await signIn.RefreshSignInAsync(user);
         TempData["Success"] = "Your password has been changed. Other existing sessions will need to sign in again.";
-        return RedirectToAction(nameof(Profile));
+        return RedirectToAction(nameof(Settings));
     }
 
     [AllowAnonymous, HttpGet]

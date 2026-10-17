@@ -1,7 +1,7 @@
 @model SessionsModel
-@{ ViewData["Title"] = "Devices & sessions"; }
-<div class="container module-shell">
-    <div class="page-heading"><div><h1>Devices &amp; sessions</h1><p class="text-secondary">Manage where you're signed in.</p></div><a asp-action="Profile" class="btn btn-outline-secondary">Back to profile</a></div>
+@{ ViewData["Title"] = "Devices & sessions"; Layout = "_ManageAccountLayout"; }
+<div class="account-panel">
+    <div class="page-heading"><div><h1>Devices &amp; sessions</h1><p class="text-secondary">Manage where you're signed in.</p></div></div>
     <p class="security-explanation">These logins can still access your account. A listed device may be offline. Browser and device names are estimates; separate browsers can appear as separate devices. All times are Malaysia time (UTC+8).</p>
     <form asp-action="Sessions" method="post" data-validated-form class="session-form">
         <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>

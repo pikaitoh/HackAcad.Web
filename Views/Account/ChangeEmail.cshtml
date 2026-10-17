@@ -1,6 +1,6 @@
 @model ChangeEmailModel
-@{ ViewData["Title"] = "Change email"; }
-<div class="container module-shell">
+@{ ViewData["Title"] = "Change email"; Layout = "_ManageAccountLayout"; }
+<div class="account-panel">
     <div class="page-heading"><div><h1>Change email</h1><p class="text-secondary">Confirm your new address before using it to log in.</p></div></div>
     <form asp-action="ChangeEmail" method="post" data-account-form class="form-measure">
         @if (TempData["EmailChangeRequested"] is string requested)
@@ -18,6 +18,6 @@
             <span id="CurrentPassword-error" asp-validation-for="CurrentPassword" class="field-error" aria-live="polite"></span>
         </div>
         <p class="form-text mb-4">Keep using your current email until you confirm the new address. After confirmation, all sessions will end and you'll log in again with the new email.</p>
-        <div class="form-actions"><button type="submit" class="btn btn-primary">Send confirmation link</button><a asp-action="Profile" class="btn btn-outline-secondary">Back to profile</a></div>
+        <div class="form-actions"><button type="submit" class="btn btn-primary">Send confirmation link</button><a asp-action="Settings" class="btn btn-outline-secondary">Cancel</a></div>
     </form>
 </div>

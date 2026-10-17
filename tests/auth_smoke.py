@@ -58,7 +58,7 @@ class Client:
         if token:
             source = '/' if path.endswith('/Logout') else path
             if path.rsplit('/', 1)[-1] in ('SendPhoneCode', 'VerifyPhone', 'RemovePhone', 'CancelPhoneVerification'):
-                source = '/Identity/Account/Settings'
+                source = '/Identity/Account/PhoneNumber'
             if path.rsplit('/', 1)[-1] in ('UploadAvatar', 'RemoveAvatar'):
                 source = '/Identity/Account/Profile'
             status, _, body = self.request(source)
@@ -202,7 +202,7 @@ try:
         'signed-in navigation omits Home and the logo targets Dashboard')
     check(student.request('/Admin')[0] == 403, 'Student cannot open admin pages')
     check(student.request('/Admin/Courses')[0] == 403, 'Student cannot moderate courses')
-    check('Open account menu' in body and 'Account &amp; security' in body and 'View profile' in body,
+    check('Open account menu' in body and 'Manage account' in body and 'View profile' in body,
         'signed-in navigation offers an avatar menu with real account destinations')
     check(student.binary('/Identity/Account/Avatar')[0] == 404, 'a new account uses the initials fallback without a missing image')
     fake_image = student.upload(b'<svg><script>alert(1)</script></svg>', 'fake.jpg', 'image/jpeg')
@@ -224,7 +224,7 @@ try:
     check('profile picture has been removed' in student.post('/Identity/Account/RemoveAvatar', {})[2]
         and student.binary('/Identity/Account/Avatar')[0] == 404, 'avatar removal restores the initials fallback')
 
-    settings = '/Identity/Account/Settings'
+    settings = '/Identity/Account/PhoneNumber'
     send_phone = '/Identity/Account/SendPhoneCode'
     verify_phone = '/Identity/Account/VerifyPhone'
     check('Phone number' in student.request(settings)[2] and 'SMS test mode is active' in student.request(settings)[2],
@@ -279,7 +279,7 @@ try:
     check(field_error(wrong_password[2], 'CurrentPassword') and 'validation-summary-errors' not in wrong_password[2], 'wrong current password appears only beside its field')
     changed = student.post('/Identity/Account/ChangePassword', {'CurrentPassword': PASSWORD,
         'NewPassword': 'Changed@123!', 'ConfirmPassword': 'Changed@123!'})
-    check('Profile' in changed[1] and 'password has been changed' in changed[2], 'password change succeeds')
+    check('Settings' in changed[1] and 'password has been changed' in changed[2], 'password change succeeds')
     check('/Login' in other_session.request('/Identity/Account/Dashboard')[1], 'password change revokes the other session')
     fresh = Client()
     check('Unable to sign in' in fresh.login(test_email)[2], 'old password no longer authenticates')
@@ -401,8 +401,8 @@ try:
     profile_body = changer.request('/Identity/Account/Profile')[2]
     main = profile_body.split('<main', 1)[1].split('</main>', 1)[0]
     check('>Username</label>' in main and 'Display name' not in main
-        and 'Account &amp; security' not in main and 'Change email' in main,
-        'Profile uses Username and a change-email button without the duplicate security action')
+        and 'Account security' not in main and 'Change email' not in main,
+        'Profile contains Username without email/security management actions')
     invalid_change = changer.post(change_path, {'NewEmail': 'qw@e', 'CurrentPassword': ''})
     check(field_error(invalid_change[2], 'NewEmail') and field_error(invalid_change[2], 'CurrentPassword'),
         'email-change validation stays beside the relevant fields')
@@ -421,7 +421,7 @@ try:
     check('A confirmation link was sent' in requested[2] and len(change_links) == 1
         and 'ConfirmEmailChange?' not in requested[2] and 'value="' + PASSWORD + '"' not in requested[2],
         'email-change sends a captured link to the trimmed address without exposing token or password')
-    check(created_email in changer.request('/Identity/Account/Profile')[2]
+    check(created_email in changer.request('/Identity/Account/Settings')[2]
         and 'Dashboard' in Client().login(created_email)[1], 'pending email change preserves the old login and stored address')
     cooldown_address = 'cooldown.' + uuid.uuid4().hex[:12] + '@hackacad.local'
     blocked = changer.post(change_path, {'NewEmail': cooldown_address, 'CurrentPassword': PASSWORD})

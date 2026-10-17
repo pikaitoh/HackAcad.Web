@@ -1,6 +1,6 @@
 @model TwoFactorModel
-@{ ViewData["Title"] = "Two-factor authentication"; }
-<div class="container module-shell"><div class="page-heading"><div><h1>Two-factor authentication</h1><p class="text-secondary">Add an authenticator code to your Admin sign-in.</p></div><a asp-action="Profile" class="btn btn-outline-secondary">Back to profile</a></div>
+@{ ViewData["Title"] = "Two-factor authentication"; Layout = "_ManageAccountLayout"; }
+<div class="account-panel"><div class="page-heading"><div><h1>Two-factor authentication</h1><p class="text-secondary">Protect your sign-in with an authenticator code.</p></div></div>
 <section class="form-measure"><h2>Authenticator app <span class="status-label @(Model.Enabled ? "status-active" : "status-disabled")">@(Model.Enabled ? "On" : "Off")</span></h2>
 <p>Use Google Authenticator, Microsoft Authenticator or another compatible app. Codes work without email or SMS.</p>
 @if (Model.Enabled) { <p>You have <strong>@Model.RecoveryCodesLeft</strong> unused recovery codes. Store them somewhere private.</p> }

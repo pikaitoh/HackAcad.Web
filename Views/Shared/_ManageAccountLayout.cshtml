@@ -1,0 +1,10 @@
+@{ Layout = "_Layout"; ViewData["AccountArea"] = "manage"; }
+<div class="container account-workspace">
+    <aside class="account-sidebar">
+        <h2 class="account-sidebar-title">Manage account</h2>
+        <partial name="_ManageAccountNav" />
+    </aside>
+    <div class="account-main">@RenderBody()</div>
+</div>
+@section Styles { @await RenderSectionAsync("Styles", required: false) }
+@section Scripts { @await RenderSectionAsync("Scripts", required: false) }

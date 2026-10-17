@@ -1,7 +1,7 @@
 @model LoginHistoryModel
-@{ ViewData["Title"] = "Login history"; }
-<div class="container module-shell">
-    <div class="page-heading"><div><h1>Login history</h1><p class="text-secondary">Sign-in attempts for your account. Malaysia time (UTC+8).</p></div><a asp-action="Profile" class="btn btn-outline-secondary">Back to profile</a></div>
+@{ ViewData["Title"] = "Login history"; Layout = "_ManageAccountLayout"; }
+<div class="account-panel">
+    <div class="page-heading"><div><h1>Login history</h1><p class="text-secondary">Sign-in attempts for your account. Malaysia time (UTC+8).</p></div></div>
     @if (Model.Records.Count == 0) { <div class="empty-state"><h2>No sign-ins recorded yet</h2><p>Your next sign-in will appear here.</p></div> }
     else
     {

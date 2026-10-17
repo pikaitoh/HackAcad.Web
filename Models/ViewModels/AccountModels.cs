@@ -42,6 +42,9 @@ public class RegisterModel
 
 public class ProfileModel
 {
+    [StringLength(100, ErrorMessage = "Use up to 100 characters for your full name."), Display(Name = "Full name")]
+    public string? FullName { get => fullName; set => fullName = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
+    private string? fullName;
     [Required(ErrorMessage = "Enter a username."), StringLength(50, MinimumLength = 2, ErrorMessage = AccountValidation.NameLengthMessage), Display(Name = "Username")]
     [RegularExpression(AccountValidation.NamePattern, ErrorMessage = AccountValidation.NameMessage)]
     public string DisplayName { get => displayName; set => displayName = value?.Trim() ?? ""; }

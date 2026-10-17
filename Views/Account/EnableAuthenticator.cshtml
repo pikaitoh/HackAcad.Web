@@ -1,6 +1,6 @@
 @model EnableAuthenticatorModel
-@{ ViewData["Title"] = "Connect authenticator"; }
-<div class="container module-shell"><div class="page-heading"><div><h1>Connect your authenticator</h1><p class="text-secondary">Setup expires after 10 minutes. Keep this QR code and key private.</p></div><a asp-action="TwoFactor" class="btn btn-outline-secondary">Cancel setup</a></div>
+@{ ViewData["Title"] = "Connect authenticator"; Layout = "_ManageAccountLayout"; }
+<div class="account-panel"><div class="page-heading"><div><h1>Connect your authenticator</h1><p class="text-secondary">Setup expires after 10 minutes. Keep this QR code and key private.</p></div><a asp-action="TwoFactor" class="btn btn-outline-secondary">Cancel setup</a></div>
 <section class="form-measure"><h2>1. Add HackAcad to your app</h2><p>Scan this QR code with your authenticator app.</p><img src="@Model.QrImage" width="240" height="240" class="authenticator-qr" alt="QR code to add your HackAcad account to an authenticator app" />
 <p class="form-text">Can't scan? Choose to enter a setup key in the app. Select a time-based code.</p><code class="authenticator-key">@Model.SharedKey</code>
 <h2 class="mt-4">2. Enter the code from your app</h2>

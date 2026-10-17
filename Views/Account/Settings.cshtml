@@ -1,46 +1,13 @@
 @model AccountSettingsModel
-@{ ViewData["Title"] = "Account & security"; }
-<div class="container module-shell">
-    <nav aria-label="Breadcrumb" class="mb-4"><a asp-action="Dashboard">Dashboard</a> <span aria-hidden="true">/</span> Account &amp; security</nav>
-    <div class="page-heading"><div><h1>Account &amp; security</h1><p class="text-secondary">Manage your contact details and keep your account secure.</p></div><a asp-action="Profile" class="btn btn-outline-secondary">View profile</a></div>
-    <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
-    <div class="settings-layout">
-        <section aria-labelledby="access-title" class="settings-access">
-            <h2 id="access-title">Login &amp; password</h2>
-            <dl class="detail-list"><dt>Email address</dt><dd>@Model.Email <span class="record-secondary">@(Model.EmailConfirmed ? "Verified" : "Not verified")</span></dd></dl>
-            @if (!Model.EmailConfirmed) { <p><a asp-action="ResendVerification">Verify your email</a></p> }
-            <p class="text-secondary">Use your email and password to log in. You can update your password at any time.</p>
-            <div class="form-actions"><a asp-action="ChangeEmail" class="btn btn-outline-secondary">Change email</a><a asp-action="ChangePassword" class="btn btn-outline-secondary">Change password</a></div>
-            <div class="settings-profile-link"><h2>Sign-in security</h2><div class="security-links"><a asp-action="LoginHistory" class="btn btn-outline-secondary">Login history</a><a asp-action="Sessions" class="btn btn-outline-secondary">Devices &amp; sessions</a>
-            @if (User.IsInRole(AccountRoles.Admin) || Model.TwoFactorEnabled) { <a asp-action="TwoFactor" class="btn btn-outline-secondary">Two-factor authentication · @(Model.TwoFactorEnabled ? "On" : "Off")</a> }
-            </div></div>
-            <div class="settings-profile-link"><h2>Picture &amp; username</h2><p class="text-secondary">Update how your account appears across HackAcad.</p><a asp-action="Profile">Edit your profile</a></div>
-        </section>
-        <section class="form-measure phone-settings" aria-labelledby="phone-title">
-            <h2 id="phone-title">Phone number</h2>
-            <p class="text-secondary">Optional. Verify a number you own using a code sent by SMS. This number isn't used for login or password recovery.</p>
-            @if (Model.IsSmsTestMode) { <div class="alert alert-warning" role="status">SMS test mode is active. Codes are captured locally; no text messages are sent.</div> }
-            @if (!string.IsNullOrEmpty(Model.CurrentPhone))
-            {
-                <div class="phone-current"><span class="record-secondary">Current number</span><strong>@Model.CurrentPhone</strong><span class="status-label @(Model.PhoneConfirmed ? "status-active" : "status-disabled")">@(Model.PhoneConfirmed ? "Verified" : "Not verified")</span></div>
-                <form asp-action="RemovePhone" method="post" class="mb-4"><button type="submit" class="text-action">Remove phone number</button></form>
-            }
-            <form asp-action="SendPhoneCode" method="post" data-validated-form>
-                <div class="mb-3"><label asp-for="Phone.PhoneNumber" class="form-label">@(Model.CurrentPhone is null ? "Phone number" : "New phone number")</label><input asp-for="Phone.PhoneNumber" type="tel" class="form-control" autocomplete="tel" maxlength="16" placeholder="+60123456789" required data-trim aria-describedby="phone-help Phone_PhoneNumber-error" aria-invalid="@(ViewData.ModelState["Phone.PhoneNumber"]?.Errors.Count > 0 ? "true" : null)" /><p id="phone-help" class="form-text">Include + and your country code, without spaces. For Malaysia, replace the first 0 with +60.</p><span id="Phone_PhoneNumber-error" asp-validation-for="Phone.PhoneNumber" class="field-error" aria-live="polite"></span></div>
-                <button type="submit" class="btn btn-primary">Send verification code</button>
-            </form>
-            @if (Model.PendingPhone is not null || ViewData.ModelState["Confirmation.Code"]?.Errors.Count > 0)
-            {
-                <div class="phone-confirmation">
-                    <h3>Enter your code</h3>
-                    @if (Model.PendingPhone is not null) { <p class="text-secondary">Verification requested for <strong>@Model.PendingPhone</strong>. Your current number stays unchanged until verification succeeds.</p> }
-                    <form asp-action="VerifyPhone" method="post" data-validated-form>
-                        <div class="mb-3"><label asp-for="Confirmation.Code" class="form-label"></label><input asp-for="Confirmation.Code" class="form-control otp-input" type="text" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" required aria-describedby="code-help Confirmation_Code-error" aria-invalid="@(ViewData.ModelState["Confirmation.Code"]?.Errors.Count > 0 ? "true" : null)" /><p id="code-help" class="form-text">Enter the six digits from your SMS. If your code expires, request another SMS above. Wait one minute between requests.</p><span id="Confirmation_Code-error" asp-validation-for="Confirmation.Code" class="field-error" aria-live="polite"></span></div>
-                        <button type="submit" class="btn btn-primary">Verify phone number</button>
-                    </form>
-                    <form asp-action="CancelPhoneVerification" method="post" class="mt-3"><button type="submit" class="text-action">Cancel verification</button></form>
-                </div>
-            }
-        </section>
-    </div>
+@{ ViewData["Title"] = "Email address"; Layout = "_ManageAccountLayout"; }
+<div class="account-panel">
+    <div class="page-heading"><div><h1>Email address</h1><p class="text-secondary">Manage the email you use to sign in.</p></div></div>
+    <section class="form-measure email-settings" aria-labelledby="email-title">
+        <h2 id="email-title">Your email</h2>
+        <dl class="detail-list"><dt>Email address</dt><dd class="text-break">@Model.Email</dd><dt>Verification status</dt><dd><span class="status-label @(Model.EmailConfirmed ? "status-active" : "status-disabled")">@(Model.EmailConfirmed ? "Verified" : "Not verified")</span></dd></dl>
+        <p class="text-secondary">When you change your email, your current address stays in use until you confirm the new one.</p>
+        <div class="form-actions"><a asp-action="ChangeEmail" class="btn btn-primary">Change email</a>
+        @if (!Model.EmailConfirmed) { <a asp-action="ResendVerification" class="btn btn-outline-secondary">Resend verification email</a> }
+        </div>
+    </section>
 </div>

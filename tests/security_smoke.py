@@ -107,6 +107,19 @@ try:
     a,b,student=Client(),Client('Mozilla/5.0 (X11; Linux x86_64) Firefox/130.0'),Client('Mozilla/5.0 (Android) Chrome/130.0')
     check('/Admin' in a.login(main_email)[1] and '/Admin' in b.login(main_email)[1], 'one account can have two independent browser sessions')
     student.login(student_email)
+    full_name="陈明 O'Connor"
+    saved=a.post(ACCOUNT+'Profile',{'DisplayName':'Security admin '+suffix,'FullName':'  '+full_name+'  ', 'Id':edit_path(admin,student_email).rsplit('/',1)[1]})
+    stored=html.unescape(a.request(ACCOUNT+'Profile')[2])
+    check('Your profile has been updated' in saved[2] and 'value="'+full_name+'"' in stored,
+        'Full name is trimmed and persists after loading Profile again')
+    check(full_name not in html.unescape(student.request(ACCOUNT+'Profile')[2]), 'profile Full name changes cannot target another user')
+    boundary=a.post(ACCOUNT+'Profile',{'DisplayName':'Security admin '+suffix,'FullName':'名'*100})
+    check('Your profile has been updated' in boundary[2], 'Full name accepts the 100-character boundary')
+    oversized=a.post(ACCOUNT+'Profile',{'DisplayName':'Security admin '+suffix,'FullName':'名'*101})
+    check('FullName-error' in oversized[2] and 'Use up to 100 characters' in oversized[2]
+        and 'value="'+'名'*100+'"' in html.unescape(a.request(ACCOUNT+'Profile')[2]), 'oversized Full name is rejected without replacing the saved name')
+    cleared=a.post(ACCOUNT+'Profile',{'DisplayName':'Security admin '+suffix,'FullName':'  '})
+    check('Your profile has been updated' in cleared[2] and 'value="'+'名'*100+'"' not in html.unescape(a.request(ACCOUNT+'Profile')[2]), 'Full name is optional and can be cleared')
     sessions=a.request(ACCOUNT+'Sessions')[2]
     ids=session_ids(sessions)
     check(len(ids)==1 and 'This device' in sessions and 'Firefox on Linux' in sessions and 'UTC+8' in sessions, 'sessions show the current browser, other browser and Malaysia time')
@@ -140,7 +153,20 @@ try:
     fixtures.remove(target_email)
     activity=a.request('/Admin/Activity')[2]
     check('Deleted account' in activity and 'Edited target '+suffix in activity and 'Audit target '+suffix in activity, 'audit snapshots survive target account deletion')
-    check('Verified</span>' in a.request(ACCOUNT+'Profile')[2], 'Profile displays actual email verification status')
+    check('Verified</span>' in a.request(ACCOUNT+'Settings')[2], 'Manage account displays actual email verification status')
+    profile=a.request(ACCOUNT+'Profile')[2].split('<main',1)[1].split('</main>',1)[0]
+    check('Profile picture' in profile and '>Username</label>' in profile and 'Change email' not in profile
+        and 'Account security' not in profile and 'account-settings-nav' not in profile, 'View profile is separate from account security')
+    for action,selected in [('Settings','Email address'),('ChangeEmail','Email address'),('PhoneNumber','Phone number'),
+        ('ChangePassword','Password'),('TwoFactor','Two-factor authentication'),('LoginHistory','Login history'),('Sessions','Devices &amp; sessions')]:
+        response=a.request(ACCOUNT+action)
+        nav=re.search(r'<nav class="account-settings-nav".*?</nav>',response[2],re.S)
+        active=re.findall(r'<a[^>]+aria-current="page"[^>]*>.*?<span>(.*?)</span>',nav[0],re.S) if nav else []
+        check(response[0]==200 and active==[selected] and '>Manage account</a>' in response[2], 'shared sidebar selects the correct function: '+action)
+    email_main=a.request(ACCOUNT+'Settings')[2].split('<main',1)[1].split('</main>',1)[0]
+    check('Change email' in email_main and 'name="Phone.PhoneNumber"' not in email_main, 'email and phone forms are separate functions')
+    student_nav=student.request(ACCOUNT+'Settings')[2]
+    check('>Two-factor authentication</span>' not in student_nav, 'Student account navigation preserves the Admin-only 2FA setup rule')
 
     check(student.request(ACCOUNT+'TwoFactor')[0]==403, 'initial authenticator setup is restricted to Admin')
     check('/TwoFactor' in a.request(ACCOUNT+'EnableAuthenticator')[1], 'setup key is unavailable without recent password confirmation')

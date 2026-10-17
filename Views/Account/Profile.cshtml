@@ -1,7 +1,7 @@
 @model ProfileModel
-@{ ViewData["Title"] = "My profile"; }
+@{ ViewData["Title"] = "My profile"; ViewData["AccountArea"] = "profile"; }
 <div class="container module-shell">
-    <div class="page-heading"><div><h1>My profile</h1><p class="text-secondary">Manage your picture, username and email.</p></div></div>
+    <div class="page-heading"><div><h1>My profile</h1><p class="text-secondary">Manage your picture, username and full name.</p></div></div>
     <div class="profile-layout">
         <section aria-labelledby="picture-title">
             <div class="profile-photo">
@@ -21,9 +21,8 @@
             </div>
         </section>
         <section class="form-measure profile-details" aria-labelledby="details-title">
-            <h2 class="h4" id="details-title">Account details</h2>
+            <h2 class="h4" id="details-title">Profile details</h2>
             <dl class="detail-list profile-facts">
-                <div class="profile-email"><dt>Email</dt><dd class="profile-email-row"><span>@Model.Email <span class="status-label @(Model.EmailConfirmed ? "status-active" : "status-disabled")">@(Model.EmailConfirmed ? "Verified" : "Not verified")</span></span><a asp-action="ChangeEmail" class="btn btn-outline-secondary btn-sm">Change email</a></dd></div>
                 <div><dt>Role</dt><dd><span class="role-badge" data-role="@Model.Role">@Model.Role</span></dd></div>
                 <div><dt>Joined</dt><dd>@Model.JoinedDate.ToString("dd MMM yyyy") <span class="text-secondary">(UTC)</span></dd></div>
             </dl>
@@ -34,22 +33,13 @@
                 <input asp-for="DisplayName" data-trim aria-invalid="@(ViewData.ModelState["DisplayName"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="nickname" minlength="2" maxlength="50" required  aria-describedby="DisplayName-help DisplayName-error" />
                 <p id="DisplayName-help" class="form-text">2–50 characters. Use letters, numbers, spaces, . _ - or apostrophes.</p><span id="DisplayName-error" asp-validation-for="DisplayName" class="field-error" aria-live="polite"></span>
             </div>
+            <div class="mb-4">
+                <label asp-for="FullName" class="form-label"></label>
+                <input asp-for="FullName" data-trim class="form-control" autocomplete="name" maxlength="100" aria-invalid="@(ViewData.ModelState["FullName"]?.Errors.Count > 0 ? "true" : null)" aria-describedby="FullName-help FullName-error" />
+                <p id="FullName-help" class="form-text">Optional. Up to 100 characters.</p><span id="FullName-error" asp-validation-for="FullName" class="field-error" aria-live="polite"></span>
+            </div>
             <button type="submit" class="btn btn-primary">Save profile</button>
             </form>
         </section>
     </div>
-    <section class="profile-security" aria-labelledby="security-title">
-        <h2 id="security-title">Account security</h2>
-        <p class="text-secondary">Review your sign-ins and control access to your account.</p>
-        <div class="form-actions">
-            <a asp-action="LoginHistory" class="btn btn-outline-secondary">Login history</a>
-            <a asp-action="Sessions" class="btn btn-outline-secondary">Devices &amp; sessions</a>
-            <a asp-action="ChangePassword" class="btn btn-outline-secondary">Change password</a>
-            @if (User.IsInRole(AccountRoles.Admin))
-            {
-                <a asp-action="TwoFactor" class="btn btn-outline-secondary">Two-factor authentication</a>
-                <a asp-controller="Admin" asp-action="Activity" class="btn btn-outline-secondary">My admin activity</a>
-            }
-        </div>
-    </section>
 </div>

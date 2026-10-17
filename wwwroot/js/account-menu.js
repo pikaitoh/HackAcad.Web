@@ -9,3 +9,13 @@ document.querySelectorAll('[data-account-menu]').forEach(menu => {
         }
     });
 });
+
+const accountNavigation = document.querySelector('.account-settings-nav');
+const currentFunction = accountNavigation?.querySelector('[aria-current="page"]');
+function revealCurrentAccountFunction() {
+    if (!currentFunction || accountNavigation.scrollWidth <= accountNavigation.clientWidth) return;
+    accountNavigation.scrollLeft += currentFunction.getBoundingClientRect().left - accountNavigation.getBoundingClientRect().left
+        - (accountNavigation.clientWidth - currentFunction.clientWidth) / 2;
+}
+revealCurrentAccountFunction();
+window.matchMedia('(max-width: 767px)').addEventListener('change', revealCurrentAccountFunction);

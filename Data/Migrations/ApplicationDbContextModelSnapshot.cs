@@ -150,6 +150,10 @@ namespace HackAcad.Web.Data.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<string>("FullName")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
                     b.Property<bool>("IsDisabled")
                         .HasColumnType("tinyint(1)");
 
