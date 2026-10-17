@@ -20,10 +20,15 @@
         <nav class="navbar navbar-expand-md" aria-label="Main navigation">
             <div class="container">
                 <a class="navbar-brand" asp-controller="@(signedIn ? (isAdmin ? "Admin" : "Account") : "Home")" asp-action="@(signedIn && !isAdmin ? "Dashboard" : "Index")" aria-label="@(signedIn ? "HackAcad dashboard" : "HackAcad home")"><partial name="_Brand" /></a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#site-navigation" aria-controls="site-navigation" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
-                <div class="collapse navbar-collapse justify-content-end" id="site-navigation">
-                    <div class="navbar-nav align-items-md-center site-account-nav"><partial name="_LoginPartial" /></div>
-                </div>
+                @if (signedIn)
+                {
+                    <div class="navbar-nav site-account-nav signed-in-nav" id="site-navigation"><partial name="_LoginPartial" /></div>
+                }
+                else
+                {
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#site-navigation" aria-controls="site-navigation" aria-expanded="false" aria-label="Toggle navigation"><span class="navbar-toggler-icon"></span></button>
+                    <div class="collapse navbar-collapse justify-content-end" id="site-navigation"><div class="navbar-nav align-items-md-center site-account-nav"><partial name="_LoginPartial" /></div></div>
+                }
             </div>
         </nav>
     </header>
@@ -37,6 +42,7 @@
     <footer class="site-footer"><div class="container footer-inner"><span>&copy; 2026 HackAcad</span><span>Learn. Practise. Prove it.</span></div></footer>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/account-forms.js" asp-append-version="true" defer></script>
+    <script src="~/js/account-menu.js" asp-append-version="true" defer></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

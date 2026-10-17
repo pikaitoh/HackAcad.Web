@@ -25,10 +25,21 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Challenge> Challenges => Set<Challenge>();
     public DbSet<ChallengeSubmission> ChallengeSubmissions => Set<ChallengeSubmission>();
     public DbSet<SimulationTask> SimulationTasks => Set<SimulationTask>();
+    public DbSet<LoginRecord> LoginRecords => Set<LoginRecord>();
+    public DbSet<AdminActivity> AdminActivities => Set<AdminActivity>();
+    public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        builder.Entity<LoginRecord>().HasIndex(r => new { r.UserId, r.OccurredUtc });
+        builder.Entity<LoginRecord>().HasOne<ApplicationUser>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<AccountSession>().HasIndex(r => new { r.UserId, r.ExpiresUtc });
+        builder.Entity<AccountSession>().HasOne<ApplicationUser>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<AdminActivity>().HasIndex(r => new { r.ActorUserId, r.OccurredUtc });
+        // Keep the audit entry when its actor/target is removed; only the actor relation is cleared.
+        builder.Entity<AdminActivity>().HasOne<ApplicationUser>().WithMany().HasForeignKey(r => r.ActorUserId).OnDelete(DeleteBehavior.SetNull);
 
         // --- Role tables: UserId is PK and FK to AspNetUsers in one step ---
         builder.Entity<Student>()

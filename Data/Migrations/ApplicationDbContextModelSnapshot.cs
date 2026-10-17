@@ -22,6 +22,51 @@ namespace HackAcad.Web.Data.Migrations
 
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.AccountSession", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<DateTime>("CreatedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Device")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<DateTime>("ExpiresUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<DateTime>("LastSeenUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("RevokedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("SecurityStamp")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ExpiresUtc");
+
+                    b.ToTable("AccountSessions");
+                });
+
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Admin", b =>
                 {
                     b.Property<string>("UserId")
@@ -32,6 +77,53 @@ namespace HackAcad.Web.Data.Migrations
                     b.ToTable("Admins");
                 });
 
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.AdminActivity", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<string>("ActorUserId")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("varchar(512)");
+
+                    b.Property<DateTime>("OccurredUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("TargetId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("TargetName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ActorUserId", "OccurredUtc");
+
+                    b.ToTable("AdminActivities");
+                });
+
             modelBuilder.Entity("HackAcad.Web.Models.Entities.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -39,6 +131,9 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.Property<int>("AccessFailedCount")
                         .HasColumnType("int");
+
+                    b.Property<byte[]>("AvatarImage")
+                        .HasColumnType("mediumblob");
 
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
@@ -298,6 +393,44 @@ namespace HackAcad.Web.Data.Migrations
                     b.ToTable("Lessons");
                 });
 
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.LoginRecord", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Device")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasMaxLength(45)
+                        .HasColumnType("varchar(45)");
+
+                    b.Property<DateTime>("OccurredUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Outcome")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "OccurredUtc");
+
+                    b.ToTable("LoginRecords");
+                });
+
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Progress", b =>
                 {
                     b.Property<int>("ProgressId")
@@ -536,6 +669,15 @@ namespace HackAcad.Web.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.AccountSession", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Admin", b =>
                 {
                     b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", "User")
@@ -545,6 +687,14 @@ namespace HackAcad.Web.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.AdminActivity", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("ActorUserId")
+                        .OnDelete(DeleteBehavior.SetNull);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Challenge", b =>
@@ -578,6 +728,15 @@ namespace HackAcad.Web.Data.Migrations
                     b.HasOne("HackAcad.Web.Models.Entities.Course", null)
                         .WithMany()
                         .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.LoginRecord", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

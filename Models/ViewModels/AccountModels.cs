@@ -2,6 +2,14 @@ using System.ComponentModel.DataAnnotations;
 
 namespace HackAcad.Web.Models.ViewModels;
 
+public class ResendVerificationModel
+{
+    [Required(ErrorMessage = "Enter your email address."), EmailAddress(ErrorMessage = AccountValidation.EmailMessage), StringLength(256)]
+    [RegularExpression(AccountValidation.EmailPattern, ErrorMessage = AccountValidation.EmailMessage)]
+    public string Email { get => email; set => email = value?.Trim() ?? ""; }
+    private string email = "";
+}
+
 public class LoginModel
 {
     [Required(ErrorMessage = "Enter your email address."), EmailAddress(ErrorMessage = AccountValidation.EmailMessage), StringLength(256)]
@@ -17,7 +25,7 @@ public class LoginModel
 
 public class RegisterModel
 {
-    [Required(ErrorMessage = "Enter a display name."), StringLength(50, MinimumLength = 2, ErrorMessage = AccountValidation.NameLengthMessage), Display(Name = "Display name")]
+    [Required(ErrorMessage = "Enter a username."), StringLength(50, MinimumLength = 2, ErrorMessage = AccountValidation.NameLengthMessage), Display(Name = "Username")]
     [RegularExpression(AccountValidation.NamePattern, ErrorMessage = AccountValidation.NameMessage)]
     public string DisplayName { get => displayName; set => displayName = value?.Trim() ?? ""; }
     private string displayName = "";
@@ -34,13 +42,54 @@ public class RegisterModel
 
 public class ProfileModel
 {
-    [Required(ErrorMessage = "Enter a display name."), StringLength(50, MinimumLength = 2, ErrorMessage = AccountValidation.NameLengthMessage), Display(Name = "Display name")]
+    [Required(ErrorMessage = "Enter a username."), StringLength(50, MinimumLength = 2, ErrorMessage = AccountValidation.NameLengthMessage), Display(Name = "Username")]
     [RegularExpression(AccountValidation.NamePattern, ErrorMessage = AccountValidation.NameMessage)]
     public string DisplayName { get => displayName; set => displayName = value?.Trim() ?? ""; }
     private string displayName = "";
     public string Email { get; set; } = "";
     public string Role { get; set; } = "";
     public DateTime JoinedDate { get; set; }
+    public bool HasAvatar { get; set; }
+    public bool EmailConfirmed { get; set; }
+}
+
+public class PhoneNumberInput
+{
+    [Required(ErrorMessage = "Enter your phone number."), Display(Name = "Phone number")]
+    [RegularExpression(@"^\+[1-9][0-9]{7,14}$", ErrorMessage = "Include the country code, such as +60123456789, without spaces.")]
+    public string PhoneNumber { get => number; set => number = value?.Trim() ?? ""; }
+    private string number = "";
+}
+
+public class PhoneCodeInput
+{
+    [Required(ErrorMessage = "Enter the six-digit code from your SMS."), Display(Name = "Verification code")]
+    [RegularExpression(@"^[0-9]{6}$", ErrorMessage = "Enter the six-digit code from your SMS.")]
+    public string Code { get; set; } = "";
+}
+
+public class AccountSettingsModel
+{
+    public bool TwoFactorEnabled { get; set; }
+    public string Email { get; set; } = "";
+    public bool EmailConfirmed { get; set; }
+    public string? CurrentPhone { get; set; }
+    public bool PhoneConfirmed { get; set; }
+    public string? PendingPhone { get; set; }
+    public bool IsSmsTestMode { get; set; }
+    public PhoneNumberInput Phone { get; set; } = new();
+    public PhoneCodeInput Confirmation { get; set; } = new();
+}
+
+public class ChangeEmailModel
+{
+    public string CurrentEmail { get; set; } = "";
+    [Required(ErrorMessage = "Enter your new email address."), EmailAddress(ErrorMessage = AccountValidation.EmailMessage), StringLength(256), Display(Name = "New email")]
+    [RegularExpression(AccountValidation.EmailPattern, ErrorMessage = AccountValidation.EmailMessage)]
+    public string NewEmail { get => email; set => email = value?.Trim() ?? ""; }
+    private string email = "";
+    [Required(ErrorMessage = "Enter your current password."), DataType(DataType.Password), Display(Name = "Current password")]
+    public string CurrentPassword { get; set; } = "";
 }
 
 public class ChangePasswordModel

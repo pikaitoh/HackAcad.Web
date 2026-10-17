@@ -1,7 +1,7 @@
 @model RegisterModel
 @{ Layout = "_AuthLayout"; ViewData["Title"] = "Create an account"; }
 <h1 id="auth-title">Start learning</h1>
-<p class="text-secondary mb-4">Create your Student account.</p>
+<p class="text-secondary mb-4">Create your Student account. We'll email you a verification link before you log in.</p>
 <form asp-action="Register" method="post" data-account-form>
     <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
     <div class="mb-3">

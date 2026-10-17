@@ -1,0 +1,16 @@
+@{ Layout = "_AuthLayout"; ViewData["Title"] = "Verify your email"; }
+<h1 id="auth-title">Check your email</h1>
+@if (TempData["VerificationDeliveryFailed"] is true)
+{
+    <p role="alert">Your account was created, but we couldn't send the verification email. You need to verify your email before logging in.</p>
+    <p class="text-secondary mb-4">Try requesting another email below. If it still doesn't arrive, contact an administrator.</p>
+}
+else
+{
+    <p>Open the verification email from HackAcad and follow the link to finish setting up your account.</p>
+    <p class="text-secondary mb-4">The link expires in 10 minutes. Check your spam folder if you don't see it, and allow a minute before requesting another email.</p>
+}
+<div class="form-actions">
+    <a asp-action="Login" class="btn btn-primary">Go to log in</a>
+    <a asp-action="ResendVerification">Resend verification email</a>
+</div>

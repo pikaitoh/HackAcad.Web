@@ -9,7 +9,7 @@ public static class AccountValidation
     public const string EmailMessage = "Enter a complete email address, such as name@example.com.";
     public const string NamePattern = @"^(?=.*[\p{L}\p{N}])[\p{L}\p{M}\p{N} .'’_-]+$";
     public const string NameMessage = "Use letters, numbers, spaces, apostrophes, dots, underscores or hyphens, with at least one letter or number.";
-    public const string NameLengthMessage = "Use 2–50 characters for your display name.";
+    public const string NameLengthMessage = "Use 2–50 characters for your username.";
     public const string PasswordPattern = @"^(?=[\s\S]*[a-z])(?=[\s\S]*[A-Z])(?=[\s\S]*[0-9])(?=[\s\S]*[^a-zA-Z0-9])[\s\S]{8,100}$";
     public const string PasswordMessage = "Use 8–100 characters with an uppercase letter, a lowercase letter, a number and a symbol.";
 

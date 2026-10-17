@@ -1,7 +1,7 @@
 @model CreateUserModel
 @{ ViewData["Title"] = "Create account"; }
 <div class="admin-content">
-    <div class="page-heading"><div><h1>Create account</h1><p class="text-secondary">Create a user and assign their initial access.</p></div></div>
+    <div class="page-heading"><div><h1>Create account</h1><p class="text-secondary">Create a user and assign their initial access. They must verify their email before logging in.</p></div></div>
     <form asp-action="CreateUser" method="post" data-account-form class="form-measure">
         <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
         <div class="mb-3"><label asp-for="DisplayName" class="form-label"></label><input asp-for="DisplayName" data-trim aria-invalid="@(ViewData.ModelState["DisplayName"]?.Errors.Count > 0 ? "true" : null)" class="form-control" minlength="2" maxlength="50" autocomplete="off" required  aria-describedby="DisplayName-help DisplayName-error" /><p id="DisplayName-help" class="form-text">2–50 characters. Use letters, numbers, spaces, . _ - or apostrophes.</p><span id="DisplayName-error" asp-validation-for="DisplayName" class="field-error" aria-live="polite"></span></div>

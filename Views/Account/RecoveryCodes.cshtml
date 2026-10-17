@@ -1,0 +1,4 @@
+@model string[]
+@{ ViewData["Title"] = "Save your recovery codes"; }
+<div class="container module-shell"><div class="page-heading"><div><h1>Save your recovery codes</h1><p class="text-secondary">Two-factor authentication is on.</p></div></div>
+<section class="form-measure"><p>Each code can be used once to sign in if you lose access to your authenticator. Keep them in a private, secure place. These codes won't be displayed again.</p><ul class="recovery-codes">@foreach (var code in Model) { <li><code>@code</code></li> }</ul><p class="form-text">Generating a new set later will invalidate these codes.</p><a asp-action="TwoFactor" class="btn btn-primary">I've saved my codes</a></section></div>

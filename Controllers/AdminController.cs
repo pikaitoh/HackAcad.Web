@@ -11,7 +11,7 @@ namespace HackAcad.Web.Controllers;
 
 [Authorize(Roles = AccountRoles.Admin)]
 public class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
-    SignInManager<ApplicationUser> signIn, UserAccounts accounts) : Controller
+    SignInManager<ApplicationUser> signIn, UserAccounts accounts, EmailVerification verification, AccountRecords records) : Controller
 {
     public async Task<IActionResult> Index() => View(new AdminOverviewModel
     {
@@ -44,9 +44,12 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         if (!AccountRoles.All.Contains(input.Role)) ModelState.AddModelError(nameof(input.Role), "Choose a valid role.");
         if (!ModelState.IsValid) return View(input);
         var user = new ApplicationUser { UserName = input.Email.Trim(), Email = input.Email.Trim(), DisplayName = input.DisplayName.Trim() };
-        var result = await accounts.CreateAsync(user, input.Password, input.Role);
+        var result = await accounts.CreateAsync(user, input.Password, input.Role, users.GetUserId(User)!);
         if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result); return View(input); }
-        TempData["Success"] = $"Account created for {user.Email}.";
+        var delivered = await verification.SendAsync(user);
+        TempData["Success"] = delivered
+            ? $"Account created for {user.Email}. They must verify their email before logging in."
+            : $"Account created for {user.Email}, but the verification email could not be sent. Check mail settings; the user can request another email from Log in.";
         return RedirectToAction(nameof(Users));
     }
 
@@ -65,6 +68,7 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         var user = await users.FindByIdAsync(id);
         if (user is null) return NotFound();
         if (!ModelState.IsValid) return View(input);
+        var emailChanged = !string.Equals(user.Email, input.Email, StringComparison.OrdinalIgnoreCase);
         try
         {
             var result = await accounts.UpdateAsync(user, input, users.GetUserId(User)!);
@@ -75,8 +79,23 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
             ModelState.AddModelError("", "This account changed or has linked content. Reload the page and check its course ownership before trying again.");
             return View(input);
         }
-        if (id == users.GetUserId(User)) await signIn.RefreshSignInAsync(user);
-        TempData["Success"] = "Account updated. Role and status changes revoke existing sessions.";
+        if (emailChanged)
+        {
+            var delivered = await verification.SendAsync(user);
+            TempData["Success"] = delivered
+                ? "Account updated. The new email must be verified before the user can log in again."
+                : "Account updated. The new email needs verification, but the email could not be sent. Check mail settings; the user can request another email from Log in.";
+            if (id == users.GetUserId(User))
+            {
+                await signIn.SignOutAsync();
+                return RedirectToAction("Login", "Account");
+            }
+        }
+        else
+        {
+            if (id == users.GetUserId(User)) await signIn.RefreshSignInAsync(user);
+            TempData["Success"] = "Account updated. Role and status changes revoke existing sessions.";
+        }
         return RedirectToAction(nameof(Users));
     }
 
@@ -141,10 +160,13 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         input.CourseId = id;
         input.Teacher = await TeacherName(course.TeacherId);
         if (!ModelState.IsValid) return View(input);
+        var publicationChanged = course.IsPublished != input.IsPublished;
         course.Title = input.Title.Trim();
         course.Description = input.Description?.Trim();
         course.Category = input.Category?.Trim();
         course.IsPublished = input.IsPublished;
+        records.AddActivity(users.GetUserId(User)!, "Updated course", "Course", course.CourseId.ToString(), course.Title,
+            publicationChanged ? (course.IsPublished ? "Course published" : "Course unpublished") : "Course details changed");
         await db.SaveChangesAsync();
         TempData["Success"] = "Course details and publication status updated.";
         return RedirectToAction(nameof(Courses));
@@ -169,6 +191,7 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         {
             try
             {
+                records.AddActivity(users.GetUserId(User)!, "Deleted course", "Course", course.CourseId.ToString(), course.Title);
                 db.Courses.Remove(course);
                 await db.SaveChangesAsync();
                 TempData["Success"] = "Course and its unused learning activities deleted.";
@@ -177,6 +200,17 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
             catch (DbUpdateException) { ModelState.AddModelError("", "Linked learning records prevent deletion. Unpublish this course instead."); }
         }
         return View("DeleteCourse", course);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> Activity(int page = 1)
+    {
+        var id = users.GetUserId(User)!;
+        var query = db.AdminActivities.AsNoTracking().Where(r => r.ActorUserId == id);
+        var total = await query.CountAsync();
+        page = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(total / 20d)));
+        return View(new AdminActivityModel { Page = page, Total = total,
+            Records = await query.OrderByDescending(r => r.OccurredUtc).ThenByDescending(r => r.Id).Skip((page - 1) * 20).Take(20).ToListAsync() });
     }
 
     private async Task<string> TeacherName(string id) => await db.Users.Where(u => u.Id == id).Select(u => u.DisplayName).FirstOrDefaultAsync() ?? "Unknown teacher";

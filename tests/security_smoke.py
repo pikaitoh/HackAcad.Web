@@ -1,0 +1,196 @@
+"""Personal sessions, history, audit and Authenticator integration checks.
+
+Use an isolated Development database with Email__DevelopmentPickupDirectory.
+No SMS/email is sent. Creates and removes random local fixtures only.
+python tests/security_smoke.py http://127.0.0.1:5099
+"""
+import base64
+import hashlib
+import hmac
+import html
+import http.cookiejar
+import os
+import re
+import struct
+import sys
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+import uuid
+from email import policy
+from email.parser import BytesParser
+from email.utils import getaddresses
+from pathlib import Path
+
+BASE = sys.argv[1].rstrip('/')
+assert urllib.parse.urlparse(BASE).hostname in ('localhost', '127.0.0.1'), 'Local isolated test instance only'
+MAIL = Path(os.environ['HACKACAD_TEST_MAIL_DIR'])
+PASSWORD = os.environ.get('HACKACAD_DEMO_PASSWORD', 'HackAcad@123!')
+ACCOUNT = '/Identity/Account/'
+checks = 0
+
+def check(value, description):
+    global checks
+    assert value, description
+    checks += 1
+    print('PASS', description, flush=True)
+
+class Client:
+    def __init__(self, agent='Mozilla/5.0 (Windows NT 10.0) Chrome/130.0 Safari/537.36'):
+        self.jar = http.cookiejar.CookieJar()
+        self.opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar))
+        self.opener.addheaders = [('User-Agent', agent)]
+
+    def request(self, path, data=None):
+        try:
+            response = self.opener.open(urllib.request.Request(BASE + path,
+                data=None if data is None else urllib.parse.urlencode(data).encode()), timeout=30)
+        except urllib.error.HTTPError as error:
+            response = error
+        return response.status, response.geturl(), response.read().decode()
+
+    def post(self, path, data, source=None, csrf=True):
+        data = dict(data)
+        if csrf:
+            body = self.request(source or path)[2]
+            match = re.search(r'name="__RequestVerificationToken"[^>]+value="([^"]+)"', body)
+            assert match, 'Missing CSRF form at ' + (source or path)
+            data['__RequestVerificationToken'] = html.unescape(match[1])
+        return self.request(path, data)
+
+    def login(self, email, password=PASSWORD):
+        return self.post(ACCOUNT+'Login', {'Email':email, 'Password':password})
+
+def edit_path(admin, email):
+    body = admin.request('/Admin/Users?search='+urllib.parse.quote(email))[2]
+    match = re.search('href="(/Admin/EditUser/[^"]+)"', body)
+    assert match, 'Missing test fixture'
+    return html.unescape(match[1])
+
+def confirm(client, email):
+    for file in sorted(MAIL.glob('*.eml'), key=lambda p:p.stat().st_mtime_ns, reverse=True):
+        message=BytesParser(policy=policy.default).parsebytes(file.read_bytes())
+        if email not in [a for _,a in getaddresses(message.get_all('To', []))]: continue
+        link=re.search(r'https?://\S+/Identity/Account/ConfirmEmail\?\S+', message.get_body(preferencelist=('plain',)).get_content())[0]
+        parsed=urllib.parse.urlparse(link)
+        assert parsed.netloc==urllib.parse.urlparse(BASE).netloc
+        return client.request(parsed.path+'?'+parsed.query)
+    raise AssertionError('No local verification mail for test fixture')
+
+def totp(key):
+    raw=base64.b32decode(key+'='*((-len(key))%8))
+    digest=hmac.new(raw, struct.pack('>Q', int(time.time())//30), hashlib.sha1).digest()
+    offset=digest[-1]&15
+    return str((struct.unpack('>I',digest[offset:offset+4])[0]&0x7fffffff)%1000000).zfill(6)
+
+def session_ids(body): return re.findall(r'name="sessionId" value="([a-f0-9]+)"',body)
+def codes(body): return re.findall(r'<li><code>([^<]+)</code></li>',body)
+
+admin=Client()
+fixtures=[]
+suffix=uuid.uuid4().hex[:10]
+main_email='security.'+suffix+'@hackacad.local'
+student_email='private.'+suffix+'@hackacad.local'
+target_email='audit.'+suffix+'@hackacad.local'
+
+def create(actor,email,role,name):
+    result=actor.post('/Admin/CreateUser',{'Email':email,'DisplayName':name,'Password':PASSWORD,'ConfirmPassword':PASSWORD,'Role':role})
+    assert '/Admin/Users' in result[1], 'Fixture creation failed'
+    fixtures.append(email)
+    assert 'Email verified' in confirm(Client(),email)[2]
+
+try:
+    check('/Admin' in admin.login('demo.admin@hackacad.local')[1], 'fixture Admin can sign in')
+    create(admin,main_email,'Admin','Security admin '+suffix)
+    create(admin,student_email,'Student','Security student '+suffix)
+    a,b,student=Client(),Client('Mozilla/5.0 (X11; Linux x86_64) Firefox/130.0'),Client('Mozilla/5.0 (Android) Chrome/130.0')
+    check('/Admin' in a.login(main_email)[1] and '/Admin' in b.login(main_email)[1], 'one account can have two independent browser sessions')
+    student.login(student_email)
+    sessions=a.request(ACCOUNT+'Sessions')[2]
+    ids=session_ids(sessions)
+    check(len(ids)==1 and 'This device' in sessions and 'Firefox on Linux' in sessions and 'UTC+8' in sessions, 'sessions show the current browser, other browser and Malaysia time')
+    check('Chrome on Android' not in sessions, 'sessions exclude other users')
+    check(a.post(ACCOUNT+'Sessions',{'CurrentPassword':PASSWORD,'sessionId':ids[0]},csrf=False)[0]==400, 'session sign-out requires CSRF protection')
+    wrong=a.post(ACCOUNT+'Sessions',{'CurrentPassword':'Wrong@123!','sessionId':ids[0]})
+    check('Your current password is incorrect.' in wrong[2] and 'aria-invalid="true"' in wrong[2] and '/Admin' in b.request('/Admin')[1], 'wrong password has a clear inline error and leaves the other login valid')
+    check(student.post(ACCOUNT+'Sessions',{'CurrentPassword':PASSWORD,'sessionId':ids[0]})[0]==404, 'another user cannot revoke a foreign session')
+    check(a.post(ACCOUNT+'Sessions',{'CurrentPassword':PASSWORD,'sessionId':ids[0]})[0]==200, 'individual sign-out succeeds')
+    check('/Login' in b.request('/Admin')[1] and '/Admin' in a.request('/Admin')[1], 'individual sign-out revokes only the selected browser')
+    b.login(main_email)
+    check(a.post(ACCOUNT+'Sessions',{'CurrentPassword':PASSWORD})[0]==200, 'bulk sign-out succeeds')
+    check('/Login' in b.request('/Admin')[1] and len(session_ids(a.request(ACCOUNT+'Sessions')[2]))==0, 'bulk sign-out retains the current session and revokes other sessions')
+    Client().login(main_email,'Wrong@123!')
+    history=a.request(ACCOUNT+'LoginHistory')[2]
+    check('Firefox on Linux' in history and '>Failed</span>' in history and 'Chrome on Android' not in history, 'own history records successes and failures without exposing another user')
+    check('/Login' in Client().request(ACCOUNT+'LoginHistory')[1], 'anonymous users cannot open login history')
+    check(student.request('/Admin/Activity')[0]==403, 'Student cannot view Admin activity')
+    create(a,target_email,'Student','Audit target '+suffix)
+    activity=a.request('/Admin/Activity')[2]
+    check('Created account' in activity and 'Audit target '+suffix in activity, 'Admin account creation records the actor and target')
+    check('Audit target '+suffix not in admin.request('/Admin/Activity')[2], 'My admin activity excludes other Admin actions')
+    target_path=edit_path(a,target_email)
+    a.post(target_path,{'Email':target_email,'DisplayName':'Edited target '+suffix,'Role':'Student','IsDisabled':'true'})
+    activity=a.request('/Admin/Activity')[2]
+    check('Updated account' in activity and 'Account disabled' in activity, 'successful role/status edits are audited')
+    before=activity.count('<tr>')
+    a.post(edit_path(a,main_email),{'Email':main_email,'DisplayName':'Security admin '+suffix,'Role':'Admin','IsDisabled':'true'})
+    check(a.request('/Admin/Activity')[2].count('<tr>')==before, 'a rejected Admin action does not appear as successful activity')
+    a.post(target_path.replace('EditUser','DeleteUser'),{'emailConfirmation':target_email})
+    fixtures.remove(target_email)
+    activity=a.request('/Admin/Activity')[2]
+    check('Deleted account' in activity and 'Edited target '+suffix in activity and 'Audit target '+suffix in activity, 'audit snapshots survive target account deletion')
+    check('Verified</span>' in a.request(ACCOUNT+'Profile')[2], 'Profile displays actual email verification status')
+
+    check(student.request(ACCOUNT+'TwoFactor')[0]==403, 'initial authenticator setup is restricted to Admin')
+    check('/TwoFactor' in a.request(ACCOUNT+'EnableAuthenticator')[1], 'setup key is unavailable without recent password confirmation')
+    wrong=a.post(ACCOUNT+'BeginAuthenticator',{'CurrentPassword':'Wrong@123!'},source=ACCOUNT+'TwoFactor')
+    check('Your current password is incorrect.' in wrong[2] and 'data:image/png' not in wrong[2], 'incorrect password cannot reveal an authenticator setup key')
+    setup=a.post(ACCOUNT+'BeginAuthenticator',{'CurrentPassword':PASSWORD},source=ACCOUNT+'TwoFactor')
+    key=re.search(r'<code class="authenticator-key">([^<]+)</code>',setup[2])[1]
+    check('data:image/png;base64,' in setup[2] and 'secret=' not in setup[2], 'QR code is rendered locally without an external QR request')
+    wrong=a.post(ACCOUNT+'EnableAuthenticator',{'Code':'not-a-code'})
+    check('field-validation-error' in wrong[2] and 'aria-invalid="true"' in wrong[2] and 'Save your recovery codes' not in wrong[2], 'invalid setup code cannot enable 2FA')
+    enabled=a.post(ACCOUNT+'EnableAuthenticator',{'Code':totp(key)})
+    first_codes=codes(enabled[2])
+    check(len(first_codes)==10 and 'Save your recovery codes' in enabled[2], 'valid authenticator proof enables 2FA and returns ten recovery codes once')
+    check('/Admin' in a.request('/Admin')[1] and 'authenticator-key' not in a.request(ACCOUNT+'EnableAuthenticator')[2], 'enabling 2FA retains the current browser and hides the setup secret afterward')
+    new=Client()
+    pending=new.login(main_email)
+    check('/LoginTwoFactor' in pending[1] and '/Login' in new.request('/Admin')[1], 'correct password alone cannot access Admin when 2FA is enabled')
+    failed=new.post(ACCOUNT+'LoginTwoFactor',{'Code':'000000' if totp(key)!='000000' else '111111'})
+    check('That code is incorrect' in failed[2] and 'aria-invalid="true"' in failed[2], 'wrong authenticator code is rejected inline')
+    success=new.post(ACCOUNT+'LoginTwoFactor',{'Code':totp(key),'ReturnUrl':'https://example.com'})
+    check('/Admin' in success[1] and success[1].startswith(BASE), 'valid TOTP completes sign-in and rejects an external redirect')
+    recovery=Client()
+    recovery.login(main_email)
+    recovered=recovery.post(ACCOUNT+'LoginRecoveryCode',{'Code':first_codes[0]})
+    check('/Admin' in recovered[1], 'an unused recovery code completes sign-in')
+    replay=Client(); replay.login(main_email)
+    check('That code is incorrect' in replay.post(ACCOUNT+'LoginRecoveryCode',{'Code':first_codes[0]})[2], 'recovery codes are single use')
+    # A password-only pending login must also be revoked by sign-out-other-devices.
+    pending_client=Client(); pending_client.login(main_email)
+    a.post(ACCOUNT+'Sessions',{'CurrentPassword':PASSWORD})
+    check('/LoginTwoFactor' not in pending_client.request(ACCOUNT+'LoginTwoFactor')[1], 'bulk sign-out invalidates an in-progress 2FA login')
+    check('/Login' in new.request('/Admin')[1] and '/Login' in recovery.request('/Admin')[1], 'bulk sign-out also revokes completed 2FA sessions')
+    invalid_manage=a.post(ACCOUNT+'ManageTwoFactor',{'CurrentPassword':PASSWORD,'Code':'invalid','operation':'disable'},source=ACCOUNT+'TwoFactor')
+    check('unused recovery code' in invalid_manage[2] and 'aria-invalid="true"' in invalid_manage[2] and 'Turn off 2FA' in invalid_manage[2], 'turning off 2FA requires a valid second-factor proof')
+    regenerated=a.post(ACCOUNT+'ManageTwoFactor',{'CurrentPassword':PASSWORD,'Code':totp(key),'operation':'regenerate'},source=ACCOUNT+'TwoFactor')
+    second_codes=codes(regenerated[2])
+    check(len(second_codes)==10 and set(first_codes).isdisjoint(second_codes), 'recovery-code regeneration replaces the complete previous set')
+    stale=Client(); stale.login(main_email)
+    check('That code is incorrect' in stale.post(ACCOUNT+'LoginRecoveryCode',{'Code':first_codes[1]})[2], 'an old unused recovery code stops working after regeneration')
+    disabled=a.post(ACCOUNT+'ManageTwoFactor',{'CurrentPassword':PASSWORD,'Code':second_codes[0],'operation':'disable'},source=ACCOUNT+'TwoFactor')
+    check('Two-factor authentication has been turned off' in disabled[2], 'password plus a new recovery code can turn off 2FA')
+    check('/Admin' in Client().login(main_email)[1], 'disabled 2FA no longer prompts during sign-in')
+    check('/LoginRecoveryCode' not in stale.request(ACCOUNT+'LoginRecoveryCode')[1], 'turning off 2FA invalidates an old pending challenge')
+    check('Signed in with 2FA' in a.request(ACCOUNT+'LoginHistory')[2] and 'Verification failed' in a.request(ACCOUNT+'LoginHistory')[2], 'login history includes completed and failed second-factor checks')
+    check(a.post(ACCOUNT+'Logout',{},source=ACCOUNT+'Sessions')[0]==200 and '/Login' in a.request(ACCOUNT+'Sessions')[1], 'normal logout revokes the current session')
+    print(f'All {checks} security assertions passed.', flush=True)
+finally:
+    for email in fixtures:
+        try:
+            path=edit_path(admin,email).replace('EditUser','DeleteUser')
+            assert '/Admin/Users' in admin.post(path,{'emailConfirmation':email})[1]
+        except Exception as error:
+            print('Fixture cleanup failed:',email,type(error).__name__,file=sys.stderr)

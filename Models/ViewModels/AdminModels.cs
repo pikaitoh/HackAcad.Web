@@ -9,6 +9,7 @@ public class UserRow
     public string Email { get; set; } = "";
     public string Role { get; set; } = "";
     public bool IsDisabled { get; set; }
+    public bool EmailConfirmed { get; set; }
     public DateTime JoinedDate { get; set; }
 }
 
@@ -26,7 +27,7 @@ public class UserListModel
 public class EditUserModel
 {
     public string Id { get; set; } = "";
-    [Required(ErrorMessage = "Enter a display name."), StringLength(50, MinimumLength = 2, ErrorMessage = AccountValidation.NameLengthMessage), Display(Name = "Display name")]
+    [Required(ErrorMessage = "Enter a username."), StringLength(50, MinimumLength = 2, ErrorMessage = AccountValidation.NameLengthMessage), Display(Name = "Username")]
     [RegularExpression(AccountValidation.NamePattern, ErrorMessage = AccountValidation.NameMessage)]
     public string DisplayName { get => displayName; set => displayName = value?.Trim() ?? ""; }
     private string displayName = "";
@@ -80,12 +81,15 @@ public class CourseListModel
 public class EditCourseModel
 {
     public int CourseId { get; set; }
-    [Required, StringLength(150)]
-    public string Title { get; set; } = "";
-    [StringLength(1000)]
-    public string? Description { get; set; }
-    [StringLength(50)]
-    public string? Category { get; set; }
+    [Required(ErrorMessage = "Enter a course title."), StringLength(150, ErrorMessage = "Use no more than 150 characters for the title.")]
+    public string Title { get => title; set => title = value?.Trim() ?? ""; }
+    private string title = "";
+    [StringLength(1000, ErrorMessage = "Use no more than 1,000 characters for the description.")]
+    public string? Description { get => description; set => description = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
+    private string? description;
+    [StringLength(50, ErrorMessage = "Use no more than 50 characters for the category.")]
+    public string? Category { get => category; set => category = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
+    private string? category;
     [Display(Name = "Publish this course")]
     public bool IsPublished { get; set; }
     public string Teacher { get; set; } = "";

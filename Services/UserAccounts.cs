@@ -16,24 +16,25 @@ public static class AccountRoles
 
 // Account creation and role changes share one transaction with Identity.
 // The existing Students / Teachers / Admins tables remain authoritative.
-public class UserAccounts(ApplicationDbContext db, UserManager<ApplicationUser> users)
+public class UserAccounts(ApplicationDbContext db, UserManager<ApplicationUser> users, AccountRecords records)
 {
     public IQueryable<UserRow> Query() => db.Users.AsNoTracking().Select(u => new UserRow
     {
         Id = u.Id, DisplayName = u.DisplayName, Email = u.Email ?? "",
-        IsDisabled = u.IsDisabled, JoinedDate = u.JoinedDate,
+        IsDisabled = u.IsDisabled, EmailConfirmed = u.EmailConfirmed, JoinedDate = u.JoinedDate,
         Role = db.Admins.Any(a => a.UserId == u.Id) ? AccountRoles.Admin
             : db.Teachers.Any(t => t.UserId == u.Id) ? AccountRoles.Teacher
             : db.Students.Any(s => s.UserId == u.Id) ? AccountRoles.Student : "Unassigned"
     });
 
-    public async Task<IdentityResult> CreateAsync(ApplicationUser user, string password, string role)
+    public async Task<IdentityResult> CreateAsync(ApplicationUser user, string password, string role, string? actorId = null)
     {
         if (!AccountRoles.All.Contains(role)) return Error("Choose a valid role.");
         await using var transaction = await db.Database.BeginTransactionAsync();
         var result = await users.CreateAsync(user, password);
         if (!result.Succeeded) return result;
         AddRole(user.Id, role);
+        if (actorId is not null) records.AddActivity(actorId, "Created account", "User", user.Id, user.DisplayName, $"Role: {role}");
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
         return IdentityResult.Success;
@@ -49,10 +50,14 @@ public class UserAccounts(ApplicationDbContext db, UserManager<ApplicationUser> 
         if (input.Role != AccountRoles.Teacher && await db.Courses.AnyAsync(c => c.TeacherId == user.Id))
             return Error("This teacher owns courses. Transfer those courses before changing their role, or disable the account.");
 
-        var revokeSessions = currentRole != input.Role || user.IsDisabled != input.IsDisabled;
+        var emailChanged = !string.Equals(user.Email, input.Email.Trim(), StringComparison.OrdinalIgnoreCase);
+        var oldName = user.DisplayName;
+        var oldDisabled = user.IsDisabled;
+        var revokeSessions = currentRole != input.Role || user.IsDisabled != input.IsDisabled || emailChanged;
         user.DisplayName = input.DisplayName.Trim();
         user.Email = input.Email.Trim();
         user.UserName = user.Email;
+        if (emailChanged) user.EmailConfirmed = false;
         user.IsDisabled = input.IsDisabled;
         var result = await users.UpdateAsync(user);
         if (!result.Succeeded) return result;
@@ -74,8 +79,33 @@ public class UserAccounts(ApplicationDbContext db, UserManager<ApplicationUser> 
             result = await users.UpdateSecurityStampAsync(user);
             if (!result.Succeeded) return result;
         }
+        var changes = new List<string>();
+        if (currentRole != input.Role) changes.Add($"Role: {currentRole} → {input.Role}");
+        if (oldDisabled != input.IsDisabled) changes.Add(input.IsDisabled ? "Account disabled" : "Account enabled");
+        if (emailChanged) changes.Add("Email changed; verification required");
+        if (oldName != user.DisplayName) changes.Add("Username changed");
+        if (changes.Count > 0)
+        {
+            records.AddActivity(actorId, "Updated account", "User", user.Id, user.DisplayName, string.Join("; ", changes));
+            await db.SaveChangesAsync();
+        }
         await transaction.CommitAsync();
         return IdentityResult.Success;
+    }
+
+    public async Task<IdentityResult> ChangeEmailAsync(ApplicationUser user, string newEmail, string token)
+    {
+        // Keep the login name and confirmed email together, including uniqueness/concurrency failures.
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        var result = await users.ChangeEmailAsync(user, newEmail, token);
+        if (result.Succeeded) result = await users.SetUserNameAsync(user, newEmail);
+        if (result.Succeeded) await transaction.CommitAsync();
+        else
+        {
+            await transaction.RollbackAsync();
+            db.ChangeTracker.Clear();
+        }
+        return result;
     }
 
     public async Task<IdentityResult> DeleteAsync(ApplicationUser user, string actorId)
@@ -88,6 +118,7 @@ public class UserAccounts(ApplicationDbContext db, UserManager<ApplicationUser> 
         db.Enrollments.RemoveRange(await db.Enrollments.Where(e => e.UserId == user.Id).ToListAsync());
         db.ChallengeSubmissions.RemoveRange(await db.ChallengeSubmissions.Where(s => s.UserId == user.Id).ToListAsync());
         await db.SaveChangesAsync();
+        records.AddActivity(actorId, "Deleted account", "User", user.Id, user.DisplayName);
         var result = await users.DeleteAsync(user);
         if (!result.Succeeded) return result;
         await transaction.CommitAsync();

@@ -1,7 +1,7 @@
 // Read Razor's server-generated validation rules; show one message beside each field.
 // Without JavaScript, native constraints and server validation still apply.
-document.querySelectorAll('form[data-account-form]').forEach(form => {
-    const fields = [...form.querySelectorAll('input[data-val="true"], select[data-val="true"]')]
+document.querySelectorAll('form[data-account-form], form[data-validated-form]').forEach(form => {
+    const fields = [...form.querySelectorAll('input[data-val="true"], select[data-val="true"], textarea[data-val="true"]')]
         .filter(field => field.type !== 'hidden' && field.type !== 'checkbox');
     form.noValidate = true;
 
@@ -9,6 +9,8 @@ document.querySelectorAll('form[data-account-form]').forEach(form => {
         const value = field.hasAttribute('data-trim') ? field.value.trim() : field.value;
         const rules = field.dataset;
         if (!value) return rules.valRequired || '';
+        if (field.type === 'file' && field.files[0]?.size > Number(field.dataset.fileMaxSize))
+            return 'Choose an image up to 2 MB.';
         if (rules.valMatchValue !== undefined && value.toLowerCase() !== rules.valMatchValue.toLowerCase()) return rules.valMatch;
         if (field.validity.typeMismatch) return rules.valEmail || 'Enter a valid email address.';
         if ((rules.valLengthMin && value.length < Number(rules.valLengthMin)) ||

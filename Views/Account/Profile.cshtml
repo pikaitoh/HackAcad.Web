@@ -1,19 +1,33 @@
 @model ProfileModel
 @{ ViewData["Title"] = "My profile"; }
 <div class="container module-shell">
-    <nav aria-label="Breadcrumb" class="mb-4"><a asp-action="Dashboard">Dashboard</a> <span aria-hidden="true">/</span> Profile</nav>
-    <div class="page-heading"><div><h1>My profile</h1><p class="text-secondary">Keep your name up to date and manage your password.</p></div></div>
+    <div class="page-heading"><div><h1>My profile</h1><p class="text-secondary">Manage your picture, username and email.</p></div></div>
     <div class="profile-layout">
-        <section aria-labelledby="details-title">
-            <h2 class="h4" id="details-title">Account details</h2>
-            <dl class="detail-list">
-                <dt>Email</dt><dd>@Model.Email</dd>
-                <dt>Role</dt><dd><span class="role-badge" data-role="@Model.Role">@Model.Role</span></dd>
-                <dt>Joined</dt><dd>@Model.JoinedDate.ToString("dd MMM yyyy") <span class="text-secondary">(UTC)</span></dd>
-            </dl>
-            <a asp-action="ChangePassword">Change password</a>
+        <section aria-labelledby="picture-title">
+            <div class="profile-photo">
+                @if (Model.HasAvatar) { <img class="profile-avatar" src="@Url.Action("Avatar")" width="112" height="112" alt="Your profile picture" /> }
+                else { <span class="profile-avatar avatar-initial" aria-hidden="true">@(string.IsNullOrWhiteSpace(Model.DisplayName) ? "H" : System.Globalization.StringInfo.GetNextTextElement(Model.DisplayName).ToUpperInvariant())</span> }
+                <div><h2 class="h4" id="picture-title">Profile picture</h2><p class="form-text mb-0">A photo or an image that represents you.</p></div>
+            </div>
+            <form id="avatar-upload-form" asp-action="UploadAvatar" method="post" enctype="multipart/form-data" data-validated-form class="avatar-upload">
+                <label for="avatar" class="form-label">Choose a picture</label>
+                <input id="avatar" name="avatar" type="file" class="form-control" accept="image/jpeg,image/png,image/webp" required data-val="true" data-val-required="Choose a picture to upload." data-file-max-size="2097152" aria-describedby="avatar-help avatar-error" aria-invalid="@(ViewData.ModelState["avatar"]?.Errors.Count > 0 ? "true" : null)" />
+                <p id="avatar-help" class="form-text">JPG, PNG or WebP. Up to 2 MB and 4,096 × 4,096 pixels. Your picture will be cropped to a square.</p>
+                @Html.ValidationMessage("avatar", null, new { id = "avatar-error", @class = "field-error", aria_live = "polite" })
+            </form>
+            <div class="form-actions">
+                <button type="submit" form="avatar-upload-form" class="btn btn-outline-secondary btn-sm">Upload picture</button>
+                @if (Model.HasAvatar) { <form asp-action="RemoveAvatar" method="post"><button type="submit" class="btn btn-outline-danger btn-sm">Remove picture</button></form> }
+            </div>
         </section>
-        <form asp-action="Profile" method="post" data-account-form class="form-measure">
+        <section class="form-measure profile-details" aria-labelledby="details-title">
+            <h2 class="h4" id="details-title">Account details</h2>
+            <dl class="detail-list profile-facts">
+                <div class="profile-email"><dt>Email</dt><dd class="profile-email-row"><span>@Model.Email <span class="status-label @(Model.EmailConfirmed ? "status-active" : "status-disabled")">@(Model.EmailConfirmed ? "Verified" : "Not verified")</span></span><a asp-action="ChangeEmail" class="btn btn-outline-secondary btn-sm">Change email</a></dd></div>
+                <div><dt>Role</dt><dd><span class="role-badge" data-role="@Model.Role">@Model.Role</span></dd></div>
+                <div><dt>Joined</dt><dd>@Model.JoinedDate.ToString("dd MMM yyyy") <span class="text-secondary">(UTC)</span></dd></div>
+            </dl>
+            <form asp-action="Profile" method="post" data-account-form class="profile-name-form">
             <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
             <div class="mb-4">
                 <label asp-for="DisplayName" class="form-label"></label>
@@ -21,6 +35,21 @@
                 <p id="DisplayName-help" class="form-text">2–50 characters. Use letters, numbers, spaces, . _ - or apostrophes.</p><span id="DisplayName-error" asp-validation-for="DisplayName" class="field-error" aria-live="polite"></span>
             </div>
             <button type="submit" class="btn btn-primary">Save profile</button>
-        </form>
+            </form>
+        </section>
     </div>
+    <section class="profile-security" aria-labelledby="security-title">
+        <h2 id="security-title">Account security</h2>
+        <p class="text-secondary">Review your sign-ins and control access to your account.</p>
+        <div class="form-actions">
+            <a asp-action="LoginHistory" class="btn btn-outline-secondary">Login history</a>
+            <a asp-action="Sessions" class="btn btn-outline-secondary">Devices &amp; sessions</a>
+            <a asp-action="ChangePassword" class="btn btn-outline-secondary">Change password</a>
+            @if (User.IsInRole(AccountRoles.Admin))
+            {
+                <a asp-action="TwoFactor" class="btn btn-outline-secondary">Two-factor authentication</a>
+                <a asp-controller="Admin" asp-action="Activity" class="btn btn-outline-secondary">My admin activity</a>
+            }
+        </div>
+    </section>
 </div>

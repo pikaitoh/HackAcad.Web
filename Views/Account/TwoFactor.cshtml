@@ -1,0 +1,17 @@
+@model TwoFactorModel
+@{ ViewData["Title"] = "Two-factor authentication"; }
+<div class="container module-shell"><div class="page-heading"><div><h1>Two-factor authentication</h1><p class="text-secondary">Add an authenticator code to your Admin sign-in.</p></div><a asp-action="Profile" class="btn btn-outline-secondary">Back to profile</a></div>
+<section class="form-measure"><h2>Authenticator app <span class="status-label @(Model.Enabled ? "status-active" : "status-disabled")">@(Model.Enabled ? "On" : "Off")</span></h2>
+<p>Use Google Authenticator, Microsoft Authenticator or another compatible app. Codes work without email or SMS.</p>
+@if (Model.Enabled) { <p>You have <strong>@Model.RecoveryCodesLeft</strong> unused recovery codes. Store them somewhere private.</p> }
+<form asp-action="@(Model.Enabled ? "ManageTwoFactor" : "BeginAuthenticator")" method="post" data-validated-form>
+<div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+<div class="mb-4"><label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" aria-invalid="@(ViewData.ModelState["CurrentPassword"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="current-password" required aria-describedby="CurrentPassword-error" /><span id="CurrentPassword-error" asp-validation-for="CurrentPassword" class="field-error" aria-live="polite"></span></div>
+@if (Model.Enabled)
+{
+    <div class="mb-4"><label asp-for="Code" class="form-label">Authenticator or recovery code</label><input asp-for="Code" aria-invalid="@(ViewData.ModelState["Code"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="one-time-code" maxlength="32" required aria-describedby="Code-error" /><span id="Code-error" asp-validation-for="Code" class="field-error" aria-live="polite"></span></div>
+    <p class="form-text">New recovery codes replace all previous codes. Turning off 2FA removes the authenticator and recovery codes. Either action signs out other devices.</p>
+    <div class="form-actions"><button type="submit" name="operation" value="regenerate" class="btn btn-outline-secondary">Get new recovery codes</button><button type="submit" name="operation" value="disable" class="btn btn-outline-danger">Turn off 2FA</button></div>
+}
+else { <p class="form-text">Confirm your password, then scan a QR code to connect your app.</p><button type="submit" class="btn btn-primary">Set up authenticator</button> }
+</form></section></div>

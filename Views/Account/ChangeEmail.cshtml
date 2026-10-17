@@ -1,0 +1,23 @@
+@model ChangeEmailModel
+@{ ViewData["Title"] = "Change email"; }
+<div class="container module-shell">
+    <div class="page-heading"><div><h1>Change email</h1><p class="text-secondary">Confirm your new address before using it to log in.</p></div></div>
+    <form asp-action="ChangeEmail" method="post" data-account-form class="form-measure">
+        @if (TempData["EmailChangeRequested"] is string requested)
+        {
+            <div class="alert alert-success" role="status">A confirmation link was sent to <strong>@requested</strong>. Check your inbox and spam folder. The link expires in 10 minutes.</div>
+        }
+        <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+        <p class="record-secondary mb-1">Current email</p><p class="mb-4 text-break">@Model.CurrentEmail</p>
+        <div class="mb-3">
+            <label asp-for="NewEmail" class="form-label"></label><input asp-for="NewEmail" type="email" autocomplete="email" data-trim class="form-control" maxlength="256" required aria-invalid="@(ViewData.ModelState["NewEmail"]?.Errors.Count > 0 ? "true" : null)" aria-describedby="NewEmail-error" />
+            <span id="NewEmail-error" asp-validation-for="NewEmail" class="field-error" aria-live="polite"></span>
+        </div>
+        <div class="mb-4">
+            <label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" autocomplete="current-password" class="form-control" required aria-invalid="@(ViewData.ModelState["CurrentPassword"]?.Errors.Count > 0 ? "true" : null)" aria-describedby="CurrentPassword-error" />
+            <span id="CurrentPassword-error" asp-validation-for="CurrentPassword" class="field-error" aria-live="polite"></span>
+        </div>
+        <p class="form-text mb-4">Keep using your current email until you confirm the new address. After confirmation, all sessions will end and you'll log in again with the new email.</p>
+        <div class="form-actions"><button type="submit" class="btn btn-primary">Send confirmation link</button><a asp-action="Profile" class="btn btn-outline-secondary">Back to profile</a></div>
+    </form>
+</div>

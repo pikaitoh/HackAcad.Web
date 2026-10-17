@@ -1,0 +1,13 @@
+@model LoginHistoryModel
+@{ ViewData["Title"] = "Login history"; }
+<div class="container module-shell">
+    <div class="page-heading"><div><h1>Login history</h1><p class="text-secondary">Sign-in attempts for your account. Malaysia time (UTC+8).</p></div><a asp-action="Profile" class="btn btn-outline-secondary">Back to profile</a></div>
+    @if (Model.Records.Count == 0) { <div class="empty-state"><h2>No sign-ins recorded yet</h2><p>Your next sign-in will appear here.</p></div> }
+    else
+    {
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Your login history; scroll horizontally on small screens"><table class="table module-table"><caption class="visually-hidden">Sign-in attempts for your account</caption><thead><tr><th scope="col">Time (UTC+8)</th><th scope="col">Device</th><th scope="col">IP address</th><th scope="col">Result</th></tr></thead><tbody>
+        @foreach (var record in Model.Records) { <tr><td>@record.OccurredUtc.AddHours(8).ToString("dd MMM yyyy, HH:mm:ss")</td><td>@record.Device</td><td>@record.IpAddress</td><td><span class="status-label @(record.Outcome.StartsWith("Signed in") ? "status-active" : "status-disabled")">@record.Outcome</span></td></tr> }
+        </tbody></table></div>
+        <nav class="pagination-bar" aria-label="Login history pages"><span>Page @Model.Page of @Math.Max(1, (int)Math.Ceiling(Model.Total / 20d))</span><div class="form-actions">@if (Model.Page > 1) { <a asp-action="LoginHistory" asp-route-page="@(Model.Page - 1)" class="btn btn-outline-secondary btn-sm">Previous</a> } @if (Model.Page * 20 < Model.Total) { <a asp-action="LoginHistory" asp-route-page="@(Model.Page + 1)" class="btn btn-outline-secondary btn-sm">Next</a> }</div></nav>
+    }
+</div>
