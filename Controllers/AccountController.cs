@@ -17,7 +17,7 @@ namespace HackAcad.Web.Controllers;
 [Route("Identity/Account/[action]")]
 public partial class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     UserAccounts accounts, ApplicationDbContext db, EmailVerification verification, PhoneVerification phones,
-    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache) : Controller
+    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, TimeProvider clock) : Controller
 {
     [AllowAnonymous, HttpGet]
     public IActionResult Register() => User.Identity?.IsAuthenticated == true ? RedirectToAction(nameof(Dashboard)) : View(new RegisterModel());
@@ -100,7 +100,8 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     public async Task<IActionResult> Login(LoginModel input)
     {
         if (!ModelState.IsValid) return View(input);
-        var user = await users.FindByEmailAsync(input.Email.Trim());
+        var user = input.Email.StartsWith("+", StringComparison.Ordinal)
+            ? await VerifiedPhoneUser(input.Email) : await users.FindByEmailAsync(input.Email.Trim());
         if (user is not null && !user.IsDisabled)
         {
             var result = await signIn.PasswordSignInAsync(user, input.Password, input.RememberMe, lockoutOnFailure: true);
@@ -113,7 +114,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             if (result.RequiresTwoFactor)
             {
                 await BeginTwoFactorLogin(user);
-                return RedirectToAction(nameof(LoginTwoFactor), new { input.RememberMe, input.ReturnUrl });
+                return RedirectToAction(user.SmsTwoFactorEnabled ? nameof(LoginSms) : nameof(LoginTwoFactor), new { input.RememberMe, input.ReturnUrl });
             }
             await records.LoginAsync(user.Id, result.IsLockedOut ? "Locked out" : "Failed");
             if (result.IsNotAllowed && !user.EmailConfirmed && !await users.IsLockedOutAsync(user))
@@ -128,7 +129,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
                 await users.AccessFailedAsync(user);
             }
         }
-        ModelState.AddModelError("", "Unable to sign in. Check your email and password, verify your email, or try again later if access is temporarily locked. Contact an administrator if access is disabled.");
+        ModelState.AddModelError("", "Unable to sign in. Check your email or phone number and password, verify your email, or try again later if access is temporarily locked. Contact an administrator if access is disabled.");
         return View(input);
     }
 
@@ -243,7 +244,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         {
             Email = user.Email ?? "", EmailConfirmed = user.EmailConfirmed,
             CurrentPhone = user.PhoneNumber, PhoneConfirmed = user.PhoneNumberConfirmed,
-            PendingPhone = pending, IsSmsTestMode = phones.IsTestMode,
+            PendingPhone = pending, PhoneResendSeconds = phones.ResendWaitSeconds(user.Id, user.SecurityStamp ?? ""), IsSmsTestMode = phones.IsTestMode,
             Phone = new() { PhoneNumber = pending ?? "" }, TwoFactorEnabled = user.TwoFactorEnabled
         };
     }
@@ -265,11 +266,23 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         return user is null ? Challenge() : View(SettingsData(user));
     }
 
+    [HttpGet]
+    public async Task<IActionResult> ChangePhone()
+    {
+        var user = await users.GetUserAsync(User);
+        return user is null ? Challenge() : View(SettingsData(user));
+    }
+
     [HttpPost, EnableRateLimiting("phone-otp-send")]
     public async Task<IActionResult> SendPhoneCode([Bind(Prefix = "Phone")] PhoneNumberInput input)
     {
         var user = await users.GetUserAsync(User);
         if (user is null) return Challenge();
+        if (user.SmsTwoFactorEnabled) ModelState.AddModelError("", "Turn off SMS two-factor authentication before changing your phone number.");
+        if (ModelState.IsValid && !await ConfirmCurrentPassword(user, input.CurrentPassword))
+        { ModelState.AddModelError("Phone.CurrentPassword", ModelState["CurrentPassword"]!.Errors[0].ErrorMessage); ModelState.Remove("CurrentPassword"); return View("ChangePhone", SettingsData(user)); }
+        if (ModelState.IsValid && await db.Users.AnyAsync(u => u.Id != user.Id && u.PhoneNumber == input.PhoneNumber))
+            ModelState.AddModelError("Phone.PhoneNumber", "That phone number cannot be used. Choose another number.");
         if (ModelState.IsValid && user.PhoneNumberConfirmed && user.PhoneNumber == input.PhoneNumber)
             ModelState.AddModelError("Phone.PhoneNumber", "This phone number is already verified.");
         if (ModelState.IsValid)
@@ -278,12 +291,34 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             if (error is null)
             {
                 TempData["Success"] = phones.IsTestMode ? "A test verification code was captured locally. No SMS was sent." : "Verification SMS requested. Enter the code when it arrives.";
-                return RedirectToAction(nameof(PhoneNumber));
+                return RedirectToAction(nameof(ChangePhone));
             }
             ModelState.AddModelError("Phone.PhoneNumber", error);
         }
         var model = SettingsData(user); model.Phone = input;
-        return View("PhoneNumber", model);
+        return View("ChangePhone", model);
+    }
+
+    [HttpPost, EnableRateLimiting("phone-otp-send")]
+    public async Task<IActionResult> ResendPhoneCode()
+    {
+        var user = await users.GetUserAsync(User);
+        if (user is null) return Challenge();
+        var number = phones.PendingNumber(user.Id, user.SecurityStamp ?? "");
+        if (number is null)
+        {
+            ModelState.AddModelError("", "This verification has expired. Enter your number to request a new code.");
+            return View("ChangePhone", SettingsData(user));
+        }
+        // The recipient is bound to this user's pending verification, never to posted form data.
+        var error = await phones.SendAsync(user.Id, user.SecurityStamp ?? "", number);
+        if (error is not null)
+        {
+            ModelState.AddModelError("", error);
+            return View("ChangePhone", SettingsData(user));
+        }
+        TempData["Success"] = phones.IsTestMode ? "A test verification code was captured locally. No SMS was sent." : "Verification SMS requested. Enter the code when it arrives.";
+        return RedirectToAction(nameof(ChangePhone));
     }
 
     [HttpPost, EnableRateLimiting("phone-otp-check")]
@@ -296,8 +331,13 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             var check = await phones.CheckAsync(user.Id, user.SecurityStamp ?? "", input.Code);
             if (check.Number is not null)
             {
+                if (user.SmsTwoFactorEnabled || await db.Users.AnyAsync(u => u.Id != user.Id && u.PhoneNumber == check.Number))
+                { ModelState.AddModelError("", "That number cannot be saved. Reload your phone settings and try again."); return View("ChangePhone", SettingsData(user)); }
                 user.PhoneNumber = check.Number; user.PhoneNumberConfirmed = true;
-                var result = await users.UpdateSecurityStampAsync(user);
+                IdentityResult result;
+                try { result = await users.UpdateSecurityStampAsync(user); }
+                catch (DbUpdateException)
+                { await db.Entry(user).ReloadAsync(); ModelState.AddModelError("", "That number cannot be saved. Reload and choose another number."); return View("ChangePhone", SettingsData(user)); }
                 if (result.Succeeded)
                 {
                     await signIn.RefreshSignInAsync(user);
@@ -309,7 +349,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             else ModelState.AddModelError("Confirmation.Code", check.Error!);
         }
         ModelState.SetModelValue("Confirmation.Code", "", "");
-        return View("PhoneNumber", SettingsData(user));
+        return View("ChangePhone", SettingsData(user));
     }
 
     [HttpPost]
@@ -319,11 +359,16 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         return RedirectToAction(nameof(PhoneNumber));
     }
 
+    [HttpGet]
+    public async Task<IActionResult> RemovePhone() => View(new CurrentPasswordModel());
+
     [HttpPost]
-    public async Task<IActionResult> RemovePhone()
+    public async Task<IActionResult> RemovePhone(CurrentPasswordModel input)
     {
         var user = await users.GetUserAsync(User);
         if (user is null) return Challenge();
+        if (user.SmsTwoFactorEnabled) ModelState.AddModelError("", "Turn off SMS two-factor authentication before removing your phone number.");
+        if (!ModelState.IsValid || !await ConfirmCurrentPassword(user, input.CurrentPassword)) return View("RemovePhone", input);
         user.PhoneNumber = null; user.PhoneNumberConfirmed = false;
         var result = await users.UpdateSecurityStampAsync(user);
         if (result.Succeeded)

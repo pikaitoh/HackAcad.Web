@@ -33,6 +33,9 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<ApplicationUser>().Property(u => u.PhoneNumber).HasMaxLength(16);
+        builder.Entity<ApplicationUser>().HasIndex(u => u.PhoneNumber).IsUnique();
+
         builder.Entity<LoginRecord>().HasIndex(r => new { r.UserId, r.OccurredUtc });
         builder.Entity<LoginRecord>().HasOne<ApplicationUser>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<AccountSession>().HasIndex(r => new { r.UserId, r.ExpiresUtc });

@@ -95,7 +95,8 @@ public partial class AccountController
     }
 
     private async Task<TwoFactorModel> TwoFactorData(ApplicationUser user) => new()
-    { Enabled = user.TwoFactorEnabled, RecoveryCodesLeft = await users.CountRecoveryCodesAsync(user) };
+    { Enabled = user.TwoFactorEnabled, SmsEnabled = user.SmsTwoFactorEnabled, HasVerifiedPhone = user.PhoneNumberConfirmed && user.PhoneNumber is not null,
+        RecoveryCodesLeft = await users.CountRecoveryCodesAsync(user) };
 
     [HttpPost, EnableRateLimiting("security-action")]
     public async Task<IActionResult> BeginAuthenticator(CurrentPasswordModel input)
@@ -170,18 +171,21 @@ public partial class AccountController
         if (ModelState.IsValid && await ConfirmCurrentPassword(user, input.CurrentPassword))
         {
             var code = (input.Code ?? "").Replace(" ", "").Replace("-", "");
-            var valid = code.Length == 6 && await users.VerifyTwoFactorTokenAsync(user, users.Options.Tokens.AuthenticatorTokenProvider, code);
+            var valid = code.Length == 6 && (user.SmsTwoFactorEnabled
+                ? user.PhoneNumberConfirmed && user.PhoneNumber is not null && (await phones.CheckAsync(user.Id, user.SecurityStamp ?? "", code, "sms-manage")).Number == user.PhoneNumber
+                : await users.VerifyTwoFactorTokenAsync(user, users.Options.Tokens.AuthenticatorTokenProvider, code));
             if (!valid) valid = !string.IsNullOrEmpty(input.Code) && (await users.RedeemTwoFactorRecoveryCodeAsync(user, input.Code.Replace(" ", ""))).Succeeded;
             if (!valid)
             {
                 await users.AccessFailedAsync(user);
-                ModelState.AddModelError("Code", "Enter a current authenticator code or an unused recovery code.");
+                ModelState.AddModelError("Code", "Enter a current verification code or an unused recovery code.");
             }
         }
         if (!ModelState.IsValid) return View("TwoFactor", await TwoFactorData(user));
         await using var transaction = await db.Database.BeginTransactionAsync();
         if (operation == "disable")
         {
+            user.SmsTwoFactorEnabled = false;
             if (!(await users.SetTwoFactorEnabledAsync(user, false)).Succeeded || !(await users.ResetAuthenticatorKeyAsync(user)).Succeeded) return Conflict();
         }
         var codes = (await users.GenerateNewTwoFactorRecoveryCodesAsync(user, operation == "disable" ? 0 : 10))?.ToArray();
@@ -197,9 +201,15 @@ public partial class AccountController
 
     private async Task BeginTwoFactorLogin(ApplicationUser user)
     {
-        var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, user.Id), new Claim("hackacad:pending-stamp", user.SecurityStamp ?? "")], IdentityConstants.TwoFactorUserIdScheme);
+        var request = Guid.NewGuid().ToString("N");
+        var identity = new ClaimsIdentity([new Claim(ClaimTypes.Name, user.Id), new Claim("hackacad:pending-stamp", user.SecurityStamp ?? ""), new Claim("hackacad:sms-request", request)], IdentityConstants.TwoFactorUserIdScheme);
         await HttpContext.SignInAsync(IdentityConstants.TwoFactorUserIdScheme, new ClaimsPrincipal(identity),
-            new AuthenticationProperties { ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(5), IsPersistent = false });
+            new AuthenticationProperties { ExpiresUtc = clock.GetUtcNow().AddMinutes(5), IsPersistent = false });
+        if (user.SmsTwoFactorEnabled && user.PhoneNumberConfirmed && user.PhoneNumber is not null)
+        {
+            var error = await phones.SendAsync(user.Id, user.SecurityStamp ?? "", user.PhoneNumber, "sms-login:" + request);
+            if (error is not null) TempData["Error"] = error;
+        }
     }
 
     private async Task<ApplicationUser?> PendingTwoFactorUser()
@@ -214,7 +224,11 @@ public partial class AccountController
 
     [AllowAnonymous, HttpGet]
     public async Task<IActionResult> LoginTwoFactor(bool rememberMe = false, string? returnUrl = null)
-        => await PendingTwoFactorUser() is null ? RedirectToAction(nameof(Login)) : View(new TwoFactorLoginModel { RememberMe = rememberMe, ReturnUrl = returnUrl });
+    {
+        var user = await PendingTwoFactorUser();
+        if (user is null) return RedirectToAction(nameof(Login));
+        return user.SmsTwoFactorEnabled ? RedirectToAction(nameof(LoginSms), new { rememberMe, returnUrl }) : View(new TwoFactorLoginModel { RememberMe = rememberMe, ReturnUrl = returnUrl });
+    }
 
     [AllowAnonymous, HttpGet]
     public async Task<IActionResult> LoginRecoveryCode(string? returnUrl = null)
@@ -230,6 +244,7 @@ public partial class AccountController
     {
         var user = await PendingTwoFactorUser();
         if (user is null) return RedirectToAction(nameof(Login));
+        if (!recovery && user.SmsTwoFactorEnabled) return RedirectToAction(nameof(LoginSms), new { input.RememberMe, input.ReturnUrl });
         if (ModelState.IsValid)
         {
             var code = input.Code.Replace(" ", "");

@@ -4,8 +4,8 @@ namespace HackAcad.Web.Models.ViewModels;
 
 public class LoginModel
 {
-    [Required(ErrorMessage = "Enter your email address."), EmailAddress(ErrorMessage = AccountValidation.EmailMessage), StringLength(256)]
-    [RegularExpression(AccountValidation.EmailPattern, ErrorMessage = AccountValidation.EmailMessage)]
+    [Required(ErrorMessage = "Enter your email or verified phone number."), StringLength(256), Display(Name = "Email or phone number")]
+    [RegularExpression(@"(?:" + AccountValidation.EmailPattern + @")|(?:^\+[1-9][0-9]{7,14}$)", ErrorMessage = "Enter a valid email or a phone number with its country code, such as +60123456789.")]
     public string Email { get => email; set => email = value?.Trim() ?? ""; }
     private string email = "";
     [Required, DataType(DataType.Password)]
@@ -48,7 +48,7 @@ public class ProfileModel
     public bool EmailConfirmed { get; set; }
 }
 
-public class PhoneNumberInput
+public class PhoneNumberInput : CurrentPasswordModel
 {
     [Required(ErrorMessage = "Enter your phone number."), Display(Name = "Phone number")]
     [RegularExpression(@"^\+[1-9][0-9]{7,14}$", ErrorMessage = "Include the country code, such as +60123456789, without spaces.")]
@@ -72,6 +72,7 @@ public class AccountSettingsModel
     public string? CurrentPhone { get; set; }
     public bool PhoneConfirmed { get; set; }
     public string? PendingPhone { get; set; }
+    public int PhoneResendSeconds { get; set; }
     public bool IsSmsTestMode { get; set; }
     public PhoneNumberInput Phone { get; set; } = new();
     public PhoneCodeInput Confirmation { get; set; } = new();

@@ -1,7 +1,7 @@
 @model ChangeEmailModel
 @{ ViewData["Title"] = "Change email"; Layout = "_ManageAccountLayout"; }
 <div class="account-panel">
-    <div class="page-heading"><div><h1>Change email</h1><p class="text-secondary">Confirm your new address before using it to log in.</p></div></div>
+    <div class="page-heading"><div><h1>Change email</h1></div></div>
     <form asp-action="ChangeEmail" method="post" data-account-form class="form-measure">
         @if (TempData["EmailChangeRequested"] is string requested)
         {

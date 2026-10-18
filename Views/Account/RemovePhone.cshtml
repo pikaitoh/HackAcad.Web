@@ -1,0 +1,9 @@
+@model CurrentPasswordModel
+@{ ViewData["Title"] = "Remove phone number"; Layout = "_ManageAccountLayout"; }
+<div class="account-panel"><div class="page-heading"><div><h1>Remove phone number</h1><p class="text-secondary">You will no longer be able to use this number to log in. Password recovery will continue to use your email.</p></div></div>
+<section class="form-measure"><form asp-action="RemovePhone" method="post" data-validated-form>
+<div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+<div class="mb-4"><label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" class="form-control" autocomplete="current-password" required aria-describedby="CurrentPassword-error" /><span id="CurrentPassword-error" asp-validation-for="CurrentPassword" class="field-error" aria-live="polite"></span></div>
+<p class="form-text">Turn off SMS two-factor authentication before removing the number. Other devices will need to log in again after removal.</p>
+<div class="form-actions"><button type="submit" class="btn btn-outline-danger">Remove phone number</button><a asp-action="PhoneNumber" class="btn btn-outline-secondary">Cancel</a></div>
+</form></section></div>

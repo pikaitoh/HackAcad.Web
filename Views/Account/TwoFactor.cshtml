@@ -1,17 +1,36 @@
 @model TwoFactorModel
 @{ ViewData["Title"] = "Two-factor authentication"; Layout = "_ManageAccountLayout"; }
-<div class="account-panel"><div class="page-heading"><div><h1>Two-factor authentication</h1><p class="text-secondary">Protect your sign-in with an authenticator code.</p></div></div>
-<section class="form-measure"><h2>Authenticator app <span class="status-label @(Model.Enabled ? "status-active" : "status-disabled")">@(Model.Enabled ? "On" : "Off")</span></h2>
-<p>Use Google Authenticator, Microsoft Authenticator or another compatible app. Codes work without email or SMS.</p>
-@if (Model.Enabled) { <p>You have <strong>@Model.RecoveryCodesLeft</strong> unused recovery codes. Store them somewhere private.</p> }
+<div class="account-panel"><div class="page-heading"><div><h1>Two-factor authentication</h1><p class="text-secondary">Add a second step when you log in.</p></div></div>
+<section class="form-measure">
+<h2>@(Model.Enabled ? Model.SmsEnabled ? "SMS verification" : "Authenticator app" : "Choose a verification method") <span class="status-label @(Model.Enabled ? "status-active" : "status-disabled")">@(Model.Enabled ? "On" : "Off")</span></h2>
+@if (Model.Enabled)
+{
+    <p>@(Model.SmsEnabled ? "After your password, enter a code sent to your verified phone number." : "Use the current code from your authenticator app after your password.")</p>
+    <p>You have <strong>@Model.RecoveryCodesLeft</strong> unused recovery codes. Store them somewhere private.</p>
+}
+else
+{
+    <p>Authenticator codes work offline. SMS sends codes to your verified phone number.</p>
+}
 <form asp-action="@(Model.Enabled ? "ManageTwoFactor" : "BeginAuthenticator")" method="post" data-validated-form>
 <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
 <div class="mb-4"><label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" aria-invalid="@(ViewData.ModelState["CurrentPassword"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="current-password" required aria-describedby="CurrentPassword-error" /><span id="CurrentPassword-error" asp-validation-for="CurrentPassword" class="field-error" aria-live="polite"></span></div>
 @if (Model.Enabled)
 {
-    <div class="mb-4"><label asp-for="Code" class="form-label">Authenticator or recovery code</label><input asp-for="Code" aria-invalid="@(ViewData.ModelState["Code"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="one-time-code" maxlength="32" required aria-describedby="Code-error" /><span id="Code-error" asp-validation-for="Code" class="field-error" aria-live="polite"></span></div>
-    <p class="form-text">New recovery codes replace all previous codes. Turning off 2FA removes the authenticator and recovery codes. Either action signs out other devices.</p>
+    <div class="mb-4"><label asp-for="Code" class="form-label">@(Model.SmsEnabled ? "SMS or recovery code" : "Authenticator or recovery code")</label><input asp-for="Code" aria-invalid="@(ViewData.ModelState["Code"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="one-time-code" maxlength="32" required aria-describedby="Code-error" /><span id="Code-error" asp-validation-for="Code" class="field-error" aria-live="polite"></span></div>
+    @if (Model.SmsEnabled) { <p class="form-text">Request a code below, or enter an unused recovery code.</p><button type="submit" form="sms-manage-send" class="btn btn-outline-secondary mb-4">Send SMS code</button> }
+    <p class="form-text">New recovery codes replace all previous codes. Turn off 2FA before switching methods. Both actions sign out other devices.</p>
     <div class="form-actions"><button type="submit" name="operation" value="regenerate" class="btn btn-outline-secondary">Get new recovery codes</button><button type="submit" name="operation" value="disable" class="btn btn-outline-danger">Turn off 2FA</button></div>
 }
-else { <p class="form-text">Confirm your password, then scan a QR code to connect your app.</p><button type="submit" class="btn btn-primary">Set up authenticator</button> }
-</form></section></div>
+else
+{
+    <p class="form-text">@(Model.HasVerifiedPhone ? "Enter your current password and choose a method. Two-factor authentication turns on after you verify a code during setup." : "Enter your current password to set up an authenticator app. Choose Set up SMS to add and verify your phone number first.")</p>
+    <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Set up authenticator</button>
+        @if (Model.HasVerifiedPhone) { <button type="submit" asp-action="BeginSmsTwoFactor" class="btn btn-outline-secondary">Set up SMS</button> }
+        else { <a asp-action="PhoneNumber" class="btn btn-outline-secondary">Set up SMS</a> }
+    </div>
+}
+</form>
+@if (Model.SmsEnabled) { <form id="sms-manage-send" asp-action="SendManageSms" method="post" hidden></form> }
+</section></div>

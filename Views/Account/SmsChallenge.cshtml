@@ -1,0 +1,21 @@
+@model SmsChallengeModel
+@{ ViewData["Title"] = Model.Heading; Layout = Model.SettingsLayout ? "_ManageAccountLayout" : "_AuthLayout"; }
+<div class="@(Model.SettingsLayout ? "account-panel" : "")">
+<h1 id="auth-title">@Model.Heading</h1><p class="text-secondary">@Model.Description</p>
+<div class="@(Model.SettingsLayout ? "form-measure mt-4" : "")" data-phone-verification data-resend-seconds="@Model.ResendSeconds">
+<div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+@if (Model.IsTestMode) { <p class="alert alert-warning" role="status">SMS test mode is active. No text messages are sent.</p> }
+<form id="phone-code-form" asp-action="@Model.SubmitAction" method="post" data-validated-form>
+<input asp-for="RememberMe" type="hidden" /><input asp-for="ReturnUrl" type="hidden" />
+<div class="mb-4"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control otp-input" data-sms-code autocomplete="one-time-code" inputmode="numeric" minlength="6" maxlength="6" required autofocus aria-describedby="Code-error sms-help" aria-invalid="@(ViewData.ModelState["Code"]?.Errors.Count > 0 ? "true" : null)" /><span id="Code-error" asp-validation-for="Code" class="field-error" aria-live="polite"></span><p class="form-text" id="sms-help" data-resend-status>You can request another code after one minute.</p></div>
+</form>
+<form id="phone-resend-form" asp-action="@Model.ResendAction" method="post" hidden><input asp-for="RememberMe" type="hidden" /><input asp-for="ReturnUrl" type="hidden" /></form>
+@if (Model.SettingsLayout) { <form id="phone-cancel-form" asp-action="@Model.BackAction" method="post" hidden></form> }
+<div class="form-actions"><button id="phone-code-action" class="btn btn-primary" type="submit" form="phone-code-form" data-verify-label="Verify code">Verify code</button>
+@if (Model.SettingsLayout) { <button class="btn btn-outline-secondary" type="submit" form="phone-cancel-form">Cancel verification</button> }
+else { <a asp-action="@Model.BackAction" class="btn btn-outline-secondary">Back</a> }
+</div>
+<noscript><p class="form-text mt-3">Reload after one minute to resend.</p><button class="btn btn-outline-secondary" type="submit" form="phone-resend-form" disabled="@(Model.ResendSeconds > 0)">Resend verification code</button></noscript>
+@if (Model.SubmitAction == "LoginSms") { <div class="security-links mt-4"><a asp-action="LoginRecoveryCode" asp-route-returnUrl="@Model.ReturnUrl" class="btn btn-outline-secondary">Use a recovery code</a></div> }
+</div></div>
+@section Scripts { <script src="~/js/phone-verification.js" asp-append-version="true" defer></script> }

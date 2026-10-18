@@ -3,8 +3,8 @@
     var section = action switch
     {
         "ChangeEmail" or "Settings" => "Settings",
-        "SendPhoneCode" or "VerifyPhone" or "RemovePhone" or "CancelPhoneVerification" or "PhoneNumber" => "PhoneNumber",
-        "BeginAuthenticator" or "EnableAuthenticator" or "ManageTwoFactor" or "TwoFactor" => "TwoFactor",
+        "ChangePhone" or "ResendPhoneCode" or "SendPhoneCode" or "VerifyPhone" or "RemovePhone" or "CancelPhoneVerification" or "PhoneNumber" => "PhoneNumber",
+        "BeginSmsTwoFactor" or "EnableSmsTwoFactor" or "ResendSmsSetup" or "CancelSmsSetup" or "SendManageSms" or "BeginAuthenticator" or "EnableAuthenticator" or "ManageTwoFactor" or "TwoFactor" => "TwoFactor",
         _ => action
     };
     var links = new[] {

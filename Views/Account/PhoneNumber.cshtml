@@ -1,31 +1,18 @@
 @model AccountSettingsModel
 @{ ViewData["Title"] = "Phone number"; Layout = "_ManageAccountLayout"; }
 <div class="account-panel">
-    <div class="page-heading"><div><h1>Phone number</h1><p class="text-secondary">Add or update your verified contact number.</p></div></div>
-    <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
-        <section class="form-measure phone-settings" aria-label="Phone number settings">
-            <p class="text-secondary">Optional. Verify a number you own using a code sent by SMS. This number isn't used for login or password recovery.</p>
-            @if (Model.IsSmsTestMode) { <div class="alert alert-warning" role="status">SMS test mode is active. Codes are captured locally; no text messages are sent.</div> }
-            @if (!string.IsNullOrEmpty(Model.CurrentPhone))
-            {
-                <div class="phone-current"><span class="record-secondary">Current number</span><strong>@Model.CurrentPhone</strong><span class="status-label @(Model.PhoneConfirmed ? "status-active" : "status-disabled")">@(Model.PhoneConfirmed ? "Verified" : "Not verified")</span></div>
-                <form asp-action="RemovePhone" method="post" class="mb-4"><button type="submit" class="btn btn-outline-danger btn-sm">Remove phone number</button></form>
-            }
-            <form asp-action="SendPhoneCode" method="post" data-validated-form>
-                <div class="mb-3"><label asp-for="Phone.PhoneNumber" class="form-label">@(Model.CurrentPhone is null ? "Phone number" : "New phone number")</label><input asp-for="Phone.PhoneNumber" type="tel" class="form-control" autocomplete="tel" maxlength="16" placeholder="+60123456789" required data-trim aria-describedby="phone-help Phone_PhoneNumber-error" aria-invalid="@(ViewData.ModelState["Phone.PhoneNumber"]?.Errors.Count > 0 ? "true" : null)" /><p id="phone-help" class="form-text">Include + and your country code, without spaces. For Malaysia, replace the first 0 with +60.</p><span id="Phone_PhoneNumber-error" asp-validation-for="Phone.PhoneNumber" class="field-error" aria-live="polite"></span></div>
-                <button type="submit" class="btn btn-primary">Send verification code</button>
-            </form>
-            @if (Model.PendingPhone is not null || ViewData.ModelState["Confirmation.Code"]?.Errors.Count > 0)
-            {
-                <div class="phone-confirmation">
-                    <h3>Enter your code</h3>
-                    @if (Model.PendingPhone is not null) { <p class="text-secondary">Verification requested for <strong>@Model.PendingPhone</strong>. Your current number stays unchanged until verification succeeds.</p> }
-                    <form asp-action="VerifyPhone" method="post" data-validated-form>
-                        <div class="mb-3"><label asp-for="Confirmation.Code" class="form-label"></label><input asp-for="Confirmation.Code" class="form-control otp-input" type="text" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" required aria-describedby="code-help Confirmation_Code-error" aria-invalid="@(ViewData.ModelState["Confirmation.Code"]?.Errors.Count > 0 ? "true" : null)" /><p id="code-help" class="form-text">Enter the six digits from your SMS. If your code expires, request another SMS above. Wait one minute between requests.</p><span id="Confirmation_Code-error" asp-validation-for="Confirmation.Code" class="field-error" aria-live="polite"></span></div>
-                        <button type="submit" class="btn btn-primary">Verify phone number</button>
-                    </form>
-                    <form asp-action="CancelPhoneVerification" method="post" class="mt-3"><button type="submit" class="btn btn-outline-secondary btn-sm">Cancel verification</button></form>
-                </div>
-            }
-        </section>
+    <div class="page-heading"><div><h1>Phone number</h1><p class="text-secondary">Manage your verified phone number.</p></div></div>
+    <section class="form-measure phone-settings" aria-labelledby="phone-title">
+        <h2 id="phone-title">Your phone number</h2>
+        <dl class="detail-list">
+            <dt>Phone number</dt><dd class="text-break">@(string.IsNullOrEmpty(Model.CurrentPhone) ? "No phone number added" : Model.CurrentPhone)</dd>
+            <dt>Verification status</dt><dd><span class="status-label @(Model.PhoneConfirmed ? "status-active" : "status-disabled")">@(Model.PhoneConfirmed ? "Verified" : string.IsNullOrEmpty(Model.CurrentPhone) ? "Not added" : "Not verified")</span></dd>
+        </dl>
+        <p class="text-secondary">Use your verified number with your password to log in or set up SMS two-factor authentication. Password recovery uses your account email. Your current number stays in use until you verify a replacement.</p>
+        @if (Model.PendingPhone is not null) { <p class="text-secondary">Verification is pending for <strong>@Model.PendingPhone</strong>.</p> }
+        <div class="form-actions">
+            <a asp-action="ChangePhone" class="btn btn-primary">@(Model.PendingPhone is not null ? "Continue verification" : Model.CurrentPhone is null ? "Add phone number" : "Change phone number")</a>
+            @if (!string.IsNullOrEmpty(Model.CurrentPhone)) { <a asp-action="RemovePhone" class="btn btn-outline-danger">Remove phone number</a> }
+        </div>
+    </section>
 </div>
