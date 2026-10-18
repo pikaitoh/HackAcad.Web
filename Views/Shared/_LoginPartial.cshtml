@@ -2,9 +2,14 @@
 @{ var currentController = ViewContext.RouteData.Values["controller"]?.ToString(); var currentAction = ViewContext.RouteData.Values["action"]?.ToString(); }
 @if (User.Identity?.IsAuthenticated == true)
 {
+    <a class="nav-link" asp-controller="Courses" asp-action="Index" aria-current="@(currentController == "Courses" && currentAction == "Index" ? "page" : null)">Courses</a>
+    @if (User.IsInRole(AccountRoles.Teacher))
+    {
+        <a class="nav-link" asp-controller="TeacherCourses" asp-action="Index" aria-current="@(currentController == "TeacherCourses" ? "page" : null)">Teacher Studio</a>
+    }
     @if (User.IsInRole(AccountRoles.Admin))
     {
-        <a class="nav-link" asp-controller="Admin" asp-action="Index" aria-current="@(currentController == "Admin" && currentAction == "Index" ? "page" : null)">Dashboard</a>
+        <a class="nav-link" asp-controller="Admin" asp-action="Index" aria-current="@(currentController == "Admin" && currentAction == "Index" ? "page" : null)">Admin</a>
     }
     else
     {
@@ -29,6 +34,7 @@
 }
 else
 {
+    <a class="nav-link" asp-controller="Courses" asp-action="Index" aria-current="@(currentController == "Courses" ? "page" : null)">Courses</a>
     <a class="nav-link" asp-controller="Home" asp-action="Index" aria-current="@(currentController == "Home" && currentAction == "Index" ? "page" : null)">Home</a>
     <a class="nav-link" asp-controller="Home" asp-action="Index" asp-fragment="learning-experience">How it works</a>
     <a class="nav-link" asp-controller="Account" asp-action="Login">Log in</a>

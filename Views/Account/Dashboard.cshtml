@@ -1,25 +1,250 @@
 @model DashboardModel
-@{ ViewData["Title"] = "Dashboard"; var isTeacher = User.IsInRole(AccountRoles.Teacher); }
+@{
+    ViewData["Title"] = "Dashboard";
+    var isTeacher = User.IsInRole(AccountRoles.Teacher);
+}
+
 <div class="container module-shell">
-    <div class="page-heading"><div><h1>Hello, @Model.DisplayName</h1><p class="text-secondary">Your learning activity and account workspace.</p></div><span class="role-badge" data-role="@Model.Role">@Model.Role</span></div>
+    <div class="page-heading">
+        <div>
+            <h1>Hello, @Model.DisplayName</h1>
+            <p class="text-secondary">Your cybersecurity learning workspace and skill achievements.</p>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <span class="role-badge" data-role="@Model.Role">@Model.Role</span>
+            @if (isTeacher)
+            {
+                <a class="btn btn-outline-secondary btn-sm" asp-controller="TeacherCourses" asp-action="Index">Teacher Studio</a>
+            }
+            <a class="btn btn-primary btn-sm" asp-controller="Courses" asp-action="Index">Browse Courses</a>
+        </div>
+    </div>
+
+    <!-- Continue Learning Hero Card (if has enrolled courses) -->
+    @if (Model.RecentCourse != null)
+    {
+        <div class="workspace-start mb-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div style="max-width: 44rem;">
+                    <span class="badge mb-2" style="background:#f2cf45; color:#193e46; font-weight:700;">Continue Learning</span>
+                    <h2 style="color:white; font-size:1.75rem; font-weight:800; margin-bottom:0.5rem;">@Model.RecentCourse.Title</h2>
+                    <p style="color:var(--ha-on-dark); font-size:0.95rem; margin-bottom:1rem;">
+                        @(Model.RecentCourse.Description ?? "Pick up right where you left off in your technical cybersecurity training.")
+                    </p>
+                    <div class="learning-progress" style="max-width:24rem;">
+                        <div class="d-flex justify-content-between text-white mb-1 small">
+                            <span>Course Progress</span>
+                            <strong>@Model.RecentCourse.ProgressPercent%</strong>
+                        </div>
+                        <progress value="@Model.RecentCourse.ProgressPercent" max="100"></progress>
+                    </div>
+                </div>
+                <div>
+                    <a asp-controller="Courses" asp-action="Learn" asp-route-id="@Model.RecentCourse.CourseId"
+                       asp-route-lessonId="@Model.RecentCourse.LastLessonId" class="btn btn-primary btn-lg">
+                        Resume Course →
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+
     <div class="dashboard-layout">
         <div class="dashboard-primary">
-            <section class="workspace-start" aria-labelledby="next-title">
-                <h2 id="next-title">@(isTeacher ? "Your teaching and learning account." : "Your next step starts here.")</h2>
-                <p>Your account is ready. Keep your profile up to date and use this dashboard to review your learning activity.</p><a class="btn btn-primary" asp-action="Profile">Review my profile</a>
+            <!-- Learning Totals Summary -->
+            <section aria-labelledby="learning-title" class="dashboard-activity mt-0 mb-4">
+                <div class="section-heading mb-2">
+                    <h2 id="learning-title">Your Progress Totals</h2>
+                    <span class="text-secondary">Platform-wide statistics</span>
+                </div>
+                <dl class="activity-summary">
+                    <div>
+                        <dt>Courses Enrolled</dt>
+                        <dd>@Model.EnrollmentCount</dd>
+                    </div>
+                    <div>
+                        <dt>Lessons &amp; Labs Done</dt>
+                        <dd>@Model.CompletedActivities</dd>
+                    </div>
+                    <div>
+                        <dt>CTFs Solved</dt>
+                        <dd>@Model.SolvedChallenges</dd>
+                    </div>
+                    <div>
+                        <dt>Score Points</dt>
+                        <dd style="color:var(--ha-primary);">@Model.TotalPoints</dd>
+                    </div>
+                </dl>
             </section>
-            <section aria-labelledby="learning-title" class="dashboard-activity"><div class="section-heading"><h2 id="learning-title">Learning activity</h2><span class="text-secondary">Your totals</span></div>
-                <dl class="activity-summary"><div><dt>Course enrolments</dt><dd>@Model.EnrollmentCount</dd></div><div><dt>Activities completed</dt><dd>@Model.CompletedActivities</dd></div><div><dt>Challenges solved</dt><dd>@Model.SolvedChallenges</dd></div></dl>
-                @if (Model.EnrollmentCount == 0) { <div class="learning-empty"><h3>Your learning record is ready.</h3><p>There are no course enrolments on this account yet. Your totals will update as you take part in learning activities.</p></div> }
-                else { <p class="text-secondary">These totals reflect the learning records saved to your account.</p> }
+
+            <!-- My Enrolled Courses -->
+            <section class="mb-5">
+                <div class="section-heading mb-3">
+                    <h2>My Enrolled Courses (@Model.EnrolledCourses.Count)</h2>
+                    <a asp-controller="Courses" asp-action="Index" class="btn btn-sm btn-outline-secondary">Explore More</a>
+                </div>
+
+                @if (Model.EnrolledCourses.Count == 0)
+                {
+                    <div class="surface-panel p-4 text-center">
+                        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎯</div>
+                        <h3>You haven't enrolled in any courses yet.</h3>
+                        <p class="text-secondary small mb-3">Explore our interactive courses on web security, Linux, and CTFs.</p>
+                        <a asp-controller="Courses" asp-action="Index" class="btn btn-primary btn-sm">Find Your First Course</a>
+                    </div>
+                }
+                else
+                {
+                    <div class="courses-grid" style="grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));">
+                        @foreach (var c in Model.EnrolledCourses)
+                        {
+                            <article class="course-card">
+                                <div class="course-card-thumb" style="height: 120px;">
+                                    <span class="category-pill">@(c.Category ?? "Cyber")</span>
+                                    <div class="course-card-thumb-icon" style="font-size:2rem;">🛡️</div>
+                                </div>
+                                <div class="course-card-body p-3">
+                                    <h3 style="font-size:1rem;"><a asp-controller="Courses" asp-action="Learn" asp-route-id="@c.CourseId">@c.Title</a></h3>
+                                    <div class="learning-progress my-2">
+                                        <div class="d-flex justify-content-between small">
+                                            <span class="text-secondary">Completed</span>
+                                            <strong>@c.ProgressPercent%</strong>
+                                        </div>
+                                        <progress value="@c.ProgressPercent" max="100"></progress>
+                                    </div>
+                                    <div class="course-card-footer pt-2">
+                                        <a asp-controller="Courses" asp-action="Learn" asp-route-id="@c.CourseId" asp-route-lessonId="@c.LastLessonId" class="btn btn-sm btn-primary w-100">
+                                            @(c.ProgressPercent == 100 ? "Review Course" : "Continue")
+                                        </a>
+                                    </div>
+                                </div>
+                            </article>
+                        }
+                    </div>
+                }
             </section>
+
+            <!-- Badges & Achievements Showcase -->
+            <section class="mb-5">
+                <div class="section-heading mb-3">
+                    <h2>Badges &amp; Achievements</h2>
+                    <span class="text-secondary">Earn badges by completing courses, CTFs, and CLI labs</span>
+                </div>
+
+                <div class="badges-grid">
+                    @foreach (var b in Model.Badges)
+                    {
+                        var icon = b.Id switch
+                        {
+                            "cyber_recruit" => "🛡️",
+                            "first_step" => "📖",
+                            "diligent_learner" => "📚",
+                            "first_blood" => "🚩",
+                            "flag_hunter" => "🎯",
+                            "century_club" => "💎",
+                            "terminal_novice" => "⚡",
+                            "academy_graduate" => "🏆",
+                            _ => "⭐"
+                        };
+
+                        <div class="badge-card @(b.IsUnlocked ? "unlocked" : "locked")">
+                            <div class="badge-icon-box" style="background:@(b.IsUnlocked ? b.ColorHex + "20" : "#f1f5f9"); color:@(b.IsUnlocked ? b.ColorHex : "#94a3b8");">
+                                <span>@icon</span>
+                            </div>
+                            <div class="badge-title">@b.Title</div>
+                            <div class="badge-desc">@b.Description</div>
+                            <div class="badge-status">
+                                @if (b.IsUnlocked)
+                                {
+                                    <span>UNLOCKED ✓</span>
+                                }
+                                else
+                                {
+                                    <span>@(b.CurrentProgress)/@(b.TargetProgress)</span>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </section>
+
+            <!-- Recent CTF Submissions -->
+            @if (Model.RecentSubmissions.Any())
+            {
+                <section class="surface-panel p-4 mb-4">
+                    <h2 style="font-size: 1.15rem; font-weight:700; margin-bottom: 0.75rem;">Recent CTF Submissions</h2>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle module-table">
+                            <thead>
+                                <tr>
+                                    <th>Timestamp</th>
+                                    <th>Submitted Flag</th>
+                                    <th>Result</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var s in Model.RecentSubmissions)
+                                {
+                                    <tr>
+                                        <td>@s.SubmittedDate.ToLocalTime().ToString("g")</td>
+                                        <td><code>@s.SubmittedFlag</code></td>
+                                        <td>
+                                            @if (s.IsCorrect)
+                                            {
+                                                <span class="badge bg-success">Correct ✓</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Incorrect ✗</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            }
         </div>
+
+        <!-- Sidebar shortcuts -->
         <aside class="dashboard-account" aria-labelledby="workspace-account-title">
-            <h2 id="workspace-account-title">Your account</h2><p class="text-secondary">Profile, password and access.</p>
-            <nav class="account-shortcuts" aria-label="Account settings"><a asp-action="Profile"><span><strong>My profile</strong><span>View account details and edit your name.</span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></a><a asp-action="ChangePassword"><span><strong>Password &amp; security</strong><span>Change your password securely.</span></span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg></a></nav>
-            <div class="account-access"><h3>@Model.Role access</h3>
-                @if (isTeacher) { <p>Your account has Teacher access and can own courses. Your personal learning activity stays on this account.</p> }
-                else { <p>Your account has Student access. If you need to teach, ask an administrator to review your role.</p> }
+            <h2 id="workspace-account-title">Your Account</h2>
+            <p class="text-secondary">Profile, password and access.</p>
+            <nav class="account-shortcuts" aria-label="Account settings">
+                <a asp-action="Profile">
+                    <span>
+                        <strong>My profile</strong>
+                        <span>View account details and edit your name.</span>
+                    </span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+                </a>
+                <a asp-action="ChangePassword">
+                    <span>
+                        <strong>Password &amp; security</strong>
+                        <span>Change your password securely.</span>
+                    </span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+                </a>
+                <a asp-action="Settings">
+                    <span>
+                        <strong>Account settings</strong>
+                        <span>Manage email and 2FA authentication.</span>
+                    </span>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+                </a>
+            </nav>
+
+            <div class="account-access">
+                <h3>@Model.Role Access</h3>
+                @if (isTeacher)
+                {
+                    <p>Your account has Teacher access. You can create courses, author CTF challenges, and build simulated terminal labs in the <a asp-controller="TeacherCourses" asp-action="Index">Teacher Studio</a>.</p>
+                }
+                else
+                {
+                    <p>Your account has Student access. You can enrol into any published course and solve interactive challenges. Contact an administrator to upgrade to Teacher.</p>
+                }
             </div>
         </aside>
     </div>

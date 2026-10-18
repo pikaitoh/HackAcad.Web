@@ -1,0 +1,61 @@
+@model LessonCreateEditModel
+@{
+    var isEdit = Model.LessonId > 0;
+    ViewData["Title"] = isEdit ? "Edit Lesson" : "Add Lesson";
+}
+
+<div class="container module-shell">
+    <div class="mb-3">
+        <a asp-action="Curriculum" asp-route-id="@Model.CourseId" class="btn btn-sm btn-outline-secondary">← Back to Curriculum</a>
+    </div>
+
+    <div class="page-heading">
+        <div>
+            <h1>@(isEdit ? "Edit Lesson" : "Add New Lesson")</h1>
+            <p class="text-secondary">Compose markdown text, command snippets, tutorials, or attach video links.</p>
+        </div>
+    </div>
+
+    <div class="surface-panel p-4" style="max-width: 48rem;">
+        <form method="post" asp-action="SaveLesson" data-validated-form>
+            <input type="hidden" asp-for="LessonId" />
+            <input type="hidden" asp-for="CourseId" />
+
+            <div asp-validation-summary="ModelOnly" class="validation-summary mb-3" role="alert"></div>
+
+            <div class="row mb-3">
+                <div class="col-md-9">
+                    <label asp-for="Title" class="form-label">Lesson Title <span class="text-danger">*</span></label>
+                    <input asp-for="Title" class="form-control" placeholder="e.g. Linux Command Line Fundamentals" required maxlength="150" />
+                    <span asp-validation-for="Title" class="field-error"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="OrderIndex" class="form-label">Order # <span class="text-danger">*</span></label>
+                    <input asp-for="OrderIndex" type="number" class="form-control" min="0" max="999" required />
+                    <span asp-validation-for="OrderIndex" class="field-error"></span>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="VideoUrl" class="form-label">Video URL (Optional)</label>
+                <input asp-for="VideoUrl" class="form-control" placeholder="https://www.youtube.com/watch?v=... or direct MP4 URL" />
+                <div class="form-text">Paste a YouTube link or direct video file URL to embed a video player in the lesson.</div>
+                <span asp-validation-for="VideoUrl" class="field-error"></span>
+            </div>
+
+            <div class="mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label asp-for="Content" class="form-label mb-0">Lesson Content &amp; Guidance (Markdown supported)</label>
+                    <span class="text-muted small">Supports headers, code blocks, bold, lists</span>
+                </div>
+                <textarea asp-for="Content" class="form-control font-monospace" rows="12" placeholder="# Introduction&#10;&#10;Write comprehensive explanations here...&#10;&#10;```bash&#10;ls -la /var/log&#10;```"></textarea>
+                <span asp-validation-for="Content" class="field-error"></span>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Save Lesson</button>
+                <a asp-action="Curriculum" asp-route-id="@Model.CourseId" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>

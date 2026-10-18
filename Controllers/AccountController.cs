@@ -17,7 +17,7 @@ namespace HackAcad.Web.Controllers;
 [Route("Identity/Account/[action]")]
 public partial class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     UserAccounts accounts, ApplicationDbContext db, EmailVerification verification, PhoneVerification phones,
-    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache) : Controller
+    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, BadgeService badges) : Controller
 {
     [AllowAnonymous, HttpGet]
     public IActionResult Register() => User.Identity?.IsAuthenticated == true ? RedirectToAction(nameof(Dashboard)) : View(new RegisterModel());
@@ -149,13 +149,82 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         var id = users.GetUserId(User)!;
         var user = await users.FindByIdAsync(id);
         if (user is null) return Challenge();
+
+        var enrollments = await db.Enrollments
+            .Where(e => e.UserId == id)
+            .OrderByDescending(e => e.EnrolledDate)
+            .ToListAsync();
+
+        var courseIds = enrollments.Select(e => e.CourseId).ToList();
+        var courses = await db.Courses.Where(c => courseIds.Contains(c.CourseId)).ToListAsync();
+        var courseMap = courses.ToDictionary(c => c.CourseId);
+
+        var teacherIds = courses.Select(c => c.TeacherId).Distinct().ToList();
+        var teacherNames = await db.Users.Where(u => teacherIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName);
+
+        var enrolledCards = new List<CourseCardViewModel>();
+        foreach (var e in enrollments)
+        {
+            if (!courseMap.TryGetValue(e.CourseId, out var course)) continue;
+
+            var lessonCount = await db.Lessons.CountAsync(l => l.CourseId == course.CourseId);
+            var challengeCount = await db.Challenges.CountAsync(c => c.CourseId == course.CourseId && c.IsPublished);
+            var simulationCount = await db.SimulationTasks.CountAsync(s => s.CourseId == course.CourseId && s.IsPublished);
+            var totalItems = lessonCount + challengeCount + simulationCount;
+
+            var completedCount = await db.ProgressRecords
+                .CountAsync(p => p.EnrollmentId == e.EnrollmentId && p.IsCompleted);
+
+            var pct = totalItems > 0 ? (int)Math.Round((double)completedCount / totalItems * 100) : 0;
+            teacherNames.TryGetValue(course.TeacherId, out var teacherName);
+
+            enrolledCards.Add(new CourseCardViewModel
+            {
+                CourseId = course.CourseId,
+                Title = course.Title,
+                Description = course.Description,
+                Category = course.Category,
+                ThumbnailUrl = course.ThumbnailUrl,
+                TeacherName = teacherName ?? "Instructor",
+                IsEnrolled = true,
+                ProgressPercent = Math.Clamp(pct, 0, 100),
+                LessonCount = lessonCount,
+                ChallengeCount = challengeCount,
+                SimulationCount = simulationCount,
+                LastLessonId = e.LastLessonId
+            });
+        }
+
+        var solvedChallengeIds = await db.ChallengeSubmissions
+            .Where(s => s.UserId == id && s.IsCorrect)
+            .Select(s => s.ChallengeId)
+            .Distinct()
+            .ToListAsync();
+
+        var totalPoints = await db.Challenges
+            .Where(c => solvedChallengeIds.Contains(c.ChallengeId))
+            .SumAsync(c => (int?)c.Points) ?? 0;
+
+        var badgesList = await badges.GetUserBadgesAsync(id);
+
+        var recentSubmissions = await db.ChallengeSubmissions
+            .Where(s => s.UserId == id)
+            .OrderByDescending(s => s.SubmittedDate)
+            .Take(5)
+            .ToListAsync();
+
         return View(new DashboardModel
         {
             DisplayName = user.DisplayName,
             Role = await accounts.Query().Where(u => u.Id == id).Select(u => u.Role).SingleAsync(),
-            EnrollmentCount = await db.Enrollments.CountAsync(e => e.UserId == id),
-            CompletedActivities = await db.ProgressRecords.CountAsync(p => p.IsCompleted && db.Enrollments.Any(e => e.EnrollmentId == p.EnrollmentId && e.UserId == id)),
-            SolvedChallenges = await db.ChallengeSubmissions.Where(s => s.UserId == id && s.IsCorrect).Select(s => s.ChallengeId).Distinct().CountAsync()
+            EnrollmentCount = enrollments.Count,
+            CompletedActivities = await db.ProgressRecords.CountAsync(p => p.IsCompleted && enrollments.Select(e => e.EnrollmentId).Contains(p.EnrollmentId)),
+            SolvedChallenges = solvedChallengeIds.Count,
+            TotalPoints = totalPoints,
+            EnrolledCourses = enrolledCards,
+            RecentCourse = enrolledCards.FirstOrDefault(),
+            Badges = badgesList,
+            RecentSubmissions = recentSubmissions
         });
     }
 

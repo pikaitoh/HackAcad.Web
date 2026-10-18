@@ -1,0 +1,404 @@
+@model CourseLearnViewModel
+@{
+    ViewData["Title"] = $"{Model.Course.Title} - Learning Portal";
+    var token = Html.AntiForgeryToken();
+}
+
+<div class="container-fluid px-3 pt-3">
+    <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+        <a asp-action="Details" asp-route-id="@Model.Course.CourseId" class="btn btn-sm btn-outline-secondary">
+            ← Course Details &amp; Overview
+        </a>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-secondary small">Course Mastery: <strong>@Model.ProgressPercent%</strong></span>
+            <div style="width: 120px;">
+                <progress value="@Model.ProgressPercent" max="100" style="width:100%; height:8px; border-radius:4px;"></progress>
+            </div>
+        </div>
+    </div>
+
+    <div class="learn-container">
+        <!-- Sidebar Curriculum -->
+        <aside class="learn-sidebar">
+            <div class="learn-sidebar-header">
+                <h2>@Model.Course.Title</h2>
+                <div class="text-secondary small">@(Model.Lessons.Count + Model.Challenges.Count + Model.SimulationTasks.Count) Total Activities</div>
+            </div>
+
+            <nav class="learn-curriculum-nav" aria-label="Curriculum Navigation">
+                <!-- Lessons Group -->
+                @if (Model.Lessons.Any())
+                {
+                    <div class="curriculum-section-title">Theory &amp; Guided Lessons</div>
+                    @foreach (var l in Model.Lessons)
+                    {
+                        var isActive = Model.CurrentType == LearnContentType.Lesson && Model.CurrentLesson?.LessonId == l.LessonId;
+                        var isDone = Model.CompletedLessonIds.Contains(l.LessonId);
+                        <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-lessonId="@l.LessonId"
+                           class="curriculum-item-link @(isActive ? "active" : "")">
+                            <div class="d-flex align-items-center gap-2 text-truncate">
+                                <span class="item-badge-pill badge-lesson">L@(l.OrderIndex)</span>
+                                <span class="text-truncate">@l.Title</span>
+                            </div>
+                            @if (isDone)
+                            {
+                                <span class="item-check" title="Completed">✓</span>
+                            }
+                        </a>
+                    }
+                }
+
+                <!-- CTF Challenges Group -->
+                @if (Model.Challenges.Any())
+                {
+                    <div class="curriculum-section-title">CTF Challenges</div>
+                    @foreach (var ch in Model.Challenges)
+                    {
+                        var isActive = Model.CurrentType == LearnContentType.Challenge && Model.CurrentChallenge?.ChallengeId == ch.ChallengeId;
+                        var isDone = Model.CompletedChallengeIds.Contains(ch.ChallengeId);
+                        <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-challengeId="@ch.ChallengeId"
+                           class="curriculum-item-link @(isActive ? "active" : "")">
+                            <div class="d-flex align-items-center gap-2 text-truncate">
+                                <span class="item-badge-pill badge-ctf">CTF</span>
+                                <span class="text-truncate">@ch.Title</span>
+                            </div>
+                            @if (isDone)
+                            {
+                                <span class="item-check" title="Solved">✓</span>
+                            }
+                            else
+                            {
+                                <span class="points-pill small">+@ch.Points</span>
+                            }
+                        </a>
+                    }
+                }
+
+                <!-- Simulations Group -->
+                @if (Model.SimulationTasks.Any())
+                {
+                    <div class="curriculum-section-title">Terminal Simulation Labs</div>
+                    @foreach (var s in Model.SimulationTasks)
+                    {
+                        var isActive = Model.CurrentType == LearnContentType.Simulation && Model.CurrentSimulation?.TaskId == s.TaskId;
+                        var isDone = Model.CompletedSimulationIds.Contains(s.TaskId);
+                        <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-simulationId="@s.TaskId"
+                           class="curriculum-item-link @(isActive ? "active" : "")">
+                            <div class="d-flex align-items-center gap-2 text-truncate">
+                                <span class="item-badge-pill badge-sim">CLI</span>
+                                <span class="text-truncate">@s.Title</span>
+                            </div>
+                            @if (isDone)
+                            {
+                                <span class="item-check" title="Completed">✓</span>
+                            }
+                        </a>
+                    }
+                }
+            </nav>
+        </aside>
+
+        <!-- Main Content Pane -->
+        <main class="learn-main-pane">
+            @* =========================================
+               CASE 1: CURRENT ITEM IS LESSON
+               ========================================= *@
+            @if (Model.CurrentType == LearnContentType.Lesson && Model.CurrentLesson != null)
+            {
+                <div class="learn-header-bar">
+                    <div>
+                        <span class="badge bg-light text-secondary mb-1">Lesson @Model.CurrentLesson.OrderIndex</span>
+                        <h1>@Model.CurrentLesson.Title</h1>
+                    </div>
+                    @if (Model.CurrentItemCompleted)
+                    {
+                        <span class="badge bg-success p-2">Completed ✓</span>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.CurrentLesson.VideoUrl))
+                {
+                    <div class="lesson-video-box">
+                        @if (Model.CurrentLesson.VideoUrl.Contains("youtube.com") || Model.CurrentLesson.VideoUrl.Contains("youtu.be"))
+                        {
+                            var embedUrl = Model.CurrentLesson.VideoUrl.Replace("watch?v=", "embed/");
+                            <iframe src="@embedUrl" title="Lesson Video" allowfullscreen></iframe>
+                        }
+                        else
+                        {
+                            <video src="@Model.CurrentLesson.VideoUrl" controls></video>
+                        }
+                    </div>
+                }
+
+                <div class="lesson-body">
+                    @if (!string.IsNullOrEmpty(Model.CurrentLesson.Content))
+                    {
+                        @* Render formatted content with preservation of line breaks and code blocks *@
+                        @Html.Raw(FormatLessonContent(Model.CurrentLesson.Content))
+                    }
+                    else
+                    {
+                        <p class="text-secondary">Review the video walkthrough and guidance materials above.</p>
+                    }
+                </div>
+
+                <div class="lesson-nav-footer">
+                    @if (Model.PrevLessonId.HasValue)
+                    {
+                        <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-lessonId="@Model.PrevLessonId" class="btn btn-outline-secondary">
+                            ← Previous Lesson
+                        </a>
+                    }
+                    else
+                    {
+                        <div></div>
+                    }
+
+                    <div class="d-flex gap-2">
+                        @if (!Model.CurrentItemCompleted)
+                        {
+                            <form asp-action="CompleteLesson" method="post">
+                                <input type="hidden" name="courseId" value="@Model.Course.CourseId" />
+                                <input type="hidden" name="lessonId" value="@Model.CurrentLesson.LessonId" />
+                                <button type="submit" class="btn btn-primary">
+                                    Mark as Complete &amp; Continue →
+                                </button>
+                            </form>
+                        }
+                        else if (Model.NextLessonId.HasValue)
+                        {
+                            <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-lessonId="@Model.NextLessonId" class="btn btn-primary">
+                                Next Lesson →
+                            </a>
+                        }
+                    </div>
+                </div>
+            }
+
+            @* =========================================
+               CASE 2: CURRENT ITEM IS CTF CHALLENGE
+               ========================================= *@
+            else if (Model.CurrentType == LearnContentType.Challenge && Model.CurrentChallenge != null)
+            {
+                <div class="learn-header-bar">
+                    <div>
+                        <div class="ctf-meta-bar mb-2">
+                            <span class="item-badge-pill badge-ctf">CTF Challenge</span>
+                            <span class="difficulty-badge diff-@Model.CurrentChallenge.Difficulty?.ToLowerInvariant()">@Model.CurrentChallenge.Difficulty</span>
+                            <span class="points-pill">+@Model.CurrentChallenge.Points Points</span>
+                            <span class="text-secondary small">Category: <strong>@(Model.CurrentChallenge.Category ?? "General")</strong></span>
+                        </div>
+                        <h1>@Model.CurrentChallenge.Title</h1>
+                    </div>
+                    @if (Model.CurrentItemCompleted)
+                    {
+                        <span class="badge bg-success p-2">Solved ✓</span>
+                    }
+                </div>
+
+                <!-- Feedback Alerts -->
+                @if (TempData["FlagSuccess"] is string flagSuccess)
+                {
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <strong>@flagSuccess</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+                @if (TempData["FlagError"] is string flagError)
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <strong>@flagError</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                }
+
+                <div class="ctf-card-interactive">
+                    <h3 style="font-size: 1.15rem; font-weight:700; margin-bottom: 0.75rem;">Challenge Description</h3>
+                    <div class="lesson-body mb-3">
+                        @if (!string.IsNullOrEmpty(Model.CurrentChallenge.Description))
+                        {
+                            @Html.Raw(FormatLessonContent(Model.CurrentChallenge.Description))
+                        }
+                        else
+                        {
+                            <p class="text-secondary">Analyze the target, recover the confidential token, and submit the flag.</p>
+                        }
+                    </div>
+
+                    <!-- Challenge File Download Box -->
+                    @if (!string.IsNullOrEmpty(Model.CurrentChallenge.FilePath))
+                    {
+                        var fileName = System.IO.Path.GetFileName(Model.CurrentChallenge.FilePath);
+                        <div class="ctf-file-box">
+                            <div class="d-flex align-items-center gap-3">
+                                <span style="font-size: 2rem;">📦</span>
+                                <div>
+                                    <strong style="font-size: 1rem; color:var(--ha-ink);">@fileName</strong>
+                                    <div class="text-secondary small">Required Challenge Artifact / Evidence File</div>
+                                </div>
+                            </div>
+                            <a asp-action="DownloadChallengeFile" asp-route-id="@Model.CurrentChallenge.ChallengeId" class="btn btn-outline-secondary">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:0.35rem; vertical-align:-2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download File
+                            </a>
+                        </div>
+                    }
+
+                    <!-- Flag Submission Box -->
+                    <div class="mt-4 pt-3 border-top">
+                        <h4 style="font-size: 1.05rem; font-weight:700; margin-bottom: 0.5rem;">Submit Flag</h4>
+                        @if (Model.CurrentItemCompleted)
+                        {
+                            <div class="alert alert-success">
+                                <strong>Challenge Solved!</strong> You have captured and verified this flag.
+                            </div>
+                        }
+                        else
+                        {
+                            <form asp-action="SubmitFlag" method="post">
+                                <input type="hidden" name="courseId" value="@Model.Course.CourseId" />
+                                <input type="hidden" name="challengeId" value="@Model.CurrentChallenge.ChallengeId" />
+                                <div class="ctf-flag-input-group">
+                                    <input type="text" name="flag" class="form-control ctf-flag-input" placeholder="flag{...}" required />
+                                    <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Submit Flag</button>
+                                </div>
+                                <div class="form-text mt-1">Enter the exact flag string you recovered from the challenge.</div>
+                            </form>
+                        }
+                    </div>
+
+                    <!-- Submission History -->
+                    @if (Model.ChallengeHistory.Any())
+                    {
+                        <div class="mt-4 pt-3 border-top">
+                            <h5 style="font-size: 0.9rem; font-weight:700; color:var(--ha-muted);">Your Recent Flag Attempts</h5>
+                            <ul class="list-unstyled small mt-2">
+                                @foreach (var sub in Model.ChallengeHistory)
+                                {
+                                    <li class="mb-1 d-flex gap-2">
+                                        <span class="@(sub.IsCorrect ? "text-success font-weight-bold" : "text-danger")">
+                                            @(sub.IsCorrect ? "✓ Correct" : "✗ Incorrect")
+                                        </span>
+                                        <code class="text-secondary">@sub.SubmittedFlag</code>
+                                        <span class="text-muted">(@sub.SubmittedDate.ToLocalTime().ToString("g"))</span>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                </div>
+            }
+
+            @* =========================================
+               CASE 3: CURRENT ITEM IS SIMULATION TASK
+               ========================================= *@
+            else if (Model.CurrentType == LearnContentType.Simulation && Model.CurrentSimulation != null)
+            {
+                <div class="learn-header-bar">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="item-badge-pill badge-sim">Simulated Shell Lab</span>
+                            <span class="badge bg-dark">Client-Side NetAcad Sandbox</span>
+                        </div>
+                        <h1>@Model.CurrentSimulation.Title</h1>
+                    </div>
+                    @if (Model.CurrentItemCompleted)
+                    {
+                        <span class="badge bg-success p-2">Completed ✓</span>
+                    }
+                </div>
+
+                <div class="mb-3">
+                    <p class="text-secondary" style="font-size: 0.95rem; line-height: 1.6;">
+                        @(Model.CurrentSimulation.Instructions ?? "Execute the required commands in the simulated terminal below to complete the lab objectives.")
+                    </p>
+                </div>
+
+                <!-- Objectives Checklist -->
+                <div class="simulation-objectives-box">
+                    <h3>Lab Objectives</h3>
+                    <ul class="objectives-list" id="simulation-objectives-list">
+                        <!-- Rendered by simulation-terminal.js -->
+                    </ul>
+                </div>
+
+                <div id="simulation-success-banner" style="display:none;" class="alert alert-success">
+                    <h4 class="alert-heading">🎉 Simulation Lab Completed!</h4>
+                    <p class="mb-0">Your command sequence and target objectives were verified. Progress has been saved to your account.</p>
+                </div>
+
+                <!-- Terminal Display Container -->
+                <div id="sim-terminal-container"></div>
+            }
+        </main>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/simulation-terminal.js" asp-append-version="true"></script>
+    @if (Model.CurrentType == LearnContentType.Simulation && Model.CurrentSimulation != null)
+    {
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var config = @Html.Raw(string.IsNullOrWhiteSpace(Model.CurrentSimulation.VirtualFileSystemJson) ? "{}" : Model.CurrentSimulation.VirtualFileSystemJson);
+                var taskId = @Model.CurrentSimulation.TaskId;
+                var courseId = @Model.Course.CourseId;
+
+                window.initSimulationTerminal('sim-terminal-container', config, function () {
+                    // Send completion request to server via AJAX
+                    var formData = new FormData();
+                    formData.append('taskId', taskId);
+                    formData.append('courseId', courseId);
+                    
+                    var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                    if (token) {
+                        formData.append('__RequestVerificationToken', token);
+                    }
+
+                    fetch('/Courses/CompleteSimulation', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log("Lab completion synced:", data);
+                    })
+                    .catch(err => console.error("Error saving lab progress:", err));
+                });
+            });
+        </script>
+    }
+}
+
+@functions {
+    public static string FormatLessonContent(string content)
+    {
+        if (string.IsNullOrEmpty(content)) return "";
+        
+        // Basic Markdown converter for demo
+        var html = System.Net.WebUtility.HtmlEncode(content);
+        
+        // Code blocks: ```bash ... ```
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"```(?:[a-zA-Z0-9]+)?\r?\n([\s\S]*?)```", m =>
+            $"<pre><code>{m.Groups[1].Value}</code></pre>");
+            
+        // Inline code: `code`
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"`([^`]+)`", m =>
+            $"<code>{m.Groups[1].Value}</code>");
+            
+        // Headers: ###, ##, #
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"^### (.*?)$", "<h3>$1</h3>", System.Text.RegularExpressions.RegexOptions.Multiline);
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"^## (.*?)$", "<h2>$1</h2>", System.Text.RegularExpressions.RegexOptions.Multiline);
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"^# (.*?)$", "<h2>$1</h2>", System.Text.RegularExpressions.RegexOptions.Multiline);
+        
+        // Bold: **text**
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"\*\*([^\*]+)\*\*", "<strong>$1</strong>");
+        
+        // Paragraphs / line breaks
+        html = html.Replace("\r\n\r\n", "</p><p>").Replace("\n\n", "</p><p>");
+        html = "<p>" + html + "</p>";
+        html = html.Replace("\n", "<br/>");
+        
+        return html;
+    }
+}

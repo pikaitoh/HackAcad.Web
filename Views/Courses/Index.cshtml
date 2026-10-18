@@ -1,0 +1,122 @@
+@model CourseIndexViewModel
+@{
+    ViewData["Title"] = "Explore Courses";
+}
+
+<div class="container module-shell">
+    <div class="page-heading">
+        <div>
+            <h1>Course Catalogue</h1>
+            <p class="text-secondary">Master web security, Linux forensics, cryptography, and hands-on CTFs.</p>
+        </div>
+        @if (User.IsInRole(AccountRoles.Teacher))
+        {
+            <a class="btn btn-primary" asp-controller="TeacherCourses" asp-action="Create">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:0.35rem; vertical-align:-2px;"><path d="M12 5v14M5 12h14"/></svg>Create Course
+            </a>
+        }
+    </div>
+
+    <!-- Search and Filter Bar -->
+    <div class="surface-panel mb-4 p-3">
+        <form method="get" asp-action="Index" class="d-flex flex-wrap gap-2 align-items-center">
+            <div class="flex-grow-1" style="min-width: 16rem;">
+                <input type="text" name="search" value="@Model.Search" class="form-control" placeholder="Search courses by keyword, topic or tool..." />
+            </div>
+            @if (!string.IsNullOrEmpty(Model.SelectedCategory))
+            {
+                <input type="hidden" name="category" value="@Model.SelectedCategory" />
+            }
+            <button type="submit" class="btn btn-primary">Search</button>
+            @if (!string.IsNullOrEmpty(Model.Search) || !string.IsNullOrEmpty(Model.SelectedCategory))
+            {
+                <a asp-action="Index" class="btn btn-outline-secondary">Reset</a>
+            }
+        </form>
+
+        <!-- Category Pills -->
+        @if (Model.Categories.Any())
+        {
+            <div class="category-filter-nav mt-3 mb-0">
+                <a asp-action="Index" asp-route-search="@Model.Search" class="cat-pill-btn @(string.IsNullOrEmpty(Model.SelectedCategory) ? "active" : "")">All Domains</a>
+                @foreach (var cat in Model.Categories)
+                {
+                    <a asp-action="Index" asp-route-category="@cat" asp-route-search="@Model.Search" class="cat-pill-btn @(Model.SelectedCategory == cat ? "active" : "")">@cat</a>
+                }
+            </div>
+        }
+    </div>
+
+    <!-- Course Grid -->
+    @if (Model.Courses.Count == 0)
+    {
+        <div class="surface-panel p-5 text-center">
+            <h3>No courses match your filter.</h3>
+            <p class="text-secondary">Try searching for other cybersecurity topics or clear the active filter.</p>
+            <a asp-action="Index" class="btn btn-outline-secondary mt-2">View All Courses</a>
+        </div>
+    }
+    else
+    {
+        <div class="courses-grid">
+            @foreach (var c in Model.Courses)
+            {
+                <article class="course-card">
+                    <div class="course-card-thumb">
+                        @if (!string.IsNullOrEmpty(c.ThumbnailUrl))
+                        {
+                            <img src="@c.ThumbnailUrl" alt="@c.Title thumbnail" />
+                        }
+                        else
+                        {
+                            <div class="course-card-thumb-icon">🛡️</div>
+                        }
+                        <span class="category-pill">@(c.Category ?? "Cybersecurity")</span>
+                    </div>
+                    <div class="course-card-body">
+                        <h3><a asp-action="Details" asp-route-id="@c.CourseId" style="color:inherit; text-decoration:none;">@c.Title</a></h3>
+                        <p>@(c.Description ?? "Practical guided lessons with hands-on CTF challenges and terminal simulations.")</p>
+                        
+                        <div class="course-card-meta">
+                            <span>Instructor: <strong>@c.TeacherName</strong></span>
+                            <span>•</span>
+                            <span>@(c.LessonCount) Lessons</span>
+                            @if (c.ChallengeCount > 0)
+                            {
+                                <span>•</span>
+                                <span>@(c.ChallengeCount) CTFs</span>
+                            }
+                            @if (c.SimulationCount > 0)
+                            {
+                                <span>•</span>
+                                <span>@(c.SimulationCount) Labs</span>
+                            }
+                        </div>
+
+                        @if (c.IsEnrolled)
+                        {
+                            <div class="learning-progress my-2">
+                                <div>
+                                    <span class="text-secondary">Progress</span>
+                                    <strong>@c.ProgressPercent%</strong>
+                                </div>
+                                <progress value="@c.ProgressPercent" max="100"></progress>
+                            </div>
+                        }
+
+                        <div class="course-card-footer">
+                            @if (c.IsEnrolled)
+                            {
+                                <a asp-action="Learn" asp-route-id="@c.CourseId" class="btn btn-sm btn-primary w-100">Continue Learning</a>
+                            }
+                            else
+                            {
+                                <a asp-action="Details" asp-route-id="@c.CourseId" class="btn btn-sm btn-outline-secondary w-100">View Curriculum</a>
+                            }
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</div>
