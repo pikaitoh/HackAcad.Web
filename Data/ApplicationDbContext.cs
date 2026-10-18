@@ -33,6 +33,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<ApplicationUser>().Property(u => u.TimeZoneId).HasDefaultValue("Asia/Kuala_Lumpur");
         builder.Entity<ApplicationUser>().Property(u => u.PhoneNumber).HasMaxLength(16);
         builder.Entity<ApplicationUser>().HasIndex(u => u.PhoneNumber).IsUnique();
 

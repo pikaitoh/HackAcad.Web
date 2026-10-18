@@ -12,7 +12,7 @@ namespace HackAcad.Web.Controllers;
 [Authorize(Roles = AccountRoles.Admin)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
-    SignInManager<ApplicationUser> signIn, UserAccounts accounts, EmailVerification verification, AccountRecords records) : Controller
+    SignInManager<ApplicationUser> signIn, UserAccounts accounts, EmailVerification verification, AccountRecords records, UserTimeZone userTime) : Controller
 {
     public async Task<IActionResult> Index() => View(new AdminOverviewModel
     {
@@ -42,12 +42,10 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         var model = new LoginLogsModel { Search = search?.Trim(), Result = result, From = from, To = to };
         if (from > to) ModelState.AddModelError("To", "Choose an end date on or after the start date.");
         DateTime? start = null, end = null;
-        try
-        {
-            start = from?.ToDateTime(TimeOnly.MinValue).AddHours(-8);
-            end = to?.ToDateTime(TimeOnly.MaxValue).AddHours(-8);
-        }
-        catch (ArgumentOutOfRangeException) { ModelState.AddModelError("From", "Choose a valid start date."); }
+        try { if (from.HasValue) start = userTime.StartOfDayUtc(from.Value); }
+        catch (ArgumentException) { ModelState.AddModelError("From", "Choose a valid start date."); }
+        try { if (to.HasValue) end = userTime.StartOfDayUtc(to.Value.AddDays(1)); }
+        catch (ArgumentException) { ModelState.AddModelError("To", "Choose a valid end date before 31 Dec 9999."); }
         if (!ModelState.IsValid) return View(model);
         var query = from record in db.LoginRecords.AsNoTracking()
                     join user in db.Users on record.UserId equals user.Id
@@ -60,7 +58,7 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         if (result == "failed") query = query.Where(r => r.Outcome == "Failed" || r.Outcome == "Verification failed");
         if (result == "locked") query = query.Where(r => r.Outcome == "Locked out");
         if (start.HasValue) query = query.Where(r => r.OccurredUtc >= start.Value);
-        if (end.HasValue) query = query.Where(r => r.OccurredUtc <= end.Value);
+        if (end.HasValue) query = query.Where(r => r.OccurredUtc < end.Value);
         model.Total = await query.CountAsync();
         model.Page = Math.Clamp(page, 1, model.PageCount);
         model.Records = await query.OrderByDescending(r => r.OccurredUtc).ThenByDescending(r => r.Id)

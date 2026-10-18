@@ -193,6 +193,13 @@ namespace HackAcad.Web.Data.Migrations
                     b.Property<bool>("SmsTwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<string>("TimeZoneId")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasDefaultValue("Asia/Kuala_Lumpur");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("tinyint(1)");
 

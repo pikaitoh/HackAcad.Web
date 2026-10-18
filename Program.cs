@@ -77,6 +77,7 @@ builder.Services.ConfigureExternalCookie(options => options.ExpireTimeSpan = Tim
 builder.Services.AddTransient<IClaimsTransformation, RoleClaimsTransformation>();
 
 builder.Services.AddScoped<UserAccounts>();
+builder.Services.AddScoped<UserTimeZone>();
 builder.Services.AddScoped<EmailVerification>();
 builder.Services.AddHttpClient<GmailEmail>(client => client.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddScoped<AccountRecords>();
@@ -153,6 +154,15 @@ app.UseRouting();
 app.UseRateLimiter();
 
 app.UseAuthentication();
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        var user = await context.RequestServices.GetRequiredService<UserManager<ApplicationUser>>().GetUserAsync(context.User);
+        context.RequestServices.GetRequiredService<UserTimeZone>().Use(user?.TimeZoneId);
+    }
+    await next(context);
+});
 app.UseAuthorization();
 
 app.MapControllerRoute(

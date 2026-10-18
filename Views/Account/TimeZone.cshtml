@@ -1,0 +1,16 @@
+@model TimeZonePreferenceModel
+@inject TimeProvider Clock
+@{ ViewData["Title"] = "Time zone"; Layout = "_ManageAccountLayout"; }
+<div class="account-panel">
+    <div class="page-heading"><div><h1>Time zone</h1><p class="text-secondary">Choose how dates and times appear across HackAcad.</p></div></div>
+    <form asp-action="TimeZone" method="post" class="form-measure" data-account-form>
+        <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+        <div class="mb-4">
+            <label asp-for="TimeZoneId" class="form-label"></label>
+            <select asp-for="TimeZoneId" asp-items="UserTimeZone.Options(Clock.GetUtcNow())" class="form-select" required aria-describedby="timezone-help TimeZoneId-error" aria-invalid="@(ViewData.ModelState["TimeZoneId"]?.Errors.Count > 0 ? "true" : null)"></select>
+            <p id="timezone-help" class="form-text">Applies to your account on every device, including activity records and date filters. Daylight saving changes are handled automatically.</p>
+            <span id="TimeZoneId-error" asp-validation-for="TimeZoneId" class="field-error" aria-live="polite"></span>
+        </div>
+        <button type="submit" class="btn btn-primary">Save time zone</button>
+    </form>
+</div>

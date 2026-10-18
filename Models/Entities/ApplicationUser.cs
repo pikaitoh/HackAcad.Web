@@ -11,6 +11,8 @@ public class ApplicationUser : IdentityUser
     public string DisplayName { get; set; } = string.Empty;
     [MaxLength(100)]
     public string? FullName { get; set; }
+    [MaxLength(100)]
+    public string TimeZoneId { get; set; } = "Asia/Kuala_Lumpur";
     public DateTime? LastPasswordChangedUtc { get; set; }
     public DateTime JoinedDate { get; set; } = DateTime.UtcNow;
     [Column(TypeName = "mediumblob")]

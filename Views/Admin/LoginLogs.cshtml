@@ -1,7 +1,7 @@
 @model LoginLogsModel
 @{ ViewData["Title"] = "Login logs"; }
 <div class="admin-content">
-    <div class="page-heading"><div><h1>Login logs</h1><p class="text-secondary">Sign-in attempts across user accounts. Malaysia time (UTC+8).</p></div></div>
+    <div class="page-heading"><div><h1>Login logs</h1><p class="text-secondary">Sign-in attempts across user accounts. Times shown in @UserTime.Id.</p></div></div>
     <form asp-action="LoginLogs" method="get" class="filter-bar login-log-filters">
         <div class="filter-search"><label asp-for="Search" class="form-label">Search users</label><input asp-for="Search" class="form-control" placeholder="Username or email" maxlength="256" /></div>
         <div><label asp-for="Result" class="form-label"></label><select asp-for="Result" class="form-select"><option value="">All results</option><option value="success">Successful</option><option value="failed">Failed</option><option value="locked">Locked out</option></select></div>
@@ -17,13 +17,13 @@
     {
         <p class="text-secondary small">@Model.Total recorded attempt(s) match your filters.</p>
         <div class="table-responsive" tabindex="0" role="region" aria-label="All users' login logs; scroll horizontally as needed">
-            <table class="table align-middle module-table"><caption class="visually-hidden">User sign-in attempts in Malaysia time, newest first</caption>
-                <thead><tr><th scope="col">User</th><th scope="col">Time (UTC+8)</th><th scope="col">Result</th><th scope="col">Device / IP address</th></tr></thead>
+            <table class="table align-middle module-table"><caption class="visually-hidden">User sign-in attempts in @UserTime.Id, newest first</caption>
+                <thead><tr><th scope="col">User</th><th scope="col">Time</th><th scope="col">Result</th><th scope="col">Device / IP address</th></tr></thead>
                 <tbody>
                 @foreach (var record in Model.Records)
                 {
                     <tr><td><a class="btn btn-outline-secondary btn-sm" asp-action="EditUser" asp-route-id="@record.UserId" aria-label="View account for @record.Email">@record.Username</a><span class="record-secondary">@record.Email</span></td>
-                        <td class="text-nowrap"><time datetime="@(DateTime.SpecifyKind(record.OccurredUtc, DateTimeKind.Utc).ToString("O"))">@record.OccurredUtc.AddHours(8).ToString("dd MMM yyyy")<span class="record-secondary">@record.OccurredUtc.AddHours(8).ToString("HH:mm:ss")</span></time></td>
+                        <td class="text-nowrap"><time datetime="@(DateTime.SpecifyKind(record.OccurredUtc, DateTimeKind.Utc).ToString("O"))">@UserTime.Format(record.OccurredUtc, "dd MMM yyyy")<span class="record-secondary">@UserTime.Format(record.OccurredUtc, "HH:mm:ss")</span></time></td>
                         <td><span class="status-label @(record.Outcome.StartsWith("Signed in") ? "status-active" : "status-disabled")">@record.Outcome</span></td>
                         <td>@record.Device<span class="record-secondary">@record.IpAddress</span></td></tr>
                 }
