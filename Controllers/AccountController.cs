@@ -17,8 +17,7 @@ namespace HackAcad.Web.Controllers;
 [Route("Identity/Account/[action]")]
 public partial class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     UserAccounts accounts, ApplicationDbContext db, EmailVerification verification, PhoneVerification phones,
-    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, BadgeService badges) : Controller
-    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, TimeProvider clock) : Controller
+    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, TimeProvider clock, BadgeService badges) : Controller
 {
     [AllowAnonymous, HttpGet]
     public IActionResult Register() => User.Identity?.IsAuthenticated == true ? RedirectToAction(nameof(Dashboard)) : View(new RegisterModel());
