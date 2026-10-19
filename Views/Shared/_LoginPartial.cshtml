@@ -2,7 +2,10 @@
 @{ var currentController = ViewContext.RouteData.Values["controller"]?.ToString(); var currentAction = ViewContext.RouteData.Values["action"]?.ToString(); }
 @if (User.Identity?.IsAuthenticated == true)
 {
-    <a class="nav-link" asp-controller="Courses" asp-action="Index" aria-current="@(currentController == "Courses" && currentAction == "Index" ? "page" : null)">Courses</a>
+    @if (User.IsInRole(AccountRoles.Student))
+    {
+        <a class="nav-link" asp-controller="Courses" asp-action="Index" aria-current="@(currentController == "Courses" && currentAction == "Index" ? "page" : null)">Courses</a>
+    }
     @if (User.IsInRole(AccountRoles.Teacher))
     {
         <a class="nav-link" asp-controller="TeacherCourses" asp-action="Index" aria-current="@(currentController == "TeacherCourses" ? "page" : null)">Teacher Studio</a>

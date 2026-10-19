@@ -6,3 +6,4 @@ appsettings.Development.json
 .local-mail/
 .local-sms/
 run.txt
+App_Data/ctf/

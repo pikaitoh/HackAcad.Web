@@ -68,7 +68,7 @@
                             <tr>
                                 <td>
                                     <strong><a asp-action="Curriculum" asp-route-id="@c.CourseId">@c.Title</a></strong>
-                                    <div class="record-secondary">Created: @c.CreatedDate.ToLocalTime().ToString("d MMM yyyy")</div>
+                                    <div class="record-secondary">Created: @UserTime.Format(c.CreatedDate, "dd MMM yyyy") (@UserTime.Id)</div>
                                 </td>
                                 <td>
                                     <span class="badge bg-light text-dark">@(c.Category ?? "General")</span>

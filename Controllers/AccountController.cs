@@ -147,6 +147,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     public async Task<IActionResult> Dashboard()
     {
         if (User.IsInRole(AccountRoles.Admin)) return RedirectToAction("Index", "Admin");
+        if (User.IsInRole(AccountRoles.Teacher)) return RedirectToAction("Index", "TeacherCourses");
         var id = users.GetUserId(User)!;
         var user = await users.FindByIdAsync(id);
         if (user is null) return Challenge();

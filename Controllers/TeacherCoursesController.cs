@@ -308,8 +308,21 @@ public class TeacherCoursesController(
         if (course == null) return NotFound("You do not own this course.");
 
         var courseId = lesson.CourseId;
-        db.Lessons.Remove(lesson);
-        await db.SaveChangesAsync();
+        if (await db.ProgressRecords.AnyAsync(p => p.LessonId == id) || await db.Enrollments.AnyAsync(e => e.LastLessonId == id))
+        {
+            TempData["CourseError"] = "This lesson has student learning records and cannot be deleted. Keep it to preserve their work.";
+            return RedirectToAction(nameof(Curriculum), new { id = courseId });
+        }
+        try
+        {
+            db.Lessons.Remove(lesson);
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            TempData["CourseError"] = "Linked learning records prevent deletion. Reload the curriculum and try again.";
+            return RedirectToAction(nameof(Curriculum), new { id = courseId });
+        }
 
         TempData["Success"] = "Lesson removed from curriculum.";
         return RedirectToAction(nameof(Curriculum), new { id = courseId });
@@ -367,6 +380,10 @@ public class TeacherCoursesController(
         var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.TeacherId == teacherId);
         if (course == null) return NotFound("Course not found.");
 
+        var existingChallenge = model.ChallengeId == 0 ? null : await db.Challenges.FindAsync(model.ChallengeId);
+        if (model.ChallengeId != 0 && (existingChallenge is null || existingChallenge.CourseId != model.CourseId)) return NotFound();
+        model.ExistingFilePath = existingChallenge?.FilePath;
+
         if (model.ChallengeId == 0 && string.IsNullOrWhiteSpace(model.PlaintextFlag))
         {
             ModelState.AddModelError(nameof(model.PlaintextFlag), "A secret flag is required when creating a CTF challenge.");
@@ -374,25 +391,15 @@ public class TeacherCoursesController(
 
         if (!ModelState.IsValid) return View("ChallengeForm", model);
 
-        string? uploadedFilePath = model.ExistingFilePath;
-
-        // Handle file upload if provided
-        if (model.UploadFile != null && model.UploadFile.Length > 0)
+        string? uploadedFilePath = existingChallenge?.FilePath;
+        if (model.UploadFile is not null)
         {
-            var uploadDir = Path.Combine(environment.WebRootPath, "uploads", "ctf");
-            Directory.CreateDirectory(uploadDir);
-
-            // Clean sanitized filename with unique prefix
-            var cleanFileName = Path.GetFileName(model.UploadFile.FileName);
-            var uniqueFileName = $"{Guid.NewGuid():N}_{cleanFileName}";
-            var destinationPath = Path.Combine(uploadDir, uniqueFileName);
-
-            using (var fileStream = new FileStream(destinationPath, FileMode.Create))
+            try { uploadedFilePath = await CourseFiles.SaveAsync(environment, model.UploadFile); }
+            catch (ArgumentException ex)
             {
-                await model.UploadFile.CopyToAsync(fileStream);
+                ModelState.AddModelError(nameof(model.UploadFile), ex.Message);
+                return View("ChallengeForm", model);
             }
-
-            uploadedFilePath = $"/uploads/ctf/{uniqueFileName}";
         }
 
         if (model.ChallengeId == 0)
@@ -453,8 +460,21 @@ public class TeacherCoursesController(
         if (course == null) return NotFound("You do not own this course.");
 
         var courseId = challenge.CourseId;
-        db.Challenges.Remove(challenge);
-        await db.SaveChangesAsync();
+        if (await db.ProgressRecords.AnyAsync(p => p.ChallengeId == id) || await db.ChallengeSubmissions.AnyAsync(s => s.ChallengeId == id))
+        {
+            TempData["CourseError"] = "This challenge has student learning records and cannot be deleted. Keep it to preserve their work.";
+            return RedirectToAction(nameof(Curriculum), new { id = courseId });
+        }
+        try
+        {
+            db.Challenges.Remove(challenge);
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            TempData["CourseError"] = "Linked learning records prevent deletion. Reload the curriculum and try again.";
+            return RedirectToAction(nameof(Curriculum), new { id = courseId });
+        }
 
         TempData["Success"] = "CTF challenge removed.";
         return RedirectToAction(nameof(Curriculum), new { id = courseId });
@@ -534,6 +554,9 @@ public class TeacherCoursesController(
         var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.TeacherId == teacherId);
         if (course == null) return NotFound("Course not found.");
 
+        if (!SimulationVerifier.TryConfiguration(model.VirtualFileSystemJson, out _, out var configError))
+            ModelState.AddModelError(nameof(model.VirtualFileSystemJson), configError);
+
         if (!ModelState.IsValid) return View("SimulationForm", model);
 
         if (model.TaskId == 0)
@@ -581,8 +604,21 @@ public class TeacherCoursesController(
         if (course == null) return NotFound("You do not own this course.");
 
         var courseId = task.CourseId;
-        db.SimulationTasks.Remove(task);
-        await db.SaveChangesAsync();
+        if (await db.ProgressRecords.AnyAsync(p => p.SimulationTaskId == id))
+        {
+            TempData["CourseError"] = "This lab has student learning records and cannot be deleted. Keep it to preserve their work.";
+            return RedirectToAction(nameof(Curriculum), new { id = courseId });
+        }
+        try
+        {
+            db.SimulationTasks.Remove(task);
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            TempData["CourseError"] = "Linked learning records prevent deletion. Reload the curriculum and try again.";
+            return RedirectToAction(nameof(Curriculum), new { id = courseId });
+        }
 
         TempData["Success"] = "Simulation lab task removed.";
         return RedirectToAction(nameof(Curriculum), new { id = courseId });

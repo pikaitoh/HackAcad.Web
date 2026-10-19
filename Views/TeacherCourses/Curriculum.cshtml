@@ -4,6 +4,7 @@
 }
 
 <div class="container module-shell">
+    @if (TempData["CourseError"] is string courseError) { <div class="alert alert-warning" role="alert">@courseError</div> }
     <div class="mb-3">
         <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Back to Teacher Studio</a>
     </div>
@@ -311,7 +312,7 @@
                                             <strong>@st.StudentName</strong>
                                             <div class="record-secondary">@st.StudentEmail</div>
                                         </td>
-                                        <td>@st.EnrolledDate.ToLocalTime().ToString("d MMM yyyy")</td>
+                                        <td>@UserTime.Format(st.EnrolledDate, "dd MMM yyyy") (@UserTime.Id)</td>
                                         <td style="width: 14rem;">
                                             <div class="d-flex align-items-center gap-2">
                                                 <progress value="@st.ProgressPercent" max="100" style="width:100px; height:6px;"></progress>
@@ -349,7 +350,7 @@
                                 @foreach (var sub in Model.RecentSubmissions)
                                 {
                                     <tr>
-                                        <td>@sub.SubmittedDate.ToLocalTime().ToString("g")</td>
+                                        <td>@UserTime.Format(sub.SubmittedDate)</td>
                                         <td><code>@sub.SubmittedFlag</code></td>
                                         <td>
                                             <span class="badge @(sub.IsCorrect ? "bg-success" : "bg-danger")">

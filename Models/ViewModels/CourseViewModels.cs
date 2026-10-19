@@ -134,6 +134,7 @@ public class ChallengeCreateEditModel
     [Display(Name = "Plaintext Flag")]
     public string? PlaintextFlag { get; set; }
 
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
     public string? ExistingFilePath { get; set; }
 
     [Display(Name = "Challenge File (Optional)")]

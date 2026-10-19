@@ -44,13 +44,18 @@
                         Continue Learning →
                     </a>
                 }
-                else if (signedIn)
+                else if (User.IsInRole(AccountRoles.Student))
                 {
                     <h3 style="font-size:1.15rem; margin-bottom:0.5rem;">Free Enrolment</h3>
                     <p class="text-secondary small mb-3">Instant self-paced access. Progress automatically saved as you learn.</p>
                     <form asp-action="Enroll" asp-route-id="@Model.Course.CourseId" method="post">
                         <button type="submit" class="btn btn-primary w-100 btn-lg">Enrol Now</button>
                     </form>
+                }
+                else if (signedIn)
+                {
+                    <h3 style="font-size:1.15rem; margin-bottom:0.5rem;">Course preview</h3>
+                    <a asp-controller="TeacherCourses" asp-action="Index" class="btn btn-outline-secondary w-100">Back to Teacher Studio</a>
                 }
                 else
                 {

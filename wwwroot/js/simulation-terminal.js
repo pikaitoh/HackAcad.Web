@@ -38,6 +38,33 @@
         let commandHistory = [];
         let historyIndex = -1;
         let isTaskCompleted = false;
+        let commandSucceeded = true;
+
+        function escapeHtml(value) {
+            return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function resolvePath(path) {
+            if (path === '~') path = '/home/student';
+            const resolved = path.startsWith('/') ? [] : [...currentPath];
+            for (const part of path.split('/').filter(Boolean)) {
+                if (part === '.') continue;
+                if (part === '..') resolved.pop();
+                else resolved.push(part);
+            }
+            return resolved;
+        }
+
+        function readFile(path) {
+            const parts = resolvePath(path);
+            const name = parts.pop();
+            const directory = getDirectoryNode(parts);
+            return directory && Object.hasOwn(directory, name) && typeof directory[name] === 'string' ? directory[name] : null;
+        }
+
+        function matchesFile(path, target) {
+            return target.includes('/') ? resolvePath(path).join('/') === resolvePath(target).join('/') : resolvePath(path).at(-1) === target;
+        }
 
         // Parse teacher config
         if (config) {
@@ -93,7 +120,7 @@
                     <div class="term-line">&nbsp;</div>
                 </div>
                 <div class="terminal-input-row">
-                    <span class="terminal-prompt" id="term-prompt">student@hackacad:${getPathString()}$ </span>
+                    <span class="terminal-prompt" id="term-prompt">student@hackacad:${escapeHtml(getPathString())}$ </span>
                     <input type="text" id="term-input" class="terminal-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" autofocus />
                 </div>
             </div>
@@ -114,7 +141,7 @@
         function getDirectoryNode(pathArray) {
             let curr = virtualFS;
             for (let part of pathArray) {
-                if (!curr || typeof curr !== 'object' || curr[part] === undefined) {
+                if (!curr || typeof curr !== 'object' || !Object.hasOwn(curr, part)) {
                     return null;
                 }
                 curr = curr[part];
@@ -125,6 +152,7 @@
         function printLine(content, className = '') {
             const line = document.createElement('div');
             line.className = `term-line ${className}`;
+            if (className === 'term-error') commandSucceeded = false;
             line.innerHTML = content;
             outputEl.appendChild(line);
             outputEl.scrollTop = outputEl.scrollHeight;
@@ -144,38 +172,21 @@
             listEl.innerHTML = objectives.map(obj => `
                 <li class="objective-item ${obj.completed ? 'completed' : 'pending'}">
                     <span class="obj-icon">${obj.completed ? '✓' : '○'}</span>
-                    <span class="obj-text">${obj.text}</span>
+                    <span class="obj-text">${escapeHtml(obj.text)}</span>
                 </li>
             `).join('');
         }
 
-        function checkObjectives(cmd, args, output) {
-            const fullCmd = `${cmd} ${args.join(' ')}`.trim();
-            const currDirStr = getPathString();
-
+        function checkObjectives(cmd, args) {
+            if (!commandSucceeded) return;
             objectives.forEach(obj => {
                 if (obj.completed) return;
-
-                if (obj.type === 'cwd' && currDirStr.includes(obj.target)) {
-                    obj.completed = true;
-                } else if (obj.type === 'cat' && cmd === 'cat' && args.some(a => a.includes(obj.target))) {
-                    obj.completed = true;
-                } else if (obj.type === 'chmod' && cmd === 'chmod' && args.some(a => a.includes(obj.target))) {
-                    obj.completed = true;
-                } else if (obj.type === 'command' && cmd === obj.target) {
-                    obj.completed = true;
-                } else if (cmd === 'cd') {
-                    if (obj.id === 'explore') obj.completed = true;
-                } else if (cmd === 'cat') {
-                    if (obj.id === 'find_flag' && (output.includes('flag{') || output.includes('FLAG_'))) {
-                        obj.completed = true;
-                    }
-                }
+                if (obj.type === 'cwd' && getPathString() === '/' + resolvePath(obj.target).join('/')) obj.completed = true;
+                if (obj.type === 'cat' && cmd === 'cat' && args[0] && matchesFile(args[0], obj.target)) obj.completed = true;
+                if (obj.type === 'chmod' && cmd === 'chmod' && args[1] && matchesFile(args[1], obj.target) && args[0] === (obj.mode || '755')) obj.completed = true;
+                if (obj.type === 'command' && cmd === obj.target) obj.completed = true;
             });
-
             renderObjectives();
-
-            // Check if all objectives are completed
             if (!isTaskCompleted && objectives.every(o => o.completed)) {
                 isTaskCompleted = true;
                 triggerSuccess();
@@ -183,21 +194,12 @@
         }
 
         function triggerSuccess() {
-            printLine('&nbsp;');
-            printLine(`<div class="term-success-box">
-  ★ ==================================================== ★<br>
-  [+] MISSION OBJECTIVES COMPLETE!<br>
-  [+] Great job, operator. Your solution has been verified.<br>
-  ★ ==================================================== ★
-</div>`, 'term-success');
-
-            const bannerEl = document.getElementById('simulation-success-banner');
-            if (bannerEl) {
-                bannerEl.style.display = 'block';
-            }
-
+            printOutput('Lab objectives met. Waiting for server verification...');
             if (typeof onCompleteCallback === 'function') {
-                onCompleteCallback();
+                Promise.resolve(onCompleteCallback([...commandHistory])).catch(error => {
+                    isTaskCompleted = false;
+                    printOutput(error.message || 'Progress could not be saved. Run a command to try again.', 'term-error');
+                });
             }
         }
 
@@ -205,14 +207,15 @@
         function executeCommand(rawInput) {
             const trimmed = rawInput.trim();
             if (!trimmed) {
-                printLine(`<span class="term-prompt">${promptEl.textContent}</span>`);
+                printLine(`<span class="term-prompt">${escapeHtml(promptEl.textContent)}</span>`);
                 return;
             }
 
+            commandSucceeded = true;
             commandHistory.push(trimmed);
             historyIndex = commandHistory.length;
 
-            printLine(`<span class="term-prompt">${promptEl.textContent}</span> <span class="term-cmd">${trimmed}</span>`);
+            printLine(`<span class="term-prompt">${escapeHtml(promptEl.textContent)}</span> <span class="term-cmd">${escapeHtml(trimmed)}</span>`);
 
             const parts = trimmed.split(/\s+/);
             const cmd = parts[0].toLowerCase();
@@ -220,7 +223,7 @@
 
             // Check if command is permitted by teacher in this exercise
             if (!allowedCommands.includes(cmd)) {
-                printLine(`hackacad-sh: <strong>${cmd}</strong>: command not allowed in this lab exercise.`, 'term-error');
+                printLine(`hackacad-sh: <strong>${escapeHtml(cmd)}</strong>: command not allowed in this lab exercise.`, 'term-error');
                 printLine(`Type <span class="term-highlight">help</span> for allowed commands.`, 'text-secondary');
                 return;
             }
@@ -252,7 +255,7 @@
                             case 'date': desc = 'Display current system time'; break;
                             default: desc = 'Lab utility'; break;
                         }
-                        printLine(`  <span class="term-highlight">${c.padEnd(10)}</span> - ${desc}`);
+                        printLine(`  <span class="term-highlight">${escapeHtml(c.padEnd(10))}</span> - ${desc}`);
                     });
                     break;
 
@@ -282,7 +285,7 @@
 
                 case 'history':
                     commandHistory.forEach((h, idx) => {
-                        printLine(`  ${(idx + 1).toString().padStart(3, ' ')}  ${h}`);
+                        printLine(`  ${(idx + 1).toString().padStart(3, ' ')}  ${escapeHtml(h)}`);
                     });
                     break;
 
@@ -305,19 +308,19 @@
                         }
                         entries.forEach(name => {
                             const isDir = typeof targetDir[name] === 'object';
-                            const perm = isDir ? 'drwxr-xr-x' : (filePermissions[name] ? `-rwxr-xr-x` : `-rw-r--r--`);
+                            const perm = isDir ? 'drwxr-xr-x' : (filePermissions[[...currentPath, name].join('/')] ? `-rwxr-xr-x` : `-rw-r--r--`);
                             const size = isDir ? 4096 : (targetDir[name] ? targetDir[name].length : 0);
                             const coloredName = isDir
-                                ? `<span class="term-dir">${name}/</span>`
-                                : (filePermissions[name] ? `<span class="term-exec">${name}*</span>` : name);
+                                ? `<span class="term-dir">${escapeHtml(name)}/</span>`
+                                : (filePermissions[[...currentPath, name].join('/')] ? `<span class="term-exec">${escapeHtml(name)}*</span>` : escapeHtml(name));
                             printLine(`${perm} 1 student student ${size.toString().padStart(5, ' ')} Oct 18 10:00 ${coloredName}`);
                         });
                     } else {
                         const formatted = entries.map(name => {
                             const isDir = typeof targetDir[name] === 'object';
                             return isDir
-                                ? `<span class="term-dir">${name}/</span>`
-                                : (filePermissions[name] ? `<span class="term-exec">${name}*</span>` : name);
+                                ? `<span class="term-dir">${escapeHtml(name)}/</span>`
+                                : (filePermissions[[...currentPath, name].join('/')] ? `<span class="term-exec">${escapeHtml(name)}*</span>` : escapeHtml(name));
                         });
                         printLine(formatted.join('&nbsp;&nbsp;&nbsp;&nbsp;'));
                     }
@@ -326,65 +329,19 @@
 
                 case 'cd': {
                     const dest = args[0] || '/home/student';
-                    if (dest === '~' || dest === '/home/student') {
-                        currentPath = ["home", "student"];
+                    const resolved = resolvePath(dest);
+                    const directory = getDirectoryNode(resolved);
+                    if (directory && typeof directory === 'object') {
+                        currentPath = resolved;
                         updatePrompt();
-                    } else if (dest === '/') {
-                        currentPath = [];
-                        updatePrompt();
-                    } else if (dest === '..') {
-                        if (currentPath.length > 0) currentPath.pop();
-                        updatePrompt();
-                    } else {
-                        const parts = dest.startsWith('/') ? dest.split('/').filter(Boolean) : [...currentPath, ...dest.split('/').filter(Boolean)];
-                        const resolved = [];
-                        for (let p of parts) {
-                            if (p === '.') continue;
-                            if (p === '..') {
-                                if (resolved.length > 0) resolved.pop();
-                            } else {
-                                resolved.push(p);
-                            }
-                        }
-
-                        const target = getDirectoryNode(resolved);
-                        if (target !== null && typeof target === 'object') {
-                            currentPath = resolved;
-                            updatePrompt();
-                        } else {
-                            printLine(`cd: ${dest}: No such directory`, 'term-error');
-                        }
-                    }
+                    } else printOutput(`cd: ${dest}: No such directory`, 'term-error');
                     break;
                 }
 
                 case 'cat': {
-                    if (args.length === 0) {
-                        printLine('cat: missing file operand', 'term-error');
-                        break;
-                    }
-                    const fileName = args[0];
-                    const currNode = getDirectoryNode(currentPath);
-
-                    if (currNode && typeof currNode === 'object' && currNode[fileName] !== undefined) {
-                        if (typeof currNode[fileName] === 'object') {
-                            printLine(`cat: ${fileName}: Is a directory`, 'term-error');
-                        } else {
-                            outputResult = currNode[fileName];
-                            printOutput(outputResult);
-                        }
-                    } else {
-                        // Check if absolute path like /var/secret/audit.sh
-                        const absParts = fileName.replace(/^\/+|\/+$/g, '').split('/');
-                        const file = absParts.pop();
-                        const dir = getDirectoryNode(absParts);
-                        if (dir && typeof dir === 'object' && dir[file] !== undefined && typeof dir[file] !== 'object') {
-                            outputResult = dir[file];
-                            printOutput(outputResult);
-                        } else {
-                            printLine(`cat: ${fileName}: No such file or directory`, 'term-error');
-                        }
-                    }
+                    const content = args[0] ? readFile(args[0]) : null;
+                    if (content === null) printOutput('cat: choose an existing file', 'term-error');
+                    else { outputResult = content; printOutput(content); }
                     break;
                 }
 
@@ -412,26 +369,25 @@
                         const matches = lines.filter(l => l.toLowerCase().includes(pattern.toLowerCase()));
                         if (matches.length > 0) {
                             matches.forEach(m => {
-                                const highlighted = m.replace(new RegExp(pattern, 'gi'), `<span class="term-match">$&</span>`);
+                                const literalPattern = escapeHtml(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                                const highlighted = escapeHtml(m).replace(new RegExp(literalPattern, 'gi'), '<span class="term-match">$&</span>');
                                 printLine(highlighted);
                             });
                             outputResult = matches.join('\n');
                         }
                     } else {
-                        printLine(`grep: ${fileName}: No such file or directory`, 'term-error');
+                        printLine(`grep: ${escapeHtml(fileName)}: No such file or directory`, 'term-error');
                     }
                     break;
                 }
 
                 case 'chmod': {
-                    if (args.length < 2) {
-                        printLine('Usage: chmod [MODE] [FILE]', 'term-error');
+                    if (args.length < 2 || !/^[0-7]{3,4}$/.test(args[0]) || readFile(args[1]) === null) {
+                        printOutput('chmod: use a valid mode and an existing file', 'term-error');
                         break;
                     }
-                    const mode = args[0];
-                    const fileName = args[1];
-                    filePermissions[fileName] = mode;
-                    printLine(`Changed permissions of '${fileName}' to ${mode}`);
+                    filePermissions[resolvePath(args[1]).join('/')] = args[0];
+                    printOutput(`Changed permissions of '${args[1]}' to ${args[0]}`);
                     break;
                 }
 
@@ -464,11 +420,11 @@
 
                 case 'ping': {
                     const host = args[args.length - 1] || 'localhost';
-                    printLine(`PING ${host} (127.0.0.1) 56(84) bytes of data.`);
-                    printLine(`64 bytes from ${host} (127.0.0.1): icmp_seq=1 ttl=64 time=0.035 ms`);
-                    printLine(`64 bytes from ${host} (127.0.0.1): icmp_seq=2 ttl=64 time=0.041 ms`);
-                    printLine(`64 bytes from ${host} (127.0.0.1): icmp_seq=3 ttl=64 time=0.038 ms`);
-                    printLine(`--- ${host} ping statistics ---`);
+                    printLine(`PING ${escapeHtml(host)} (127.0.0.1) 56(84) bytes of data.`);
+                    printLine(`64 bytes from ${escapeHtml(host)} (127.0.0.1): icmp_seq=1 ttl=64 time=0.035 ms`);
+                    printLine(`64 bytes from ${escapeHtml(host)} (127.0.0.1): icmp_seq=2 ttl=64 time=0.041 ms`);
+                    printLine(`64 bytes from ${escapeHtml(host)} (127.0.0.1): icmp_seq=3 ttl=64 time=0.038 ms`);
+                    printLine(`--- ${escapeHtml(host)} ping statistics ---`);
                     printLine(`3 packets transmitted, 3 received, 0% packet loss, time 2004ms`);
                     break;
                 }
@@ -476,7 +432,7 @@
                 case 'nmap': {
                     const target = args[args.length - 1] || 'target.hackacad.local';
                     printLine(`Starting Nmap 7.94 ( https://nmap.org ) at 2026-10-18 10:00 UTC`);
-                    printLine(`Nmap scan report for ${target} (10.10.10.50)`);
+                    printLine(`Nmap scan report for ${escapeHtml(target)} (10.10.10.50)`);
                     printLine(`Host is up (0.00045s latency).`);
                     printLine(`Not shown: 997 closed tcp ports (reset)`);
                     printLine(`PORT     STATE SERVICE VERSION`);
@@ -490,7 +446,7 @@
 
                 case 'curl': {
                     const url = args[0] || 'http://localhost';
-                    printLine(`&gt; GET ${url} HTTP/1.1`);
+                    printLine(`&gt; GET ${escapeHtml(url)} HTTP/1.1`);
                     printLine(`&lt; HTTP/1.1 200 OK`);
                     printLine(`&lt; Content-Type: application/json`);
                     printLine(`&lt; Server: HackAcad-Sandbox/1.0`);
@@ -505,7 +461,7 @@
                 }
 
                 default:
-                    printLine(`hackacad-sh: ${cmd}: command not found`, 'term-error');
+                    printLine(`hackacad-sh: ${escapeHtml(cmd)}: command not found`, 'term-error');
                     break;
             }
 

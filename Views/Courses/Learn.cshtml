@@ -1,10 +1,11 @@
 @model CourseLearnViewModel
 @{
     ViewData["Title"] = $"{Model.Course.Title} - Learning Portal";
-    var token = Html.AntiForgeryToken();
+
 }
 
 <div class="container-fluid px-3 pt-3">
+    @Html.AntiForgeryToken()
     <div class="d-flex justify-content-between align-items-center mb-2 px-1">
         <a asp-action="Details" asp-route-id="@Model.Course.CourseId" class="btn btn-sm btn-outline-secondary">
             ← Course Details &amp; Overview
@@ -280,7 +281,7 @@
                                             @(sub.IsCorrect ? "✓ Correct" : "✗ Incorrect")
                                         </span>
                                         <code class="text-secondary">@sub.SubmittedFlag</code>
-                                        <span class="text-muted">(@sub.SubmittedDate.ToLocalTime().ToString("g"))</span>
+                                        <span class="text-muted">(@UserTime.Format(sub.SubmittedDate) · @UserTime.Id)</span>
                                     </li>
                                 }
                             </ul>
@@ -325,6 +326,7 @@
                 <div id="simulation-success-banner" style="display:none;" class="alert alert-success">
                     <h4 class="alert-heading">🎉 Simulation Lab Completed!</h4>
                     <p class="mb-0">Your command sequence and target objectives were verified. Progress has been saved to your account.</p>
+                    <p id="simulation-reward" class="mt-2 mb-0" hidden></p>
                 </div>
 
                 <!-- Terminal Display Container -->
@@ -340,30 +342,40 @@
     {
         <script>
             document.addEventListener('DOMContentLoaded', function () {
-                var config = @Html.Raw(string.IsNullOrWhiteSpace(Model.CurrentSimulation.VirtualFileSystemJson) ? "{}" : Model.CurrentSimulation.VirtualFileSystemJson);
+                var config = @Html.Raw(SimulationVerifier.SafeJson(Model.CurrentSimulation.VirtualFileSystemJson));
+                if (!config) {
+                    document.getElementById('sim-terminal-container').textContent = 'This lab configuration needs to be updated by its teacher.';
+                    return;
+                }
                 var taskId = @Model.CurrentSimulation.TaskId;
                 var courseId = @Model.Course.CourseId;
 
-                window.initSimulationTerminal('sim-terminal-container', config, function () {
+                window.initSimulationTerminal('sim-terminal-container', config, function (commands) {
                     // Send completion request to server via AJAX
                     var formData = new FormData();
                     formData.append('taskId', taskId);
                     formData.append('courseId', courseId);
+                    commands.forEach(command => formData.append('commands', command));
                     
                     var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
                     if (token) {
                         formData.append('__RequestVerificationToken', token);
                     }
 
-                    fetch('/Courses/CompleteSimulation', {
+                    return fetch('/Courses/CompleteSimulation', {
                         method: 'POST',
                         body: formData
                     })
-                    .then(res => res.json())
-                    .then(data => {
-                        console.log("Lab completion synced:", data);
-                    })
-                    .catch(err => console.error("Error saving lab progress:", err));
+                    .then(async res => {
+                        const data = await res.json();
+                        if (!res.ok || !data.success) throw new Error(data.message || 'Progress could not be saved. Try again.');
+                        document.getElementById('simulation-success-banner').style.display = 'block';
+                        if (data.reward) {
+                            const reward = document.getElementById('simulation-reward');
+                            reward.textContent = 'Reward: ' + data.reward;
+                            reward.hidden = false;
+                        }
+                    });
                 });
             });
         </script>

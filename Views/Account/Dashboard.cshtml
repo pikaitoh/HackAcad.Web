@@ -177,7 +177,7 @@
                         <table class="table table-sm align-middle module-table">
                             <thead>
                                 <tr>
-                                    <th>Timestamp</th>
+                                    <th>Time (@UserTime.Id)</th>
                                     <th>Submitted Flag</th>
                                     <th>Result</th>
                                 </tr>
@@ -186,7 +186,7 @@
                                 @foreach (var s in Model.RecentSubmissions)
                                 {
                                     <tr>
-                                        <td>@s.SubmittedDate.ToLocalTime().ToString("g")</td>
+                                        <td>@UserTime.Format(s.SubmittedDate)</td>
                                         <td><code>@s.SubmittedFlag</code></td>
                                         <td>
                                             @if (s.IsCorrect)
