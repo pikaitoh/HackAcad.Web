@@ -32,6 +32,8 @@ public class AdminActivityModel
 public class TwoFactorModel : CurrentPasswordModel
 {
     public bool Enabled { get; set; }
+    public bool SmsEnabled { get; set; }
+    public bool HasVerifiedPhone { get; set; }
     public int RecoveryCodesLeft { get; set; }
     public string? Code { get; set; }
 }

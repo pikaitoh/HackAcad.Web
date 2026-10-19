@@ -10,7 +10,7 @@ namespace HackAcad.Web.Services;
 
 public record PhoneCheckResult(string? Number, string? Error);
 
-// Contact-number verification only. This does not enable SMS login, recovery or two-factor authentication.
+// One-use, purpose-bound SMS challenges. Send limits are shared by every purpose.
 public class PhoneVerification(IMemoryCache cache, IConfiguration config, IWebHostEnvironment environment,
     IHttpClientFactory clients, TimeProvider clock, ILogger<PhoneVerification> logger)
 {
@@ -20,6 +20,7 @@ public class PhoneVerification(IMemoryCache cache, IConfiguration config, IWebHo
         public required string Number { get; init; }
         public required string Stamp { get; init; }
         public required DateTimeOffset Expires { get; init; }
+        public required DateTimeOffset ResendAfter { get; init; }
         public string? Sid { get; set; }
         public string? Salt { get; set; }
         public byte[]? Hash { get; set; }
@@ -36,26 +37,31 @@ public class PhoneVerification(IMemoryCache cache, IConfiguration config, IWebHo
         && Regex.IsMatch(config["Sms:TwilioVerifyServiceSid"] ?? "", "^VA[0-9a-fA-F]{32}$")
         && !string.IsNullOrWhiteSpace(config["Sms:TwilioAuthToken"]);
 
-    public string? PendingNumber(string userId, string stamp)
+    public string? PendingNumber(string userId, string stamp, string purpose = "contact")
     {
-        lock (Gate) return Current(userId, stamp)?.Number;
+        lock (Gate) return Current(userId, stamp, purpose)?.Number;
     }
-    public void Cancel(string userId) { lock (Gate) cache.Remove("phone-pending:" + userId); }
-
-    private Pending? Current(string userId, string stamp)
+    public int ResendWaitSeconds(string userId, string stamp, string purpose = "contact")
     {
-        if (!cache.TryGetValue<Pending>("phone-pending:" + userId, out var pending)) return null;
+        lock (Gate) return Current(userId, stamp, purpose) is { } pending
+            ? Math.Max(0, (int)Math.Ceiling((pending.ResendAfter - clock.GetUtcNow()).TotalSeconds)) : 0;
+    }
+    public void Cancel(string userId, string purpose = "contact") { lock (Gate) cache.Remove("phone-pending:" + userId + ":" + purpose); }
+
+    private Pending? Current(string userId, string stamp, string purpose)
+    {
+        if (!cache.TryGetValue<Pending>("phone-pending:" + userId + ":" + purpose, out var pending)) return null;
         if (pending!.Expires <= clock.GetUtcNow() || pending.Stamp != stamp)
-        { cache.Remove("phone-pending:" + userId); return null; }
+        { cache.Remove("phone-pending:" + userId + ":" + purpose); return null; }
         return pending;
     }
 
-    public async Task<string?> SendAsync(string userId, string stamp, string number)
+    public async Task<string?> SendAsync(string userId, string stamp, string number, string purpose = "contact")
     {
         if (!Regex.IsMatch(number, "^\\+[1-9][0-9]{7,14}$")) return "Enter a phone number with its country code, such as +60123456789.";
         if (!IsTestMode && !IsConfigured) return "SMS verification is not available yet. Please contact an administrator.";
         var now = clock.GetUtcNow();
-        var pending = new Pending { Number = number, Stamp = stamp, Expires = now.AddMinutes(10) };
+        var pending = new Pending { Number = number, Stamp = stamp, Expires = now.AddMinutes(10), ResendAfter = now.AddSeconds(60) };
         lock (Gate)
         {
             var userCounter = cache.GetOrCreate("phone-send-user:" + userId, entry =>
@@ -65,7 +71,7 @@ public class PhoneVerification(IMemoryCache cache, IConfiguration config, IWebHo
             if (now - userCounter.Last < TimeSpan.FromSeconds(60)) return "Wait one minute before requesting another SMS.";
             if (userCounter.Count >= 5 || numberCounter.Count >= 5) return "Too many SMS requests. Please try again in an hour.";
             userCounter.Last = now; userCounter.Count++; numberCounter.Count++;
-            cache.Set("phone-pending:" + userId, pending, TimeSpan.FromMinutes(10));
+            cache.Set("phone-pending:" + userId + ":" + purpose, pending, TimeSpan.FromMinutes(10));
         }
         try
         {
@@ -92,7 +98,7 @@ public class PhoneVerification(IMemoryCache cache, IConfiguration config, IWebHo
             }
             lock (Gate)
             {
-                if (!ReferenceEquals(Current(userId, stamp), pending)) return "The request changed. Please request another code.";
+                if (!ReferenceEquals(Current(userId, stamp, purpose), pending)) return "The request changed. Please request another code.";
                 pending.Busy = false;
             }
             return null;
@@ -100,22 +106,22 @@ public class PhoneVerification(IMemoryCache cache, IConfiguration config, IWebHo
         catch (Exception error)
         {
             lock (Gate)
-                if (ReferenceEquals(Current(userId, stamp), pending)) cache.Remove("phone-pending:" + userId);
+                if (ReferenceEquals(Current(userId, stamp, purpose), pending)) cache.Remove("phone-pending:" + userId + ":" + purpose);
             logger.LogWarning("SMS verification could not be started ({ErrorType}).", error.GetType().Name);
             return "We couldn't send the SMS. Wait one minute and try again, or contact an administrator.";
         }
     }
 
-    public async Task<PhoneCheckResult> CheckAsync(string userId, string stamp, string code)
+    public async Task<PhoneCheckResult> CheckAsync(string userId, string stamp, string code, string purpose = "contact")
     {
         Pending pending;
         lock (Gate)
         {
-            var current = Current(userId, stamp);
+            var current = Current(userId, stamp, purpose);
             if (current is null) return new(null, "This code has expired or no request is pending. Request another SMS.");
             if (current.Busy) return new(null, "A request is already in progress. Please wait.");
             if (current.Attempts >= 5)
-            { cache.Remove("phone-pending:" + userId); return new(null, "This code reached its attempt limit. Request another SMS."); }
+            { cache.Remove("phone-pending:" + userId + ":" + purpose); return new(null, "This code reached its attempt limit. Request another SMS."); }
             if (!Regex.IsMatch(code, "^[0-9]{6}$")) return new(null, "Enter the six-digit code from your SMS.");
             pending = current; pending.Busy = true; pending.Attempts++;
         }
@@ -144,8 +150,8 @@ public class PhoneVerification(IMemoryCache cache, IConfiguration config, IWebHo
         finally { lock (Gate) pending.Busy = false; }
         lock (Gate)
         {
-            if (!ReferenceEquals(Current(userId, stamp), pending)) return new(null, "This request changed or expired. Request another SMS.");
-            if (approved || expired || pending.Attempts >= 5) cache.Remove("phone-pending:" + userId);
+            if (!ReferenceEquals(Current(userId, stamp, purpose), pending)) return new(null, "This request changed or expired. Request another SMS.");
+            if (approved || expired || pending.Attempts >= 5) cache.Remove("phone-pending:" + userId + ":" + purpose);
             if (approved) return new(pending.Number, null);
             return new(null, expired || pending.Attempts >= 5
                 ? "This code has expired or reached its attempt limit. Request another SMS."

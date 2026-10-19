@@ -2,7 +2,7 @@
 @{ ViewData["Title"] = "Devices & sessions"; Layout = "_ManageAccountLayout"; }
 <div class="account-panel">
     <div class="page-heading"><div><h1>Devices &amp; sessions</h1><p class="text-secondary">Manage where you're signed in.</p></div></div>
-    <p class="security-explanation">These logins can still access your account. A listed device may be offline. Browser and device names are estimates; separate browsers can appear as separate devices. All times are Malaysia time (UTC+8).</p>
+    <p class="security-explanation">These logins can still access your account. A listed device may be offline. Browser and device names are estimates; separate browsers can appear as separate devices. Times shown in @UserTime.Id.</p>
     <form asp-action="Sessions" method="post" data-validated-form class="session-form">
         <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
         <div class="session-password"><label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" aria-invalid="@(ViewData.ModelState["CurrentPassword"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="current-password" required aria-describedby="session-password-help CurrentPassword-error" /><p id="session-password-help" class="form-text">Confirm your password before signing out another device. This device stays signed in.</p><span id="CurrentPassword-error" asp-validation-for="CurrentPassword" class="field-error" aria-live="polite"></span></div>
@@ -10,8 +10,8 @@
         @foreach (var session in Model.Sessions)
         {
             var current = session.Id == Model.CurrentSessionId;
-            <article class="session-row"><div><h2>@session.Device @if (current) { <span class="role-badge">This device</span> }</h2><p>IP address: @session.IpAddress</p><p>Signed in @session.CreatedUtc.AddHours(8).ToString("dd MMM yyyy, HH:mm")<br />Last activity @session.LastSeenUtc.AddHours(8).ToString("dd MMM yyyy, HH:mm")</p></div>
-            @if (!current) { <button type="submit" name="sessionId" value="@session.Id" class="btn btn-outline-danger btn-sm" aria-label="Sign out @session.Device, signed in @session.CreatedUtc.AddHours(8).ToString("dd MMM yyyy HH:mm")">Sign out</button> }
+            <article class="session-row"><div><h2>@session.Device @if (current) { <span class="role-badge">This device</span> }</h2><p>IP address: @session.IpAddress</p><p>Signed in @UserTime.Format(session.CreatedUtc, "dd MMM yyyy, HH:mm")<br />Last activity @UserTime.Format(session.LastSeenUtc, "dd MMM yyyy, HH:mm")</p></div>
+            @if (!current) { <button type="submit" name="sessionId" value="@session.Id" class="btn btn-outline-danger btn-sm" aria-label="Sign out @session.Device, signed in @UserTime.Format(session.CreatedUtc, "dd MMM yyyy HH:mm")">Sign out</button> }
             </article>
         }
         </div>

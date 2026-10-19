@@ -15,7 +15,7 @@ namespace HackAcad.Web.Controllers;
 public partial class AccountController
 {
     private bool HasRecentGoogleLogin() => long.TryParse(User.FindFirstValue(AccountSessions.GoogleTimeClaim), out var value)
-        && DateTimeOffset.UtcNow.ToUnixTimeSeconds() - value is >= 0 and <= 300;
+        && clock.GetUtcNow().ToUnixTimeSeconds() - value is >= 0 and <= 300;
 
     [AllowAnonymous, HttpPost, EnableRateLimiting("two-factor-login")]
     public async Task<IActionResult> GoogleLogin(string? returnUrl = null, bool connect = false, bool reauthenticate = false)
@@ -126,11 +126,11 @@ public partial class AccountController
         if (await users.GetTwoFactorEnabledAsync(user))
         {
             await BeginTwoFactorLogin(user);
-            return RedirectToAction(nameof(LoginTwoFactor), new { returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null });
+            return RedirectToAction(user.SmsTwoFactorEnabled ? nameof(LoginSms) : nameof(LoginTwoFactor), new { returnUrl = Url.IsLocalUrl(returnUrl) ? returnUrl : null });
         }
         await users.ResetAccessFailedCountAsync(user);
         await signIn.SignInWithClaimsAsync(user, false, [new Claim(ClaimTypes.AuthenticationMethod, "Google"),
-            new Claim(AccountSessions.GoogleTimeClaim, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture))]);
+            new Claim(AccountSessions.GoogleTimeClaim, clock.GetUtcNow().ToUnixTimeSeconds().ToString(System.Globalization.CultureInfo.InvariantCulture))]);
         await records.LoginAsync(user.Id, "Signed in with Google");
         return Url.IsLocalUrl(returnUrl) ? LocalRedirect(returnUrl!) : RedirectToAction(nameof(Dashboard));
     }

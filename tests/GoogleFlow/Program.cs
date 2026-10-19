@@ -146,6 +146,20 @@ try
     }
     var secondFactorClient=Client();var twoFactor=await Google(secondFactorClient,adminEmail,"admin-"+suffix);
     Check(twoFactor.Path.StartsWith("/Identity/Account/LoginTwoFactor") && (await secondFactorClient.GetAsync("/Admin")).StatusCode==HttpStatusCode.Redirect,"Google cannot bypass Admin two-factor authentication");
+
+    string googleSmsPhone = "+1555" + Random.Shared.Next(1000000,9999999);
+    using(var scope=factory.Services.CreateScope())
+    {
+        Check(scope.ServiceProvider.GetRequiredService<PhoneVerification>().IsTestMode,"Google SMS 2FA tests require local capture and never use a live sender");
+        var users=scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();var user=(await users.FindByEmailAsync(adminEmail))!;
+        user.PhoneNumber=googleSmsPhone;user.PhoneNumberConfirmed=true;user.SmsTwoFactorEnabled=true;await users.UpdateAsync(user);
+    }
+    var googleSmsClient=Client();var googleSms=await Google(googleSmsClient,adminEmail,"admin-"+suffix);
+    Check(googleSms.Path.StartsWith("/Identity/Account/LoginSms") && (await googleSmsClient.GetAsync("/Admin")).StatusCode==HttpStatusCode.Redirect,"linked Google sign-in requires the configured SMS second factor");
+    var googleSmsCode=Directory.GetFiles(Environment.GetEnvironmentVariable("Sms__DevelopmentPickupDirectory")!,"*.json")
+        .Select(path=>JsonDocument.Parse(File.ReadAllText(path)).RootElement.Clone()).Single(value=>value.GetProperty("number").GetString()==googleSmsPhone).GetProperty("code").GetString()!;
+    await Follow(googleSmsClient,await Post(googleSmsClient,"/Identity/Account/LoginSms",new(){{"Code",googleSmsCode}},"/Identity/Account/LoginSms"));
+    Check((await googleSmsClient.GetAsync("/Identity/Account/Profile")).StatusCode==HttpStatusCode.OK,"linked Google sign-in completes only after the correct SMS code");
     using(var scope=factory.Services.CreateScope())
     {
         var users=scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();var user=(await users.FindByIdAsync(newId))!;

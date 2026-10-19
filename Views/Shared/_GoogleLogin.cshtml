@@ -6,5 +6,5 @@
         <input type="hidden" name="returnUrl" value="@Model" />
         <button type="submit" class="btn google-login-button"><partial name="_GoogleMark" /><span>Continue with Google</span></button>
     </form>
-    <div class="auth-divider"><span>or use your email</span></div>
+    <div class="auth-divider"><span>@(ViewContext.RouteData.Values["action"]?.ToString() == "Login" ? "or use your email or phone" : "or use your email")</span></div>
 }

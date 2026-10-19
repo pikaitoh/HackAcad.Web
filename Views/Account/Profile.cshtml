@@ -24,7 +24,7 @@
             <h2 class="h4" id="details-title">Profile details</h2>
             <dl class="detail-list profile-facts">
                 <div><dt>Role</dt><dd><span class="role-badge" data-role="@Model.Role">@Model.Role</span></dd></div>
-                <div><dt>Joined</dt><dd>@Model.JoinedDate.ToString("dd MMM yyyy") <span class="text-secondary">(UTC)</span></dd></div>
+                <div><dt>Joined</dt><dd>@UserTime.Format(Model.JoinedDate, "dd MMM yyyy") <span class="text-secondary">(@UserTime.Id)</span></dd></div>
             </dl>
             <form asp-action="Profile" method="post" data-account-form class="profile-name-form">
             <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>

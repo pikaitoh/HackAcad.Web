@@ -55,10 +55,16 @@ class Client:
 
     def post(self, path, data, token=True):
         data = dict(data)
+        if path.endswith('/SendPhoneCode'):
+            data.setdefault('Phone.CurrentPassword', PASSWORD)
+        if path.endswith('/RemovePhone'):
+            data.setdefault('CurrentPassword', PASSWORD)
         if token:
             source = '/' if path.endswith('/Logout') else path
-            if path.rsplit('/', 1)[-1] in ('SendPhoneCode', 'VerifyPhone', 'RemovePhone', 'CancelPhoneVerification'):
-                source = '/Identity/Account/PhoneNumber'
+            if path.rsplit('/', 1)[-1] in ('SendPhoneCode', 'ResendPhoneCode', 'VerifyPhone', 'CancelPhoneVerification'):
+                source = '/Identity/Account/ChangePhone'
+            if path.rsplit('/', 1)[-1] == 'RemovePhone':
+                source = '/Identity/Account/RemovePhone'
             if path.rsplit('/', 1)[-1] in ('UploadAvatar', 'RemoveAvatar'):
                 source = '/Identity/Account/Profile'
             status, _, body = self.request(source)
@@ -227,7 +233,7 @@ try:
     settings = '/Identity/Account/PhoneNumber'
     send_phone = '/Identity/Account/SendPhoneCode'
     verify_phone = '/Identity/Account/VerifyPhone'
-    check('Phone number' in student.request(settings)[2] and 'SMS test mode is active' in student.request(settings)[2],
+    check('Phone number' in student.request(settings)[2] and 'SMS test mode is active' in student.request('/Identity/Account/ChangePhone')[2],
         'phone verification screen explicitly identifies local SMS capture')
     invalid_phone = student.post(send_phone, {'Phone.PhoneNumber': '01112345678'})
     check(field_error(invalid_phone[2], 'Phone_PhoneNumber'), 'phone number requires international country-code format')
@@ -238,6 +244,11 @@ try:
     messages = sms_codes(number)
     check(len(messages) == 1 and 'Enter your code' in requested_phone[2] and 'Current number' not in requested_phone[2],
         'requesting an OTP does not save an unverified phone number')
+    check('name="Phone.PhoneNumber"' not in requested_phone[2] and 'phone-cancel-form' in requested_phone[2]
+        and 'data-resend-seconds=' in requested_phone[2], 'pending phone verification shows only the code step with cancel and a server cooldown')
+    early_resend = student.post('/Identity/Account/ResendPhoneCode', {'Phone.PhoneNumber': '+19999999999'})
+    check('Wait one minute' in early_resend[2] and len(sms_codes(number)) == 1,
+        'the dedicated resend endpoint enforces the server cooldown and ignores a posted recipient')
     code = messages[-1]['code']
     check(f'value="{code}"' not in requested_phone[2] and f'>{code}<' not in requested_phone[2],
         'OTP is never exposed in the rendered verification page')
@@ -335,7 +346,9 @@ try:
     created = admin.post('/Admin/CreateUser', {'DisplayName': 'Created teacher', 'Email': created_email,
         'Password': PASSWORD, 'ConfirmPassword': PASSWORD, 'Role': 'Teacher'})
     check('/Admin/Users' in created[1], 'Admin can create a Teacher account with apostrophe/plus email characters')
-    check('Unable to sign in' in Client().login(created_email)[2], 'Admin-created account also requires email verification')
+    unverified_created = Client()
+    check('VerificationPending' in unverified_created.login(created_email)[1] and '/Login' in unverified_created.request('/Identity/Account/Profile')[1],
+        'Admin-created account requires email verification and receives no application session')
     check('Email not verified' in admin.request('/Admin/Users?search=' + urllib.parse.quote(created_email))[2],
         'Admin can identify an account awaiting email verification')
     confirm_mail(Client(), created_email)
@@ -385,7 +398,7 @@ try:
     changed_email_result = admin.post(created_path, edit_data(changed_email, role='Teacher'))
     check('/Admin/Users' in changed_email_result[1], 'Admin can update an email address')
     check('/Login' in old_session.request('/Identity/Account/Dashboard')[1], 'email change revokes the old session')
-    check('Unable to sign in' in Client().login(changed_email)[2], 'new email must be verified before login')
+    check('VerificationPending' in Client().login(changed_email)[1], 'new email must be verified before login')
     check("This link isn" in Client().request(old_link)[2], 'old email verification link cannot verify a changed address')
     check(len(mail_links(changed_email)) == 1, 'changed address receives its own verification email without the old address cooldown')
     check('Email verified' in confirm_mail(Client(), changed_email)[2], 'new email can be verified with its new link')

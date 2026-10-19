@@ -1,0 +1,47 @@
+@model AccountSettingsModel
+@{
+    var pending = Model.PendingPhone is not null;
+    ViewData["Title"] = pending ? "Enter your code" : Model.CurrentPhone is null ? "Add phone number" : "Change phone number";
+    Layout = "_ManageAccountLayout";
+}
+<div class="account-panel">
+    <div class="page-heading"><div><h1>@ViewData["Title"]</h1><p class="text-secondary">@(pending ? "Complete your phone number verification." : "Confirm your number using a code sent by SMS.")</p></div></div>
+    <section class="form-measure phone-settings" aria-label="Phone number settings">
+        <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+        @if (Model.IsSmsTestMode) { <div class="alert alert-warning" role="status">SMS test mode is active. Codes are captured locally; no text messages are sent.</div> }
+        @if (pending)
+        {
+            <div data-phone-verification data-resend-seconds="@Model.PhoneResendSeconds">
+                <span id="Phone_PhoneNumber-error" asp-validation-for="Phone.PhoneNumber" class="field-error" aria-live="polite"></span>
+                <p class="text-secondary mb-4">Enter the six-digit code sent to <strong>@Model.PendingPhone</strong>. Your current number stays unchanged until verification succeeds.</p>
+                <form id="phone-code-form" asp-action="VerifyPhone" method="post" data-validated-form>
+                    <div class="mb-3">
+                        <label asp-for="Confirmation.Code" class="form-label"></label>
+                        <input asp-for="Confirmation.Code" class="form-control otp-input" type="text" inputmode="numeric" autocomplete="one-time-code" minlength="6" maxlength="6" required autofocus aria-describedby="code-help Confirmation_Code-error" aria-invalid="@(ViewData.ModelState["Confirmation.Code"]?.Errors.Count > 0 ? "true" : null)" />
+                        <span id="Confirmation_Code-error" asp-validation-for="Confirmation.Code" class="field-error" aria-live="polite"></span>
+                        <p id="code-help" class="form-text" data-resend-status>@(Model.PhoneResendSeconds > 0 ? $"You can resend the code in {Model.PhoneResendSeconds} seconds." : "No code yet? Leave the code field empty to resend, or enter your code to verify.")</p>
+                    </div>
+                </form>
+                <form id="phone-resend-form" asp-action="ResendPhoneCode" method="post" hidden></form>
+                <form id="phone-cancel-form" asp-action="CancelPhoneVerification" method="post" hidden></form>
+                <div class="form-actions">
+                    <button id="phone-code-action" type="submit" form="phone-code-form" class="btn btn-primary">Verify phone number</button>
+                    <button type="submit" form="phone-cancel-form" class="btn btn-outline-secondary">Cancel verification</button>
+                </div>
+                <noscript><p class="form-text mt-3">Reload this page after one minute to resend your code.</p><button type="submit" form="phone-resend-form" class="btn btn-outline-secondary" disabled="@(Model.PhoneResendSeconds > 0)">Resend verification code</button></noscript>
+            </div>
+        }
+        else
+        {
+            <p class="text-secondary">A phone number is optional. Once verified, you can use it with your password to log in or set up SMS two-factor authentication. Password recovery uses your account email.</p>
+            <span id="Confirmation_Code-error" asp-validation-for="Confirmation.Code" class="field-error" aria-live="polite"></span>
+            @if (!string.IsNullOrEmpty(Model.CurrentPhone)) { <p class="record-secondary mb-1">Current phone number</p><p class="mb-4 text-break">@Model.CurrentPhone</p> }
+            <form asp-action="SendPhoneCode" method="post" data-validated-form>
+                <div class="mb-3"><label asp-for="Phone.PhoneNumber" class="form-label">@(Model.CurrentPhone is null ? "Phone number" : "New phone number")</label><input asp-for="Phone.PhoneNumber" type="tel" class="form-control" autocomplete="tel" maxlength="16" placeholder="+60123456789" required data-trim aria-describedby="phone-help Phone_PhoneNumber-error" aria-invalid="@(ViewData.ModelState["Phone.PhoneNumber"]?.Errors.Count > 0 ? "true" : null)" /><p id="phone-help" class="form-text">Include + and your country code, without spaces. For Malaysia, replace the first 0 with +60.</p><span id="Phone_PhoneNumber-error" asp-validation-for="Phone.PhoneNumber" class="field-error" aria-live="polite"></span></div>
+                <div class="mb-4"><label asp-for="Phone.CurrentPassword" class="form-label"></label><input asp-for="Phone.CurrentPassword" class="form-control" autocomplete="current-password" required aria-describedby="Phone_CurrentPassword-error" /><span id="Phone_CurrentPassword-error" asp-validation-for="Phone.CurrentPassword" class="field-error" aria-live="polite"></span></div>
+                <div class="form-actions"><button type="submit" class="btn btn-primary">Send verification code</button><a asp-action="PhoneNumber" class="btn btn-outline-secondary">Back</a></div>
+            </form>
+        }
+    </section>
+</div>
+@section Scripts { <script src="~/js/phone-verification.js" asp-append-version="true" defer></script> }
