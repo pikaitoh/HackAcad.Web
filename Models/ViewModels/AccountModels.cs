@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using HackAcad.Web.Models.Entities;
 
 namespace HackAcad.Web.Models.ViewModels;
 
@@ -115,4 +116,9 @@ public class DashboardModel
     public int EnrollmentCount { get; set; }
     public int CompletedActivities { get; set; }
     public int SolvedChallenges { get; set; }
+    public int TotalPoints { get; set; }
+    public List<CourseCardViewModel> EnrolledCourses { get; set; } = [];
+    public CourseCardViewModel? RecentCourse { get; set; }
+    public List<BadgeItem> Badges { get; set; } = [];
+    public List<ChallengeSubmission> RecentSubmissions { get; set; } = [];
 }
