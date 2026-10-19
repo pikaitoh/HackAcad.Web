@@ -6,6 +6,8 @@ namespace HackAcad.Web.Models.Entities;
 
 public class ApplicationUser : IdentityUser
 {
+    [MaxLength(10)] public string Appearance { get; set; } = "system";
+    [MaxLength(60)] public string BannerKey { get; set; } = "foundation";
     public bool IsDisabled { get; set; }
     public bool SmsTwoFactorEnabled { get; set; }
     public string DisplayName { get; set; } = string.Empty;

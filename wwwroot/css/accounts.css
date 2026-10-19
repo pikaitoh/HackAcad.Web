@@ -8,7 +8,7 @@
 .auth-form h1 { font-size: 2rem; }
 .auth-aside .learning-path div > span { color: var(--ha-on-dark); }
 .auth-aside .learning-path li:not(:last-child)::after { background: #52787a; }
-.auth-aside .path-marker { border: 0; background: var(--ha-action); color: var(--ha-ink); }
+.auth-aside .path-marker { border: 0; background: var(--ha-action); color: #193e46; font-weight: 750; }
 .profile-layout { display: grid; grid-template-columns: 1fr 1.3fr; align-items: start; gap: 4rem; max-width: 65rem; }
 .detail-list { margin: 1.5rem 0; }
 .detail-list dt { font-size: .8125rem; font-weight: 500; color: var(--ha-muted); margin-top: 1rem; }

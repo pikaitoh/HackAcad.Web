@@ -1,7 +1,7 @@
-@{ Layout = "_Layout"; ViewData["PageClass"] = "workspace-area"; }
+@{ Layout = "_Layout"; ViewData["PageClass"] = "workspace-area"; ViewData["StatusMessageHandled"] = true; }
 <div class="workspace-shell"><aside class="workspace-sidebar"><div class="workspace-title">@(User.IsInRole(AccountRoles.Admin) ? "Administration" : User.IsInRole(AccountRoles.Instructor) ? "Instructor workspace" : "Student workspace")</div>
 @if (User.IsInRole(AccountRoles.Admin)) { <partial name="_AdminNav" /> }
 else { <partial name="_WorkspaceNav" /> }
-</aside><div class="workspace-main">@RenderBody()</div></div>
+</aside><div class="workspace-main"><partial name="_StatusMessage" />@RenderBody()</div></div>
 @section Styles { @await RenderSectionAsync("Styles", required: false) }
 @section Scripts { @await RenderSectionAsync("Scripts", required: false) }

@@ -1,0 +1,5 @@
+@model string
+<details class="header-menu appearance-menu" data-header-menu><summary class="header-icon" aria-label="Appearance"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></summary>
+<div class="header-popover"><strong>Appearance</strong><form asp-controller="Preferences" asp-action="Appearance" method="post" data-appearance-form data-guest="@(Model == "guest" ? "true" : "false")"><input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" />
+@foreach (var choice in new[] { "light", "dark", "system" }) { <button type="submit" name="value" value="@choice" aria-pressed="@((Model == choice || Model == "guest" && choice == "system") ? "true" : "false")">@(char.ToUpperInvariant(choice[0]) + choice[1..])</button> }
+<p class="field-error" data-appearance-error role="status"></p></form></div></details>

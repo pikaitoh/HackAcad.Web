@@ -2,20 +2,20 @@
 @{ ViewData["Title"] = "Devices & sessions"; Layout = "_ManageAccountLayout"; }
 <div class="account-panel">
     <div class="page-heading"><div><h1>Devices &amp; sessions</h1><p class="text-secondary">Manage where you're signed in.</p></div></div>
-    <p class="security-explanation">These logins can still access your account. A listed device may be offline. Browser and device names are estimates; separate browsers can appear as separate devices. Times shown in @UserTime.Id.</p>
+    <p class="security-explanation">Review your signed-in browsers and devices. Device names are estimates; a listed device may be offline.</p><p class="form-text">Times shown in @UserTime.Id.</p>
     <form asp-action="Sessions" method="post" data-validated-form class="session-form">
         <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
-        <div class="session-password"><label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" aria-invalid="@(ViewData.ModelState["CurrentPassword"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="current-password" required aria-describedby="session-password-help CurrentPassword-error" /><p id="session-password-help" class="form-text">Confirm your password before signing out another device. This device stays signed in.</p><span id="CurrentPassword-error" asp-validation-for="CurrentPassword" class="field-error" aria-live="polite"></span></div>
+        @if (Model.Sessions.Any(s => s.Id != Model.CurrentSessionId)) { <div class="session-password"><label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" aria-invalid="@(ViewData.ModelState["CurrentPassword"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="current-password" required aria-describedby="session-password-help CurrentPassword-error" /><p id="session-password-help" class="form-text">Confirm your password before signing out another device. This device stays signed in.</p><span id="CurrentPassword-error" asp-validation-for="CurrentPassword" class="field-error" aria-live="polite"></span></div> }
         <div class="session-list">
         @foreach (var session in Model.Sessions)
         {
             var current = session.Id == Model.CurrentSessionId;
-            <article class="session-row"><div><h2>@session.Device @if (current) { <span class="role-badge">This device</span> }</h2><p>IP address: @session.IpAddress</p><p>Signed in @UserTime.Format(session.CreatedUtc, "dd MMM yyyy, HH:mm")<br />Last activity @UserTime.Format(session.LastSeenUtc, "dd MMM yyyy, HH:mm")</p></div>
+            <article class="session-row"><div><h2>@session.Device @if (current) { <span class="role-badge">This device</span> }</h2><dl class="session-facts"><div><dt>IP address</dt><dd>@session.IpAddress</dd></div><div><dt>Signed in</dt><dd>@UserTime.Format(session.CreatedUtc, "dd MMM yyyy, HH:mm")</dd></div><div><dt>Last activity</dt><dd>@UserTime.Format(session.LastSeenUtc, "dd MMM yyyy, HH:mm")</dd></div></dl></div>
             @if (!current) { <button type="submit" name="sessionId" value="@session.Id" class="btn btn-outline-danger btn-sm" aria-label="Sign out @session.Device, signed in @UserTime.Format(session.CreatedUtc, "dd MMM yyyy HH:mm")">Sign out</button> }
             </article>
         }
         </div>
         @if (Model.Sessions.Count > 1) { <button type="submit" class="btn btn-outline-danger">Sign out all other devices</button> }
-        else { <p class="text-secondary mt-4">You're only signed in on this device.</p> }
+        else { <p class="text-secondary session-only">You're only signed in on this device.</p> }
     </form>
 </div>

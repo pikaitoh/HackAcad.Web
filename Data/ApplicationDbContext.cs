@@ -31,9 +31,17 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<InstructorApplication> InstructorApplications => Set<InstructorApplication>();
     public DbSet<InstructorReview> InstructorReviews => Set<InstructorReview>();
 
+    public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
+    public DbSet<BannerReward> BannerRewards => Set<BannerReward>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<UserNotification>().HasIndex(n => new { n.UserId, n.EventKey }).IsUnique();
+        builder.Entity<UserNotification>().HasIndex(n => new { n.UserId, n.ReadUtc, n.CreatedUtc });
+        builder.Entity<UserNotification>().HasOne<ApplicationUser>().WithMany().HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<BannerReward>().HasIndex(r => new { r.UserId, r.CourseId }).IsUnique();
+        builder.Entity<BannerReward>().HasOne<ApplicationUser>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
 
         builder.Entity<ApplicationUser>().Property(u => u.TimeZoneId).HasDefaultValue("Asia/Kuala_Lumpur");
         builder.Entity<ApplicationUser>().Property(u => u.PhoneNumber).HasMaxLength(16);

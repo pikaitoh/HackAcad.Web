@@ -110,6 +110,8 @@ public partial class AdminController
         try
         {
             await db.SaveChangesAsync();
+            await personalization.Notify(user.Id, $"review:{id}", $"Instructor application: {input.Decision}",
+                input.Decision == ApplicationStatus.MoreInformation ? "More information is needed. Open your application to read the review." : "Your application has been reviewed. Open it to read the decision and reason.", $"/Education/Status/{id}");
             if (input.Decision == ApplicationStatus.Approved)
             {
                 var result = await users.UpdateSecurityStampAsync(user);

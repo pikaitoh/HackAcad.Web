@@ -2,7 +2,7 @@
 @{ ViewData["Title"] = "Two-factor authentication"; Layout = "_ManageAccountLayout"; }
 <div class="account-panel"><div class="page-heading"><div><h1>Two-factor authentication</h1><p class="text-secondary">Add a second step when you log in.</p></div></div>
 <section class="form-measure">
-<h2>@(Model.Enabled ? Model.SmsEnabled ? "SMS verification" : "Authenticator app" : "Choose a verification method") <span class="status-label @(Model.Enabled ? "status-active" : "status-disabled")">@(Model.Enabled ? "On" : "Off")</span></h2>
+<div class="twofactor-heading"><h2>@(Model.Enabled ? Model.SmsEnabled ? "SMS verification" : "Authenticator app" : "Choose a verification method") </h2><span class="status-label @(Model.Enabled ? "status-active" : "status-disabled")">@(Model.Enabled ? "On" : "Off")</span></div>
 @if (Model.Enabled)
 {
     <p>@(Model.SmsEnabled ? "After your password, enter a code sent to your verified phone number." : "Use the current code from your authenticator app after your password.")</p>

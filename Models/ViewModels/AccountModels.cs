@@ -45,6 +45,8 @@ public class ProfileModel
     public string Email { get; set; } = "";
     public string Role { get; set; } = "";
     public DateTime JoinedDate { get; set; }
+    public List<BannerChoice> Banners { get; set; } = [];
+    public string BannerKey { get; set; } = "foundation";
     public bool HasAvatar { get; set; }
     public bool EmailConfirmed { get; set; }
 }

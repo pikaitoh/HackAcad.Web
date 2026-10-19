@@ -1,0 +1,12 @@
+@model HeaderToolsModel
+@{ var admin = User.IsInRole(AccountRoles.Admin); var instructor = User.IsInRole(AccountRoles.Instructor); var controller = ViewContext.RouteData.Values["controller"]?.ToString(); }
+@if (ViewData["PageClass"] as string != "workspace-area" && (controller is "Education" or "Notifications" || controller == "Account" && ViewContext.RouteData.Values["action"]?.ToString() != "Dashboard")) {
+<a class="nav-link workspace-return" asp-controller="@(admin ? "Admin" : instructor ? "InstructorCourses" : "Account")" asp-action="@(admin || instructor ? "Index" : "Dashboard")">@(admin ? "Admin overview" : instructor ? "Instructor Studio" : "Dashboard")</a>
+}
+<partial name="_Appearance" model="Model.Appearance" />
+<details class="header-menu notification-menu" data-header-menu><summary class="header-icon" aria-label="Notifications: @Model.Unread unread"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM9 21h6"/></svg>@if (Model.Unread > 0) { <span class="notification-count">@(Model.Unread > 99 ? "99+" : Model.Unread.ToString())</span> }</summary>
+<section class="header-popover notification-popover" aria-label="Recent notifications"><div class="notification-heading"><strong>Notifications</strong><a asp-controller="Notifications" asp-action="Index">View all</a></div>
+@if (Model.Items.Count == 0) { <p class="notification-empty">You're all caught up. New updates will appear here.</p> }
+@foreach (var item in Model.Items) { <form asp-controller="Notifications" asp-action="Open" asp-route-id="@item.Id" method="post" class="notification-item @(item.ReadUtc is null ? "unread" : "")"><button type="submit"><strong>@item.Title</strong><span>@item.Message</span><small>@UserTime.Format(item.CreatedUtc, "dd MMM yyyy, HH:mm") · @(item.ReadUtc is null ? "Unread" : "Read")</small></button></form> }
+@if (Model.Unread > 0) { <form asp-controller="Notifications" asp-action="ReadAll" method="post"><input type="hidden" name="returnUrl" value="@(Context.Request.Path + Context.Request.QueryString)" /><button class="notification-read-all" type="submit">Mark all as read</button></form> }
+</section></details>

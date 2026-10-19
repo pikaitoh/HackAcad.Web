@@ -1,0 +1,10 @@
+@model NotificationListModel
+@{ ViewData["Title"] = "Notifications"; Layout = "_WorkspaceLayout"; }
+<div class="notifications-content"><div class="page-heading"><div><h1>Notifications</h1><p class="text-secondary">@Model.Unread unread · Times shown in @UserTime.Id.</p></div>@if (Model.Unread > 0) { <form asp-action="ReadAll" method="post"><button class="btn btn-outline-secondary" type="submit">Mark all as read</button></form> }</div>
+<section class="notification-page" aria-label="Your notifications">
+@if (Model.Items.Count == 0) { <div class="empty-state"><h2>You're all caught up</h2><p>Application updates, course changes and new rewards will appear here.</p></div> }
+@foreach (var item in Model.Items) { <form asp-action="Open" asp-route-id="@item.Id" method="post" class="notification-item @(item.ReadUtc is null ? "unread" : "")"><button type="submit"><strong>@item.Title</strong><span>@item.Message</span><small>@UserTime.Format(item.CreatedUtc, "dd MMM yyyy, HH:mm") · @(item.ReadUtc is null ? "Unread" : "Read")</small></button></form>@if (item.ReadUtc is null) { <form asp-action="Read" asp-route-id="@item.Id" method="post"><button class="notification-read-all" type="submit">Mark as read</button></form> } }
+</section>
+@if (Model.PageCount > 1) { <nav class="pagination-bar" aria-label="Notification pages"><span>Page @Model.Page of @Model.PageCount</span><div class="form-actions">@if (Model.Page > 1) { <a asp-route-page="@(Model.Page - 1)">Previous</a> } @if (Model.Page < Model.PageCount) { <a asp-route-page="@(Model.Page + 1)">Next</a> }</div></nav> }
+
+</div>

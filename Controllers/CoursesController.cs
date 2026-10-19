@@ -14,7 +14,7 @@ namespace HackAcad.Web.Controllers;
 
 public class CoursesController(
     ApplicationDbContext db,
-    IWebHostEnvironment environment) : Controller
+    IWebHostEnvironment environment, Personalization personalization) : Controller
 {
     // ==========================================
     // 1. PUBLIC / STUDENT CATALOGUE
@@ -606,6 +606,7 @@ public class CoursesController(
             else enrollment.Status = "InProgress";
         }
         await db.SaveChangesAsync();
+        await personalization.SyncRewards(enrollment.UserId);
         await transaction.CommitAsync();
     }
 }

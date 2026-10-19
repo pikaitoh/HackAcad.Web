@@ -12,9 +12,13 @@ using Microsoft.EntityFrameworkCore;
 namespace HackAcad.Web.Controllers;
 
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public class EducationController(ApplicationDbContext db, InstructorApplications applications, TimeProvider clock) : Controller
+public class EducationController(ApplicationDbContext db, InstructorApplications applications, TimeProvider clock, Personalization personalization) : Controller
 {
-    [HttpGet] public IActionResult Index() => View();
+    [HttpGet] public async Task<IActionResult> Index()
+    {
+        ViewData["HasApplication"] = User.Identity?.IsAuthenticated == true && await db.InstructorApplications.AnyAsync(a => a.UserId == User.FindFirstValue(ClaimTypes.NameIdentifier));
+        return View();
+    }
 
     [Authorize(Roles = AccountRoles.Student), HttpGet]
     public async Task<IActionResult> Apply()
@@ -39,10 +43,15 @@ public class EducationController(ApplicationDbContext db, InstructorApplications
         var previous = await db.InstructorApplications.Where(a => a.UserId == id).OrderByDescending(a => a.Revision).FirstOrDefaultAsync();
         if (previous?.Status is ApplicationStatus.Pending or ApplicationStatus.Approved) return RedirectToAction(nameof(Status));
         var today = DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime);
-        foreach (var item in input.Experience)
-            if (item.StartDate is null || item.StartDate < new DateOnly(1950, 1, 1) || item.StartDate > today
-                || item.EndDate > today || item.EndDate < item.StartDate)
-                ModelState.AddModelError(nameof(input.Experience), "Enter valid teaching dates, with the end on or after the start and no future dates.");
+        input.Experience ??= [];
+        for (var i = 0; i < input.Experience.Count; i++)
+        {
+            var item = input.Experience[i];
+            if (item.StartDate is null || item.StartDate < new DateOnly(1950, 1, 1) || item.StartDate > today)
+                ModelState.AddModelError($"Experience[{i}].StartDate", "Enter a start date between 1950 and today.");
+            if (item.EndDate > today || item.EndDate < item.StartDate)
+                ModelState.AddModelError($"Experience[{i}].EndDate", "Enter an end date on or after the start, and no later than today.");
+        }
         var days = ModelState.IsValid ? InstructorApplications.TeachingDays(input.Experience, today) : 0;
         if (ModelState.IsValid && days < InstructorApplications.MinimumDays(today))
             ModelState.AddModelError(nameof(input.Experience), "At least five years of relevant teaching experience is required. Overlapping dates count only once.");
@@ -62,9 +71,16 @@ public class EducationController(ApplicationDbContext db, InstructorApplications
             ExperienceJson = JsonSerializer.Serialize(input.Experience), SupportingInformation = input.SupportingInformation?.Trim() ?? "",
             SubmissionNote = input.SubmissionNote?.Trim() ?? "", EvidencePdf = evidence, EvidenceName = "teaching-evidence.pdf", TeachingDays = days,
             SubmittedUtc = clock.GetUtcNow().UtcDateTime });
-        try { await db.SaveChangesAsync(); }
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        try {
+            await db.SaveChangesAsync();
+            var submitted = await db.InstructorApplications.Where(a => a.UserId == id).OrderByDescending(a => a.Revision).Select(a => a.Id).FirstAsync();
+            await personalization.NotifyAdmins(submitted, input.FullName.Trim(), previous is not null);
+            await transaction.CommitAsync();
+        }
         catch (DbUpdateException)
         {
+            await transaction.RollbackAsync();
             db.ChangeTracker.Clear();
             if (await db.InstructorApplications.AnyAsync(a => a.UserId == id && a.Revision == (previous == null ? 1 : previous.Revision + 1)))
                 return RedirectToAction(nameof(Status));
@@ -79,7 +95,7 @@ public class EducationController(ApplicationDbContext db, InstructorApplications
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var applicationId = id ?? await db.InstructorApplications.Where(a => a.UserId == userId).OrderByDescending(a => a.Revision).Select(a => (long?)a.Id).FirstOrDefaultAsync();
-        if (applicationId is null) return RedirectToAction(nameof(Index));
+        if (applicationId is null) { TempData["Success"] = "You have not submitted an Instructor application yet."; return RedirectToAction(nameof(Apply)); }
         var model = await applications.Details(applicationId.Value);
         if (model is null || model.Application.UserId != userId) return NotFound();
         return View(model);

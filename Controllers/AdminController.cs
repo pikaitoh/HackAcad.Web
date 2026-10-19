@@ -12,7 +12,7 @@ namespace HackAcad.Web.Controllers;
 [Authorize(Roles = AccountRoles.Admin)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public partial class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
-    UserAccounts accounts, AccountRecords records, UserTimeZone userTime) : Controller
+    UserAccounts accounts, AccountRecords records, UserTimeZone userTime, Personalization personalization) : Controller
 {
     public async Task<IActionResult> Index() => View(new AdminOverviewModel
     {
@@ -89,6 +89,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
     {
         var course = await db.Courses.AsNoTracking().SingleOrDefaultAsync(c => c.CourseId == id);
         if (course is null) return NotFound();
+        ViewData["OriginalCourse"] = course;
         return View(new EditCourseModel { CourseId = id, Title = course.Title, Description = course.Description,
             Category = course.Category, IsPublished = course.IsPublished, Instructor = await InstructorName(course.InstructorId) });
     }
@@ -100,7 +101,19 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         if (course is null) return NotFound();
         input.CourseId = id;
         input.Instructor = await InstructorName(course.InstructorId);
+        ViewData["OriginalCourse"] = course;
         if (!ModelState.IsValid) return View(input);
+        static string? Optional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        input.Title = input.Title.Trim();
+        input.Description = Optional(input.Description);
+        input.Category = Optional(input.Category);
+        if (course.Title.Trim() == input.Title && Optional(course.Description) == input.Description
+            && Optional(course.Category) == input.Category && course.IsPublished == input.IsPublished)
+        {
+            ViewData["NoChanges"] = "No changes to save.";
+            return View(input);
+        }
+        await using var transaction = await db.Database.BeginTransactionAsync();
         var publicationChanged = course.IsPublished != input.IsPublished;
         course.Title = input.Title.Trim();
         course.Description = input.Description?.Trim();
@@ -109,6 +122,10 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         records.AddActivity(users.GetUserId(User)!, "Updated course", "Course", course.CourseId.ToString(), course.Title,
             publicationChanged ? (course.IsPublished ? "Course published" : "Course unpublished") : "Course details changed");
         await db.SaveChangesAsync();
+        if (publicationChanged && !course.IsPublished)
+            await personalization.Notify(course.InstructorId, $"course-unpublished:{id}:{Guid.NewGuid():N}", "Course unpublished by Admin",
+                $"{course.Title[..Math.Min(course.Title.Length, 300)]} is no longer published. Open Instructor Studio to review it.", $"/InstructorCourses/Edit/{id}");
+        await transaction.CommitAsync();
         TempData["Success"] = "Course details and publication status updated.";
         return RedirectToAction(nameof(Courses));
     }
@@ -117,7 +134,9 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
     public async Task<IActionResult> DeleteCourse(int id)
     {
         var course = await db.Courses.AsNoTracking().SingleOrDefaultAsync(c => c.CourseId == id);
-        return course is null ? NotFound() : View(course);
+        if (course is null) return NotFound();
+        ViewData["HasLearningData"] = await HasCourseLearningData(id);
+        return View(course);
     }
 
     [HttpPost, ActionName("DeleteCourse")]
@@ -125,8 +144,8 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
     {
         var course = await db.Courses.SingleOrDefaultAsync(c => c.CourseId == id);
         if (course is null) return NotFound();
-        var hasLearningData = await db.Enrollments.AnyAsync(e => e.CourseId == id)
-            || await db.ChallengeSubmissions.AnyAsync(s => db.Challenges.Any(c => c.ChallengeId == s.ChallengeId && c.CourseId == id));
+        var hasLearningData = await HasCourseLearningData(id);
+        ViewData["HasLearningData"] = hasLearningData;
         if (hasLearningData) ModelState.AddModelError("", "This course has learning records. Unpublish it to preserve students' work.");
         if (ModelState.IsValid)
         {
@@ -145,6 +164,9 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
 
     [HttpGet]
     public IActionResult Activity() => RedirectToAction(nameof(AuditLog), new { mine = true });
+
+    private async Task<bool> HasCourseLearningData(int id) => await db.Enrollments.AnyAsync(e => e.CourseId == id)
+        || await db.ChallengeSubmissions.AnyAsync(s => db.Challenges.Any(c => c.ChallengeId == s.ChallengeId && c.CourseId == id));
 
     private async Task<string> InstructorName(string id) => await db.Users.Where(u => u.Id == id).Select(u => u.DisplayName).FirstOrDefaultAsync() ?? "Unknown instructor";
 }

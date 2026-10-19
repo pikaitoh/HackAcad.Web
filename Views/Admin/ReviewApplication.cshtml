@@ -1,16 +1,37 @@
 @model ApplicationDetailsModel
-@{ ViewData["Title"] = "Review Instructor application"; }
-<div class="admin-content"><div class="page-heading"><div><h1>Review Instructor application</h1><p class="text-secondary">Approval requires all four eligibility checks, verified experience and a written explanation.</p></div><a asp-action="Applications">Back to applications</a></div>
-<div class="application-review-grid"><div><partial name="_ApplicationRecord" model="Model" /></div><section class="surface-panel application-review-form"><h2 class="h5">Record a decision</h2>
-@if (Model.IsLatest && Model.Application.Status == ApplicationStatus.Pending) {
-<form method="post" asp-action="ReviewApplication" asp-route-id="@Model.Application.Id"><div asp-validation-summary="All" class="validation-summary" role="alert"></div>
+@{
+    ViewData["Title"] = "Review Instructor application";
+    var canReview = Model.IsLatest && Model.Application.Status == ApplicationStatus.Pending;
+    var latest = Model.History.OrderByDescending(h => h.Revision).First();
+}
+<div class="admin-content application-review-page @(canReview ? "review-pending" : "review-closed")"><div class="page-heading"><div><h1>Review Instructor application</h1><p class="text-secondary">@(canReview ? "Approval requires all four eligibility checks, verified experience and a written explanation." : "Read the submitted evidence, decisions and revision history.")</p></div><a asp-action="Applications" class="btn btn-outline-secondary back-button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5m7-7-7 7 7 7" /></svg>Back to applications</a></div>
+@if (!canReview)
+{
+    <div class="application-review-status" role="status">
+    @if (!Model.IsLatest) {
+        <p>This is an earlier submission. A newer version is available.</p>
+        <a asp-action="ReviewApplication" asp-route-id="@latest.Id">View latest submission</a>
+    } else if (Model.Application.Status == ApplicationStatus.MoreInformation) {
+        <p>Waiting for the applicant to submit additional information.</p>
+    } else if (Model.Application.Status == ApplicationStatus.Rejected) {
+        <p>This application was rejected. The applicant may submit a revised application.</p>
+    } else if (Model.Application.Status == ApplicationStatus.Approved) {
+        <p>This application was approved. Instructor access has been granted.</p>
+    }
+    </div>
+}
+<div class="@(canReview ? "application-review-grid" : "application-review-record")"><div><partial name="_ApplicationRecord" model="Model" /></div>
+@if (canReview) {
+<section class="surface-panel application-review-form"><h2 class="h5">Record a decision</h2>
+<form method="post" data-validated-form novalidate asp-action="ReviewApplication" asp-route-id="@Model.Application.Id"><div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
 <p class="form-text">Verify relevant teaching experience and evidence. Optional qualifications and certificates are not extra mandatory conditions.</p>
 @foreach (var check in new[] { ("RelevantTeaching", "Teaching subjects are relevant to the proposed topics.", Model.Review.RelevantTeaching), ("ExperienceVerified", "At least five years of teaching has been verified; overlaps excluded.", Model.Review.ExperienceVerified), ("EvidenceVerified", "I checked the institution / appointment evidence and verification sources.", Model.Review.EvidenceVerified), ("DetailsConsistent", "The applicant's identity, dates and professional details are consistent.", Model.Review.DetailsConsistent) }) { <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="@check.Item1" name="@check.Item1" value="true" checked="@check.Item3" /><label class="form-check-label" for="@check.Item1">@check.Item2</label></div> }
-<div class="mb-3"><label class="form-label" for="VerifiedYears">Verified years of relevant teaching</label><input type="number" class="form-control" id="VerifiedYears" name="VerifiedYears" min="0" max="80" step="0.01" value="@Model.Review.VerifiedYears.ToString(System.Globalization.CultureInfo.InvariantCulture)" /><p class="form-text">Approval requires five or more verified years.</p></div>
-<div class="mb-3"><label class="form-label" for="VerificationNotes">Internal verification sources and findings</label><textarea class="form-control" id="VerificationNotes" name="VerificationNotes" rows="4" maxlength="2000">@Model.Review.VerificationNotes</textarea><p class="form-text">Required for approval. Record what you checked; this note is visible only to administrators.</p></div>
-<div class="mb-3"><label class="form-label" for="Decision">Decision</label><select class="form-select" id="Decision" name="Decision" required><option value="">Choose a decision</option>@foreach (var decision in InstructorApplications.Decisions) { <option value="@decision" selected="@(Model.Review.Decision == decision)">@decision</option> }</select></div>
-<div class="mb-3"><label class="form-label" for="ReasonCategory">Eligibility reason</label><select class="form-select" id="ReasonCategory" name="ReasonCategory" required><option value="">Choose a reason</option>@foreach (var reason in InstructorApplications.Categories) { <option value="@reason" selected="@(Model.Review.ReasonCategory == reason)">@reason</option> }</select></div>
-<div class="mb-3"><label class="form-label" for="Reason">Explanation visible to the applicant</label><textarea class="form-control" id="Reason" name="Reason" rows="4" required minlength="10" maxlength="1000">@Model.Review.Reason</textarea><p class="form-text">Explain the verified basis for approval, the missing information, or the specific eligibility requirement that was not met.</p></div>
+<div class="mb-3"><label class="form-label" for="VerifiedYears">Verified years of relevant teaching</label><input type="number" class="form-control" id="VerifiedYears" name="VerifiedYears" aria-describedby="VerifiedYears-error" data-val="true" min="0" max="80" step="0.01" value="@Model.Review.VerifiedYears.ToString(System.Globalization.CultureInfo.InvariantCulture)" /><span class="field-error" data-valmsg-for="VerifiedYears" id="VerifiedYears-error" aria-live="polite">@ViewData.ModelState["VerifiedYears"]?.Errors.FirstOrDefault()?.ErrorMessage</span><p class="form-text">Approval requires five or more verified years.</p></div>
+<div class="mb-3"><label class="form-label" for="VerificationNotes">Internal verification sources and findings</label><textarea class="form-control" id="VerificationNotes" name="VerificationNotes" aria-describedby="VerificationNotes-error" data-val="true" rows="4" maxlength="2000">@Model.Review.VerificationNotes</textarea><span class="field-error" data-valmsg-for="VerificationNotes" id="VerificationNotes-error" aria-live="polite">@ViewData.ModelState["VerificationNotes"]?.Errors.FirstOrDefault()?.ErrorMessage</span><p class="form-text">Required for approval. Record what you checked; this note is visible only to administrators.</p></div>
+<div class="mb-3"><label class="form-label" for="Decision">Decision <span class="required-mark" aria-hidden="true">*</span></label><select class="form-select" id="Decision" name="Decision" aria-describedby="Decision-error" data-val="true" required><option value="">Choose a decision</option>@foreach (var decision in InstructorApplications.Decisions) { <option value="@decision" selected="@(Model.Review.Decision == decision)">@decision</option> }</select><span class="field-error" data-valmsg-for="Decision" id="Decision-error" aria-live="polite">@ViewData.ModelState["Decision"]?.Errors.FirstOrDefault()?.ErrorMessage</span></div>
+<div class="mb-3"><label class="form-label" for="ReasonCategory">Eligibility reason <span class="required-mark" aria-hidden="true">*</span></label><select class="form-select" id="ReasonCategory" name="ReasonCategory" aria-describedby="ReasonCategory-error" data-val="true" required><option value="">Choose a reason</option>@foreach (var reason in InstructorApplications.Categories) { <option value="@reason" selected="@(Model.Review.ReasonCategory == reason)">@reason</option> }</select><span class="field-error" data-valmsg-for="ReasonCategory" id="ReasonCategory-error" aria-live="polite">@ViewData.ModelState["ReasonCategory"]?.Errors.FirstOrDefault()?.ErrorMessage</span></div>
+<div class="mb-3"><label class="form-label" for="Reason">Explanation visible to the applicant <span class="required-mark" aria-hidden="true">*</span></label><textarea class="form-control" id="Reason" name="Reason" aria-describedby="Reason-error" data-val="true" rows="4" required minlength="10" maxlength="1000">@Model.Review.Reason</textarea><span class="field-error" data-valmsg-for="Reason" id="Reason-error" aria-live="polite">@ViewData.ModelState["Reason"]?.Errors.FirstOrDefault()?.ErrorMessage</span><p class="form-text">Explain the verified basis for approval, the missing information, or the specific eligibility requirement that was not met.</p></div>
 <button class="btn btn-primary" type="submit">Record decision</button><p class="form-text mt-3 mb-0">Recorded decisions cannot be overwritten. Reconsideration requires a new applicant submission, preserving this review and its evidence.</p>
-</form> } else { <p class="text-secondary">This submission is closed or superseded. Its evidence and decision remain read-only.</p> }
-</section></div></div>
+</form></section>
+}
+</div></div>

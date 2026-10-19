@@ -17,7 +17,7 @@ namespace HackAcad.Web.Controllers;
 [Route("Identity/Account/[action]")]
 public partial class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     UserAccounts accounts, ApplicationDbContext db, EmailVerification verification, PhoneVerification phones,
-    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, TimeProvider clock, BadgeService badges) : Controller
+    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, TimeProvider clock, BadgeService badges, Personalization personalization) : Controller
 {
     [AllowAnonymous, HttpGet]
     public IActionResult Register() => User.Identity?.IsAuthenticated == true ? RedirectToAction(nameof(Dashboard)) : View(new RegisterModel());
@@ -248,6 +248,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         input.JoinedDate = user.JoinedDate;
         input.HasAvatar = user.AvatarImage is not null;
         input.EmailConfirmed = user.EmailConfirmed;
+        var profileData = await ProfileData(user); input.Banners = profileData.Banners; input.BannerKey = profileData.BannerKey;
         if (!ModelState.IsValid) return View(input);
         user.DisplayName = input.DisplayName.Trim();
         user.FullName = input.FullName;
@@ -258,12 +259,18 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         return RedirectToAction(nameof(Profile));
     }
 
-    private async Task<ProfileModel> ProfileData(ApplicationUser user) => new()
+    private async Task<ProfileModel> ProfileData(ApplicationUser user)
+    {
+        await personalization.SyncRewards(user.Id);
+        var choices = await personalization.Banners(user.Id, await db.Students.AnyAsync(s => s.UserId == user.Id));
+        return new ProfileModel
     {
         DisplayName = user.DisplayName, FullName = user.FullName, Email = user.Email ?? "", JoinedDate = user.JoinedDate,
         HasAvatar = user.AvatarImage is not null, EmailConfirmed = user.EmailConfirmed,
+        Banners = choices, BannerKey = choices.Any(c => c.Key == user.BannerKey && c.Unlocked) ? user.BannerKey : "foundation",
         Role = await accounts.Query().Where(u => u.Id == user.Id).Select(u => u.Role).SingleAsync()
     };
+    }
 
     [HttpGet]
     public async Task<IActionResult> Avatar()

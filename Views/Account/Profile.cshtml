@@ -1,9 +1,12 @@
 @model ProfileModel
-@{ ViewData["Title"] = "My profile"; ViewData["AccountArea"] = "profile"; }
-<div class="container module-shell">
+@{ ViewData["Title"] = "My profile"; ViewData["AccountArea"] = "profile"; ViewData["StatusMessageHandled"] = true; }
+<div class="container module-shell profile-shell">
+    <partial name="_StatusMessage" />
     <div class="page-heading"><div><h1>My profile</h1><p class="text-secondary">Manage your picture, username and full name.</p></div></div>
+    @{ var selected = Model.Banners.FirstOrDefault(b => b.Key == Model.BannerKey && b.Unlocked); }
+    <section class="profile-cover banner-art banner-@(selected?.Theme ?? "foundation")" aria-label="Selected profile banner"><div><strong>@Model.DisplayName</strong><span>@Model.Role · @(selected?.Title ?? "Foundation")</span></div></section>
     <div class="profile-layout">
-        <section aria-labelledby="picture-title">
+        <section class="surface-panel picture-panel" aria-labelledby="picture-title">
             <div class="profile-photo">
                 @if (Model.HasAvatar) { <img class="profile-avatar" src="@Url.Action("Avatar")" width="112" height="112" alt="Your profile picture" /> }
                 else { <span class="profile-avatar avatar-initial" aria-hidden="true">@(string.IsNullOrWhiteSpace(Model.DisplayName) ? "H" : System.Globalization.StringInfo.GetNextTextElement(Model.DisplayName).ToUpperInvariant())</span> }
@@ -42,4 +45,13 @@
             </form>
         </section>
     </div>
+    <section id="profile-banners" class="profile-banners" aria-labelledby="banner-heading"><h2 id="banner-heading">Profile banners</h2><p class="text-secondary">Choose a design. Course rewards unlock after you complete every required learning activity.</p>
+    <div class="banner-choices">
+    @foreach (var banner in Model.Banners) {
+        <article class="banner-choice @(banner.Key == Model.BannerKey ? "selected" : "")"><div class="banner-art banner-@banner.Theme" aria-hidden="true"></div><div class="banner-choice-body"><h3>@banner.Title</h3><p class="form-text">@banner.Requirement</p>
+        @if (!banner.Unlocked) { <span class="banner-locked">Locked</span> }
+        else if (banner.Key == Model.BannerKey) { <span class="banner-selected">Selected</span> }
+        else { <form asp-controller="Preferences" asp-action="Banner" method="post"><input type="hidden" name="key" value="@banner.Key" /><button type="submit" class="btn btn-outline-secondary btn-sm">Use banner</button></form> }
+        </div></article>
+    }</div></section>
 </div>

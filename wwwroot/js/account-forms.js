@@ -1,57 +1,79 @@
-// Read Razor's server-generated validation rules; show one message beside each field.
-// Without JavaScript, native constraints and server validation still apply.
-document.querySelectorAll('form[data-account-form], form[data-validated-form]').forEach(form => {
-    const fields = [...form.querySelectorAll('input[data-val="true"], select[data-val="true"], textarea[data-val="true"]')]
-        .filter(field => field.type !== 'hidden' && field.type !== 'checkbox');
-    form.noValidate = true;
-
-    const messageFor = field => {
+// Share Razor's validation rules, including dynamically added application rows.
+(() => {
+    const fields = form => [...form.querySelectorAll('input,select,textarea')].filter(f => f.type !== 'hidden' && f.type !== 'submit' && !f.disabled && (f.dataset.val === 'true' || f.required));
+    const messageFor = (field, form) => {
         const value = field.hasAttribute('data-trim') ? field.value.trim() : field.value;
         const rules = field.dataset;
-        if (!value) return rules.valRequired || '';
-        if (field.type === 'file' && field.files[0]?.size > Number(field.dataset.fileMaxSize))
-            return 'Choose an image up to 2 MB.';
+        if (field.type === 'checkbox') return field.required && !field.checked ? rules.valRange || rules.valRequired || 'Please confirm this declaration.' : '';
+        if (!value) return rules.valRequired || (field.required ? 'Please complete this field.' : '');
+        if (field.type === 'file') {
+            if (field.files[0]?.size > Number(rules.fileMaxSize)) return rules.fileKind === 'pdf' ? 'Upload a PDF up to 5 MB.' : 'Choose an image up to 2 MB.';
+            if (rules.fileKind === 'pdf' && !/\.pdf$/i.test(field.files[0]?.name || '')) return 'Upload a PDF document.';
+        }
+        if (rules.valEmaildomainMap && value.includes('@')) {
+            const domain = value.slice(value.lastIndexOf('@') + 1).toLowerCase();
+            const suggestion = JSON.parse(rules.valEmaildomainMap)[domain];
+            if (suggestion) return rules.valEmaildomain.replace('{0}', suggestion);
+        }
         if (rules.valMatchValue !== undefined && value.toLowerCase() !== rules.valMatchValue.toLowerCase()) return rules.valMatch;
-        if (field.validity.typeMismatch) return rules.valEmail || 'Enter a valid email address.';
-        if ((rules.valLengthMin && value.length < Number(rules.valLengthMin)) ||
-            (rules.valLengthMax && value.length > Number(rules.valLengthMax))) return rules.valLength;
+        if (field.validity.typeMismatch || (rules.valEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value))) return rules.valEmail || 'Please enter a valid email address.';
+        const min = Number(rules.valLengthMin || field.getAttribute('minlength') || 0);
+        const max = Number(rules.valLengthMax || field.getAttribute('maxlength') || Infinity);
+        if (value.length < min || value.length > max) return rules.valLength || `Use between ${min} and ${max} characters.`;
+        if (field.type === 'date' && (field.validity.rangeUnderflow || field.validity.rangeOverflow || field.validity.badInput)) return 'Enter a date between 1950 and today.';
+        if (field.name.endsWith('.EndDate')) {
+            const start = form.elements.namedItem(field.name.replace('.EndDate', '.StartDate'))?.value;
+            if (start && value < start) return 'End date must be on or after the start date.';
+        }
         if (rules.valRegexPattern && !new RegExp(rules.valRegexPattern, 'u').test(value)) return rules.valRegex;
         const other = rules.valEqualtoOther?.replace(/^\*\./, '');
         if (other && value !== form.elements.namedItem(other)?.value) return rules.valEqualto;
         return '';
     };
-    const validate = field => {
-        const message = messageFor(field);
-        const error = form.querySelector('[data-valmsg-for="' + field.name + '"]');
+    const validate = (field, form) => {
+        const message = messageFor(field, form);
+        const error = [...form.querySelectorAll('[data-valmsg-for]')].find(e => e.dataset.valmsgFor === field.name);
         if (error) {
             error.textContent = message;
-            error.classList.toggle('field-validation-error', Boolean(message));
+            error.classList.toggle('field-validation-error', !!message);
             error.classList.toggle('field-validation-valid', !message);
         }
         field.setAttribute('aria-invalid', message ? 'true' : 'false');
-        field.classList.toggle('input-validation-error', Boolean(message));
+        field.classList.toggle('input-validation-error', !!message);
         return !message;
     };
-    fields.forEach(field => {
-        field.addEventListener('blur', () => {
-            if (field.hasAttribute('data-trim')) field.value = field.value.trim();
-            if (field.value || field.getAttribute('aria-invalid') === 'true') validate(field);
-        });
-        field.addEventListener('input', () => {
-            if (field.getAttribute('aria-invalid') === 'true') validate(field);
-            fields.filter(other => other.dataset.valEqualtoOther?.endsWith('.' + field.name) &&
-                other.getAttribute('aria-invalid') === 'true').forEach(validate);
-        });
-    });
-    form.addEventListener('submit', event => {
-        fields.filter(field => field.hasAttribute('data-trim')).forEach(field => field.value = field.value.trim());
-        const invalid = fields.filter(field => !validate(field));
-        if (invalid.length) {
-            event.preventDefault();
-            invalid[0].focus();
+    document.querySelectorAll('form[data-account-form],form[data-validated-form]').forEach(form => {
+        form.noValidate = true;
+        if (form.dataset.originalValues) {
+            const original = JSON.parse(form.dataset.originalValues);
+            const save = form.querySelector('button[type="submit"]');
+            const updateSave = () => {
+                save.disabled = Object.entries(original).every(([name, value]) => {
+                    const field = [...form.elements].find(f => f.name === name && f.type !== 'hidden');
+                    return field.type === 'checkbox' ? field.checked === value : field.value.trim() === (value ?? '').trim();
+                });
+            };
+            form.addEventListener('input', updateSave); form.addEventListener('change', updateSave);
+            form.addEventListener('reset', () => queueMicrotask(updateSave));
+            updateSave();
         }
+        form.addEventListener('blur', event => {
+            if (!fields(form).includes(event.target)) return;
+            if (event.target.hasAttribute('data-trim')) event.target.value = event.target.value.trim();
+            validate(event.target, form);
+        }, true);
+        const changed = event => {
+            if (!fields(form).includes(event.target)) return;
+            if (event.target.getAttribute('aria-invalid') === 'true') validate(event.target, form);
+            fields(form).filter(other => other.getAttribute('aria-invalid') === 'true' && (other.dataset.valEqualtoOther?.endsWith('.' + event.target.name) || other.name.endsWith('.EndDate'))).forEach(other => validate(other, form));
+        };
+        form.addEventListener('input', changed); form.addEventListener('change', changed);
+        form.addEventListener('submit', event => {
+            fields(form).filter(f => f.hasAttribute('data-trim') && f.type !== 'file').forEach(f => f.value = f.value.trim());
+            const invalid = fields(form).filter(f => !validate(f, form));
+            if (invalid.length) { event.preventDefault(); invalid[0].focus(); }
+        });
     });
-});
-
-const invalidField = document.querySelector('[aria-invalid="true"]');
-if (invalidField) invalidField.focus();
+    const invalid = document.querySelector('[aria-invalid="true"], .input-validation-error');
+    if (invalid) invalid.focus();
+})();

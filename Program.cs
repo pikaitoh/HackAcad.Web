@@ -84,6 +84,7 @@ builder.Services.AddScoped<AccountRecords>();
 builder.Services.AddScoped<AccountSessions>();
 builder.Services.AddScoped<BadgeService>();
 builder.Services.AddScoped<InstructorApplications>();
+ builder.Services.AddScoped<Personalization>();
 builder.Services.AddSingleton<PhoneVerification>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHttpClient("twilio-verify", client => client.Timeout = TimeSpan.FromSeconds(20));
