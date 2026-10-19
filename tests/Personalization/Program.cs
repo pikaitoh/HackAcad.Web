@@ -81,12 +81,23 @@ try
   var typo=await Submit(s,email:"applicant@"+domain);var body=await typo.Content.ReadAsStringAsync();
   Check(typo.StatusCode==HttpStatusCode.OK&&body.Contains("Did you mean gmail.com?"),"email typo produces an inline suggestion: "+domain);
  }
- foreach(var email in new[]{"applicant@university.edu.my","applicant@gmail.com","applicant@department.ac.uk"})
+ foreach(var (typoDomain,expected) in new[]{("yahoo.c","yahoo.com"),("OUTLOOK.CON","outlook.com"),("hotmail.cmo","hotmail.com"),("live.cm","live.com"),("icloud.c","icloud.com"),("me.con","me.com"),("mac.cmo","mac.com"),("proton.m","proton.me"),("protonmail.c","protonmail.com"),("aol.con","aol.com"),("qq.c","qq.com"),("163.c","163.com"),("126.c","126.com")})
+ {
+  var model=new InstructorApplicationInput{WorkEmail="applicant@"+typoDomain};var results=new List<System.ComponentModel.DataAnnotations.ValidationResult>();
+  Check(!System.ComponentModel.DataAnnotations.Validator.TryValidateProperty(model.WorkEmail,new System.ComponentModel.DataAnnotations.ValidationContext(model){MemberName="WorkEmail"},results)&&results.Any(r=>r.ErrorMessage=="Did you mean "+expected+"? Check your email domain."),"known provider typo is rejected with its correction: "+typoDomain);
+ }
+ var yahooTypo=await Submit(s,email:"applicant@yahoo.c");var yahooBody=await yahooTypo.Content.ReadAsStringAsync();
+ Check(yahooTypo.StatusCode==HttpStatusCode.OK&&yahooBody.Contains("Did you mean yahoo.com?"),"Yahoo typo is rejected by the submission endpoint");
+ using(var scope=factory.Services.CreateScope())Check(!await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().InstructorApplications.AnyAsync(x=>x.UserId==student.Id),"email typo failures do not create any submissions");
+ foreach(var email in new[]{"applicant@university.edu.my","applicant@gmail.com","applicant@department.ac.uk","applicant@yahoo.com","applicant@company.co","applicant@subdomain.company.com","applicant@proton.me","applicant@protonmail.com","applicant@icloud.com","applicant@qq.com","applicant@163.com","applicant@126.com","applicant@yahoo.co.uk"})
  {
   var model=new InstructorApplicationInput{WorkEmail=email};var results=new List<System.ComponentModel.DataAnnotations.ValidationResult>();
   Check(System.ComponentModel.DataAnnotations.Validator.TryValidateProperty(model.WorkEmail,new System.ComponentModel.DataAnnotations.ValidationContext(model){MemberName="WorkEmail"},results),"email suggestions preserve valid provider and institutional domains: "+email);
  }
  Check(apply.Contains("data-val-emaildomain-map"),"server email-domain rules are also rendered for client validation");
+ var emailRules=System.Text.Json.JsonSerializer.Deserialize<Dictionary<string,string>>(WebUtility.HtmlDecode(Regex.Match(apply,"data-val-emaildomain-map=\"([^\"]+)\"").Groups[1].Value))!;
+ Check(emailRules["yahoo.c"]=="yahoo.com"&&emailRules["outlook.c"]=="outlook.com"&&emailRules["icloud.c"]=="icloud.com"&&emailRules["proton.m"]=="proton.me","rendered client rules share the expanded server typo corrections");
+ Check(Regex.Match(apply,"<a[^>]*>Back to For Education</a>").Value.Contains("class=\"btn btn-outline-secondary\""),"application return action uses an outline button");
  var ownDetails=await a.GetStringAsync("/Admin/UserDetails/"+admin.Id);
  Check(ownDetails.Contains("user-details-self")&&!ownDetails.Contains("<h2 class=\"h5\">Account access</h2>")&&ownDetails.Contains("You cannot change your own account access."),"own Admin details use one read-only card");
  Check((await a.GetStringAsync("/Notifications")).Contains("notifications-content"),"notifications heading and list share one centered wrapper");
@@ -190,6 +201,17 @@ try
  await Post(a,"/Admin/ReviewApplication/"+applicationId,Review(ApplicationStatus.MoreInformation,false));
  var closedReview=await a.GetStringAsync("/Admin/ReviewApplication/"+applicationId);
  Check(closedReview.Contains("review-closed")&&!closedReview.Contains("name=\"Decision\"")&&closedReview.Contains("Waiting for the applicant"),"reviewed application uses a single-column record and a precise waiting message");
+ var adminReview=await a.GetStringAsync("/Admin/ReviewApplication/"+applicationId);
+ Check(adminReview.Contains("<details class=\"verification-details\">")&&!adminReview.Contains("<details class=\"verification-details\" open"),"Admin verification is a collapsed native disclosure");
+ Check(adminReview.Contains("<dt>Reason</dt>")&&adminReview.Contains("<dt>Explanation</dt>")&&adminReview.Contains("Reviewed by"),"review reason, explanation and reviewer are clearly labeled");
+ Check(adminReview.Contains("Not confirmed")&&!adminReview.Contains("Relevant field: False")&&!adminReview.Contains("Experience verified: False"),"verification results use readable labeled rows instead of raw booleans");
+ var studentReview=await s.GetStringAsync("/Education/Status");
+ Check(!studentReview.Contains("verification-details")&&!studentReview.Contains("Verification notes"),"Student review never includes Admin-only verification content");
+ using(var scope=factory.Services.CreateScope())
+ {
+  var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();var r=await db.InstructorReviews.SingleAsync(x=>x.ApplicationId==applicationId);r.VerificationNotes="";await db.SaveChangesAsync();
+ }
+ Check(!(await a.GetStringAsync("/Admin/ReviewApplication/"+applicationId)).Contains("<h4 class=\"h6\">Verification notes</h4>"),"empty internal notes omit the notes heading");
  await Submit(s,note:"Additional teaching evidence supplied.");var revised=await Latest(student.Id);
  Check(revised!=applicationId&&(await a.GetStringAsync("/Admin/ReviewApplication/"+applicationId)).Contains("View latest submission"),"older reviews link to the new submission after resubmission");
  var history=await s.GetStringAsync("/Education/Status");

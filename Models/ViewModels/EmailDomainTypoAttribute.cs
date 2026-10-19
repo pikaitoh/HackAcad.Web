@@ -8,12 +8,27 @@ namespace HackAcad.Web.Models.ViewModels;
 [AttributeUsage(AttributeTargets.Property)]
 public sealed class EmailDomainTypoAttribute : ValidationAttribute, IClientModelValidator
 {
-    private static readonly Dictionary<string, string> Suggestions = new(StringComparer.OrdinalIgnoreCase)
+    private static readonly Dictionary<string, string> Suggestions = CreateSuggestions();
+
+    private static Dictionary<string, string> CreateSuggestions()
     {
-        ["gmail.c"] = "gmail.com", ["gmail.co"] = "gmail.com", ["gmail.con"] = "gmail.com",
-        ["gmail.cmo"] = "gmail.com", ["gmial.com"] = "gmail.com", ["gmai.com"] = "gmail.com",
-        ["hotmail.con"] = "hotmail.com", ["outlook.con"] = "outlook.com", ["yahoo.con"] = "yahoo.com"
-    };
+        var suggestions = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var domain in new[] { "gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com",
+            "icloud.com", "me.com", "mac.com", "protonmail.com", "aol.com", "qq.com", "163.com", "126.com" })
+        {
+            var provider = domain[..domain.LastIndexOf('.')];
+            foreach (var suffix in new[] { "c", "con", "cmo", "cm" }) suggestions[$"{provider}.{suffix}"] = domain;
+        }
+        // Match exact known mistakes only; .co and country-specific domains remain supported.
+        suggestions["gmail.co"] = "gmail.com";
+        suggestions["gmial.com"] = "gmail.com";
+        suggestions["gmai.com"] = "gmail.com";
+        suggestions["yaho.com"] = "yahoo.com";
+        suggestions["hotmial.com"] = "hotmail.com";
+        suggestions["outlok.com"] = "outlook.com";
+        foreach (var suffix in new[] { "m", "em", "mee" }) suggestions[$"proton.{suffix}"] = "proton.me";
+        return suggestions;
+    }
     private const string Message = "Did you mean {0}? Check your email domain.";
 
     protected override ValidationResult? IsValid(object? value, ValidationContext context)

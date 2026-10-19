@@ -6,11 +6,37 @@
 @if (!string.IsNullOrWhiteSpace(Model.Application.SupportingInformation)) { <h3 class="h6 mt-4">Supporting information</h3><p class="preserve-lines">@Model.Application.SupportingInformation</p> }
 @if (!string.IsNullOrWhiteSpace(Model.Application.SubmissionNote)) { <h3 class="h6 mt-4">Response to previous review</h3><p class="preserve-lines">@Model.Application.SubmissionNote</p> }
 </section>
-<section class="surface-panel mb-4"><h2 class="h5">Review history</h2>
-@if (Model.Reviews.Count == 0) { <p class="text-secondary mb-0">Awaiting administrator review. Your account remains Student while this application is pending.</p> }
-@foreach (var review in Model.Reviews) { <article class="application-role"><div class="review-entry-heading"><h3 class="h6">Submission @Model.History.First(h => h.Id == review.ApplicationId).Revision review</h3><partial name="_ApplicationStatus" model="review.Decision" /></div><p class="form-text">@review.ReasonCategory</p><p class="preserve-lines">@review.Reason</p><span class="record-secondary">@review.ReviewerName · @UserTime.Format(review.ReviewedUtc, "dd MMM yyyy, HH:mm:ss") · @UserTime.Id</span>
-@if (User.IsInRole(AccountRoles.Admin)) { <p class="mt-2 mb-0 preserve-lines"><strong>Internal verification:</strong> @review.VerificationNotes</p><p class="form-text">Verified years: @review.VerifiedYears · Relevant field: @review.RelevantTeaching · Experience verified: @review.ExperienceVerified · Evidence verified: @review.EvidenceVerified · Details consistent: @review.DetailsConsistent</p> }
-</article> }
+<section class="surface-panel review-history mb-4"><h2 class="h5">Review history</h2>
+@if (Model.Reviews.Count == 0) {
+    <p class="text-secondary mb-0">Awaiting administrator review. Your account remains Student while this application is pending.</p>
+} else {
+    <p class="form-text review-time-zone">Times shown in @UserTime.Id.</p>
+}
+@foreach (var review in Model.Reviews) {
+    <article class="application-role review-entry">
+        <div class="review-entry-heading"><h3 class="h6">Submission @Model.History.First(h => h.Id == review.ApplicationId).Revision review</h3><partial name="_ApplicationStatus" model="review.Decision" /></div>
+        <dl class="review-decision-details">
+            <div><dt>Reason</dt><dd>@review.ReasonCategory</dd></div>
+            <div><dt>Explanation</dt><dd class="preserve-lines">@review.Reason</dd></div>
+        </dl>
+        <p class="review-meta">Reviewed by @review.ReviewerName · <time datetime="@review.ReviewedUtc.ToString("yyyy-MM-ddTHH:mm:ss'Z'")">@UserTime.Format(review.ReviewedUtc, "dd MMM yyyy, HH:mm:ss")</time></p>
+        @if (User.IsInRole(AccountRoles.Admin)) {
+            <details class="verification-details">
+                <summary>Verification details</summary>
+                <dl class="verification-checks">
+                    <div><dt>Verified teaching experience</dt><dd>@review.VerifiedYears.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture) years</dd></div>
+                    <div><dt>Relevant teaching subjects</dt><dd>@(review.RelevantTeaching ? "Confirmed" : "Not confirmed")</dd></div>
+                    <div><dt>Five years of teaching verified</dt><dd>@(review.ExperienceVerified ? "Confirmed" : "Not confirmed")</dd></div>
+                    <div><dt>Teaching evidence verified</dt><dd>@(review.EvidenceVerified ? "Confirmed" : "Not confirmed")</dd></div>
+                    <div><dt>Applicant details consistent</dt><dd>@(review.DetailsConsistent ? "Confirmed" : "Not confirmed")</dd></div>
+                </dl>
+                @if (!string.IsNullOrWhiteSpace(review.VerificationNotes)) {
+                    <div class="verification-notes"><h4 class="h6">Verification notes</h4><p class="preserve-lines">@review.VerificationNotes</p></div>
+                }
+            </details>
+        }
+    </article>
+}
 </section>
 <section class="surface-panel"><h2 class="h5">Submission history</h2>
 <table class="submission-history-table"><caption class="visually-hidden">Application submissions, newest first. Times shown in @UserTime.Id.</caption><thead><tr><th scope="col">Submission</th><th scope="col">Submitted on</th><th scope="col">Status</th></tr></thead><tbody>

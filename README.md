@@ -261,3 +261,9 @@ Application full names require letters and allow Unicode name letters/marks, spa
 - Application status colors are shared across Admin, Student, review history and submissions: Pending blue, Needs more information orange, Approved green, Rejected red. Submission history labels the latest version and separates date/status columns.
 - Instructor application email validation suggests corrections for known common provider typos (for example `gmail.c`), without rewriting the input or restricting institutional domains. This does not verify mailbox ownership.
 - Review course enables Save only when values differ from persisted values. The server compares trimmed values and treats empty optional fields consistently; unchanged requests return “No changes to save.” without mutation, update audit entries or notifications.
+
+
+### Review history presentation and email typo coverage
+- Review records label Reason and Explanation, followed by reviewer/time. The review section states the timezone once. Admin-only verification uses a collapsed native disclosure with labeled Confirmed / Not confirmed rows; empty notes have no heading. No verification details are rendered for Students.
+- Submission history aligns Submission left, Submitted on center, and Status right, including headers. Back to For Education uses the secondary outline button beside Submit application.
+- Application email checks share one server-generated correction map with the browser. Common `.c`, `.con`, `.cmo` and `.cm` mistakes are covered for Gmail, Yahoo, Microsoft, Apple, Proton Mail, AOL, QQ and NetEase; Proton `.me` mistakes are also covered. Matching is case-insensitive and does not rewrite addresses, enforce a provider allowlist, or verify mailbox ownership. Institution, company, country and `.co` domains remain supported except the specific existing `gmail.co` typo rule.
