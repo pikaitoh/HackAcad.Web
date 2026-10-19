@@ -15,7 +15,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     // AspNetRoles/AspNetUserRoles still exist (from IdentityDbContext) but are
     // intentionally left unused. See Database_Schema.md v3.0.
     public DbSet<Student> Students => Set<Student>();
-    public DbSet<Teacher> Teachers => Set<Teacher>();
+    public DbSet<Instructor> Instructors => Set<Instructor>();
     public DbSet<Admin> Admins => Set<Admin>();
 
     public DbSet<Course> Courses => Set<Course>();
@@ -28,6 +28,8 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<LoginRecord> LoginRecords => Set<LoginRecord>();
     public DbSet<AdminActivity> AdminActivities => Set<AdminActivity>();
     public DbSet<AccountSession> AccountSessions => Set<AccountSession>();
+    public DbSet<InstructorApplication> InstructorApplications => Set<InstructorApplication>();
+    public DbSet<InstructorReview> InstructorReviews => Set<InstructorReview>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -45,6 +47,14 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         // Keep the audit entry when its actor/target is removed; only the actor relation is cleared.
         builder.Entity<AdminActivity>().HasOne<ApplicationUser>().WithMany().HasForeignKey(r => r.ActorUserId).OnDelete(DeleteBehavior.SetNull);
 
+        builder.Entity<InstructorApplication>().HasIndex(a => new { a.UserId, a.Revision }).IsUnique();
+        builder.Entity<InstructorApplication>().HasIndex(a => new { a.Status, a.SubmittedUtc });
+        builder.Entity<InstructorApplication>().Property(a => a.Status).IsConcurrencyToken();
+        builder.Entity<InstructorApplication>().HasOne<ApplicationUser>().WithMany().HasForeignKey(a => a.UserId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<InstructorReview>().HasIndex(r => r.ApplicationId).IsUnique();
+        builder.Entity<InstructorReview>().Property(r => r.VerifiedYears).HasPrecision(5, 2);
+        builder.Entity<InstructorReview>().HasOne<InstructorApplication>().WithMany().HasForeignKey(r => r.ApplicationId).OnDelete(DeleteBehavior.Restrict);
+
         // --- Role tables: UserId is PK and FK to AspNetUsers in one step ---
         builder.Entity<Student>()
             .HasOne(s => s.User)
@@ -52,7 +62,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(s => s.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.Entity<Teacher>()
+        builder.Entity<Instructor>()
             .HasOne(t => t.User)
             .WithMany()
             .HasForeignKey(t => t.UserId)
@@ -64,11 +74,11 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(a => a.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // --- Courses: TeacherId points at Teachers, not AspNetUsers directly ---
+        // --- Courses: InstructorId points at Instructors, not AspNetUsers directly ---
         builder.Entity<Course>()
-            .HasOne<Teacher>()
+            .HasOne<Instructor>()
             .WithMany()
-            .HasForeignKey(c => c.TeacherId)
+            .HasForeignKey(c => c.InstructorId)
             .HasPrincipalKey(t => t.UserId)
             .OnDelete(DeleteBehavior.Restrict);
 

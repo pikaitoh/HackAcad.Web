@@ -11,25 +11,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HackAcad.Web.Controllers;
 
-[Authorize(Roles = AccountRoles.Teacher)]
-public class TeacherCoursesController(
+[Authorize(Roles = AccountRoles.Instructor)]
+public class InstructorCoursesController(
     ApplicationDbContext db,
     IWebHostEnvironment environment) : Controller
 {
     // ==========================================
-    // 1. TEACHER STUDIO DASHBOARD
+    // 1. INSTRUCTOR STUDIO DASHBOARD
     // ==========================================
     [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
         var courses = await db.Courses
-            .Where(c => c.TeacherId == teacherId)
+            .Where(c => c.InstructorId == instructorId)
             .OrderByDescending(c => c.CreatedDate)
             .ToListAsync();
 
-        var rows = new List<TeacherCourseRow>();
+        var rows = new List<InstructorCourseRow>();
         var totalStudents = 0;
         var totalSubmissions = 0;
 
@@ -53,7 +53,7 @@ public class TeacherCoursesController(
             totalStudents += enrolledCount;
             totalSubmissions += submissionsInCourse;
 
-            rows.Add(new TeacherCourseRow
+            rows.Add(new InstructorCourseRow
             {
                 Course = c,
                 LessonCount = lessonCount,
@@ -64,7 +64,7 @@ public class TeacherCoursesController(
             });
         }
 
-        var model = new TeacherDashboardViewModel
+        var model = new InstructorDashboardViewModel
         {
             Courses = rows,
             TotalStudentsEnrolled = totalStudents,
@@ -93,7 +93,7 @@ public class TeacherCoursesController(
     {
         if (!ModelState.IsValid) return View(model);
 
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
         var course = new Course
         {
@@ -102,7 +102,7 @@ public class TeacherCoursesController(
             Category = model.Category?.Trim(),
             ThumbnailUrl = model.ThumbnailUrl?.Trim(),
             IsPublished = model.IsPublished,
-            TeacherId = teacherId,
+            InstructorId = instructorId,
             CreatedDate = DateTime.UtcNow
         };
 
@@ -119,8 +119,8 @@ public class TeacherCoursesController(
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == id && c.TeacherId == teacherId);
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == id && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found or you do not own it.");
 
         var model = new CourseCreateEditModel
@@ -142,8 +142,8 @@ public class TeacherCoursesController(
     {
         if (!ModelState.IsValid) return View(model);
 
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.TeacherId == teacherId);
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found or you do not own it.");
 
         course.Title = model.Title.Trim();
@@ -163,8 +163,8 @@ public class TeacherCoursesController(
     [HttpGet]
     public async Task<IActionResult> Curriculum(int id)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == id && c.TeacherId == teacherId);
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == id && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found or you do not own it.");
 
         var lessons = await db.Lessons.Where(l => l.CourseId == id).OrderBy(l => l.OrderIndex).ToListAsync();
@@ -223,8 +223,8 @@ public class TeacherCoursesController(
     [HttpGet]
     public async Task<IActionResult> AddLesson(int courseId)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == courseId && c.TeacherId == teacherId);
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == courseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found.");
 
         var nextOrder = await db.Lessons.Where(l => l.CourseId == courseId).CountAsync() + 1;
@@ -239,11 +239,11 @@ public class TeacherCoursesController(
     [HttpGet]
     public async Task<IActionResult> EditLesson(int id)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var lesson = await db.Lessons.FindAsync(id);
         if (lesson == null) return NotFound("Lesson not found.");
 
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == lesson.CourseId && c.TeacherId == teacherId);
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == lesson.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("You do not own this course.");
 
         return View("LessonForm", new LessonCreateEditModel
@@ -261,8 +261,8 @@ public class TeacherCoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveLesson(LessonCreateEditModel model)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.TeacherId == teacherId);
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found.");
 
         if (!ModelState.IsValid) return View("LessonForm", model);
@@ -300,11 +300,11 @@ public class TeacherCoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteLesson(int id)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var lesson = await db.Lessons.FindAsync(id);
         if (lesson == null) return NotFound("Lesson not found.");
 
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == lesson.CourseId && c.TeacherId == teacherId);
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == lesson.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("You do not own this course.");
 
         var courseId = lesson.CourseId;
@@ -334,8 +334,8 @@ public class TeacherCoursesController(
     [HttpGet]
     public async Task<IActionResult> AddChallenge(int courseId)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == courseId && c.TeacherId == teacherId);
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == courseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found.");
 
         return View("ChallengeForm", new ChallengeCreateEditModel
@@ -351,11 +351,11 @@ public class TeacherCoursesController(
     [HttpGet]
     public async Task<IActionResult> EditChallenge(int id)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var challenge = await db.Challenges.FindAsync(id);
         if (challenge == null) return NotFound("Challenge not found.");
 
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == challenge.CourseId && c.TeacherId == teacherId);
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == challenge.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("You do not own this course.");
 
         return View("ChallengeForm", new ChallengeCreateEditModel
@@ -376,8 +376,8 @@ public class TeacherCoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveChallenge(ChallengeCreateEditModel model)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.TeacherId == teacherId);
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found.");
 
         var existingChallenge = model.ChallengeId == 0 ? null : await db.Challenges.FindAsync(model.ChallengeId);
@@ -452,11 +452,11 @@ public class TeacherCoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteChallenge(int id)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var challenge = await db.Challenges.FindAsync(id);
         if (challenge == null) return NotFound("Challenge not found.");
 
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == challenge.CourseId && c.TeacherId == teacherId);
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == challenge.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("You do not own this course.");
 
         var courseId = challenge.CourseId;
@@ -486,8 +486,8 @@ public class TeacherCoursesController(
     [HttpGet]
     public async Task<IActionResult> AddSimulation(int courseId)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == courseId && c.TeacherId == teacherId);
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == courseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found.");
 
         // Supply a default ready-to-run Linux lab template
@@ -527,11 +527,11 @@ public class TeacherCoursesController(
     [HttpGet]
     public async Task<IActionResult> EditSimulation(int id)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var task = await db.SimulationTasks.FindAsync(id);
         if (task == null) return NotFound("Simulation task not found.");
 
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == task.CourseId && c.TeacherId == teacherId);
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == task.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("You do not own this course.");
 
         return View("SimulationForm", new SimulationCreateEditModel
@@ -550,8 +550,8 @@ public class TeacherCoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveSimulation(SimulationCreateEditModel model)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.TeacherId == teacherId);
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found.");
 
         if (!SimulationVerifier.TryConfiguration(model.VirtualFileSystemJson, out _, out var configError))
@@ -596,11 +596,11 @@ public class TeacherCoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteSimulation(int id)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var task = await db.SimulationTasks.FindAsync(id);
         if (task == null) return NotFound("Simulation task not found.");
 
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == task.CourseId && c.TeacherId == teacherId);
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == task.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("You do not own this course.");
 
         var courseId = task.CourseId;
@@ -631,8 +631,8 @@ public class TeacherCoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> TogglePublish(int id)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == id && c.TeacherId == teacherId);
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == id && c.InstructorId == instructorId);
         if (course == null) return NotFound();
 
         course.IsPublished = !course.IsPublished;
@@ -649,8 +649,8 @@ public class TeacherCoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
-        var teacherId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == id && c.TeacherId == teacherId);
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == id && c.InstructorId == instructorId);
         if (course == null) return NotFound();
 
         var hasEnrollments = await db.Enrollments.AnyAsync(e => e.CourseId == id);

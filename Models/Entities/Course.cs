@@ -20,11 +20,11 @@ public class Course
 
     public bool IsPublished { get; set; }
 
-    // FK points at Teachers.UserId, not AspNetUsers.Id directly — the
-    // database itself refuses to let a non-Teacher own a course.
+    // FK points at Instructors.UserId, not AspNetUsers.Id directly — the
+    // database itself refuses to let a non-Instructor own a course.
     // See Database_Schema.md v3.0.
     [Required]
-    public string TeacherId { get; set; } = string.Empty;
+    public string InstructorId { get; set; } = string.Empty;
 
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 }

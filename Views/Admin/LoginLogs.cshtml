@@ -22,7 +22,7 @@
                 <tbody>
                 @foreach (var record in Model.Records)
                 {
-                    <tr><td><a class="btn btn-outline-secondary btn-sm" asp-action="EditUser" asp-route-id="@record.UserId" aria-label="View account for @record.Email">@record.Username</a><span class="record-secondary">@record.Email</span></td>
+                    <tr><td><a class="btn btn-outline-secondary btn-sm" asp-action="UserDetails" asp-route-id="@record.UserId" aria-label="View account for @record.Email">@record.Username</a><span class="record-secondary">@record.Email</span></td>
                         <td class="text-nowrap"><time datetime="@(DateTime.SpecifyKind(record.OccurredUtc, DateTimeKind.Utc).ToString("O"))">@UserTime.Format(record.OccurredUtc, "dd MMM yyyy")<span class="record-secondary">@UserTime.Format(record.OccurredUtc, "HH:mm:ss")</span></time></td>
                         <td><span class="status-label @(record.Outcome.StartsWith("Signed in") ? "status-active" : "status-disabled")">@record.Outcome</span></td>
                         <td>@record.Device<span class="record-secondary">@record.IpAddress</span></td></tr>

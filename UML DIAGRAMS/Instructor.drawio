@@ -10,7 +10,7 @@
         <mxCell id="hqa2nUWxxl8O5P-SbCO9-18" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;" value="" vertex="1">
           <mxGeometry height="354" width="120" x="536" y="500" as="geometry" />
         </mxCell>
-        <mxCell id="hqa2nUWxxl8O5P-SbCO9-19" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Teacher" vertex="1">
+        <mxCell id="hqa2nUWxxl8O5P-SbCO9-19" parent="1" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;" value="Instructor" vertex="1">
           <mxGeometry height="60" width="30" x="576" y="664" as="geometry" />
         </mxCell>
         <mxCell id="hqa2nUWxxl8O5P-SbCO9-20" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;" value="Create Courses" vertex="1">

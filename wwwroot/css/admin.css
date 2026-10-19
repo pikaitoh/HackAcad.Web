@@ -63,3 +63,20 @@
 .login-log-filters { display: grid; grid-template-columns: minmax(12rem, 1.6fr) minmax(8rem, 1fr) repeat(2, minmax(9rem, 1fr)); align-items: start; }
 .login-log-filters > div, .login-log-filters input { min-width: 0; }
 .login-log-filter-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .75rem; }
+
+/* Full-width desktop workspaces share navigation across all authenticated roles. */
+.workspace-area .site-header .container { max-width: none; padding-inline: 2rem; }
+.workspace-area .site-footer { margin-top: 0; }
+.workspace-area .site-footer .container { max-width: none; }
+.workspace-shell { display: grid; grid-template-columns: 240px minmax(0,1fr); min-height: calc(100vh - 168px); }
+.workspace-sidebar { border-right: 1px solid var(--ha-line); background: #edf7f1; padding: 2rem 1rem; }
+.workspace-sidebar .workspace-title { margin: 0 .9rem 1.75rem; }
+.workspace-sidebar .admin-nav { position: sticky; top: 1.5rem; }
+.workspace-sidebar .admin-nav a { min-height: 48px; }
+.workspace-main { min-width: 0; padding: 2rem; }
+.workspace-main > .container,.workspace-main .container.module-shell { max-width: none; width: 100%; padding: 0; margin: 0; }
+.workspace-main .education-hero .container { max-width: none; }
+.workspace-main .education-section { padding-block: 2.5rem; }
+.workspace-main .application-measure { max-width: 1000px; margin-inline: 0; }
+.workspace-main .admin-content > .form-measure { max-width: 48rem; }
+.workspace-main .module-shell { padding-block: 0; }

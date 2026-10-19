@@ -1,9 +1,3 @@
-@{ Layout = "_Layout"; }
-<div class="container admin-workspace">
-    <aside class="admin-sidebar">
-        <div class="workspace-title"><svg width="22" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="m8 12 3 3 5-6"/></svg><span>Administration</span></div>
-        <partial name="_AdminNav" />
-    </aside>
-    <div class="admin-main">@RenderBody()</div>
-</div>
+@{ Layout = "_WorkspaceLayout"; }
+@RenderBody()
 @section Scripts { @await RenderSectionAsync("Scripts", required: false) }

@@ -1,0 +1,33 @@
+.education-section { padding-block: 3.5rem; }
+.education-hero { background: #193e46; color: #d2e5df; padding-block: 4.5rem; }
+.education-hero-grid { display: grid; grid-template-columns: 1.2fr 1fr; align-items: center; gap: 5rem; }
+.education-hero h1 { color: #f2fbf7; font-size: 3.4rem; line-height: 1.12; margin-bottom: 1.5rem; }
+.education-hero p { color: #d2e5df; max-width: 52ch; margin-bottom: 2rem; font-size: 1.05rem; }
+.education-outline { padding: 2rem; border: 1px solid #6b9791; border-radius: 14px; }
+.education-outline h2 { color: #f2fbf7; font-size: 1.4rem; }
+.education-outline ul { margin: 1rem 0 0; padding: 0; list-style: none; }
+.education-outline li { padding-block: 1rem; border-bottom: 1px solid #52787a; }
+.education-outline li:last-child { border: 0; padding-bottom: 0; }
+.education-outline strong,.education-outline span { display: block; }
+.education-outline span { color: #d2e5df; margin-top: .35rem; font-size: .875rem; }
+.education-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
+.education-columns h3 { font-size: 1.2rem; margin-bottom: .75rem; }
+.education-columns p { color: var(--ha-muted); line-height: 1.8; }
+.education-columns > div > h3:not(:first-child) { margin-top: 2rem; }
+.education-review-steps { padding-left: 1.3rem; }
+.education-review-steps li { padding: .5rem 0; }
+.application-measure { max-width: 1000px; }
+.application-form { padding: 2rem; }
+.education-two-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem; }
+.experience-row { border: 1px solid var(--ha-line); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; }
+.experience-row legend { font-size: 1rem; font-weight: 700; float: none; width: auto; margin: 0 0 1.25rem; }
+.application-details { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem 2rem; margin: 1.5rem 0; }
+.application-details dt { color: var(--ha-muted); font-size: .8125rem; font-weight: 500; }
+.application-details dd { margin: .35rem 0 0; overflow-wrap: anywhere; }
+.application-role { padding-block: 1rem; border-top: 1px solid var(--ha-line); }
+.application-role p { margin: .45rem 0; }
+.application-review-grid { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(330px,.8fr); gap: 1.5rem; align-items: start; }
+.application-review-form { padding: 1.75rem; }
+.application-history { list-style: none; padding: 0; margin: 1rem 0 0; }
+.application-history li { display: flex; justify-content: space-between; gap: 1rem; padding: .85rem 0; border-top: 1px solid var(--ha-line); font-size: .875rem; }
+.preserve-lines { white-space: pre-wrap; overflow-wrap: anywhere; }

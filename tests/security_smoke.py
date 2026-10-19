@@ -4,6 +4,8 @@ Use an isolated Development database with Email__DevelopmentPickupDirectory.
 No SMS/email is sent. Creates and removes random local fixtures only.
 python tests/security_smoke.py http://127.0.0.1:5099
 """
+raise SystemExit("Legacy Admin CRUD smoke test retired. Use tests/InstructorWorkflow and current authentication suites instead.")
+
 from datetime import datetime, timedelta, timezone
 import base64
 import hashlib

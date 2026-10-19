@@ -344,7 +344,7 @@
             document.addEventListener('DOMContentLoaded', function () {
                 var config = @Html.Raw(SimulationVerifier.SafeJson(Model.CurrentSimulation.VirtualFileSystemJson));
                 if (!config) {
-                    document.getElementById('sim-terminal-container').textContent = 'This lab configuration needs to be updated by its teacher.';
+                    document.getElementById('sim-terminal-container').textContent = 'This lab configuration needs to be updated by its instructor.';
                     return;
                 }
                 var taskId = @Model.CurrentSimulation.TaskId;

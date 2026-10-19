@@ -22,6 +22,7 @@ public static class DbInitializer
         // 1. Seed Accounts
         foreach (var role in AccountRoles.All)
         {
+            if (role == AccountRoles.Instructor && await db.Instructors.AnyAsync()) continue;
             var email = $"demo.{role.ToLowerInvariant()}@hackacad.local";
             if (await users.FindByEmailAsync(email) is not null) continue;
             var result = await accounts.CreateAsync(new ApplicationUser
@@ -36,9 +37,9 @@ public static class DbInitializer
                 throw new InvalidOperationException($"Could not create the {role} development fixture: {string.Join("; ", result.Errors.Select(e => e.Description))}");
         }
 
-        var teacher = await users.FindByEmailAsync("demo.teacher@hackacad.local");
+        var instructor = await users.FindByEmailAsync("demo.instructor@hackacad.local") ?? await users.FindByEmailAsync("demo.teacher@hackacad.local");
         var student = await users.FindByEmailAsync("demo.student@hackacad.local");
-        if (teacher == null || student == null) return;
+        if (instructor == null || student == null) return;
 
         // 2. Seed Sample Courses if not already present
         if (!await db.Courses.AnyAsync())
@@ -51,7 +52,7 @@ public static class DbInitializer
                 Category = "Linux Basics",
                 ThumbnailUrl = "",
                 IsPublished = true,
-                TeacherId = teacher.Id,
+                InstructorId = instructor.Id,
                 CreatedDate = DateTime.UtcNow.AddDays(-5)
             };
             db.Courses.Add(course1);
@@ -208,7 +209,7 @@ grep 'Failed password' /var/log/auth.log | awk '{print $11}' | sort | uniq -c
                 Category = "Web Security",
                 ThumbnailUrl = "",
                 IsPublished = true,
-                TeacherId = teacher.Id,
+                InstructorId = instructor.Id,
                 CreatedDate = DateTime.UtcNow.AddDays(-3)
             };
             db.Courses.Add(course2);
@@ -304,7 +305,7 @@ Cross-Site Scripting happens when an application includes untrusted data in a we
                 Category = "Cryptography",
                 ThumbnailUrl = "",
                 IsPublished = true,
-                TeacherId = teacher.Id,
+                InstructorId = instructor.Id,
                 CreatedDate = DateTime.UtcNow.AddDays(-1)
             };
             db.Courses.Add(course3);

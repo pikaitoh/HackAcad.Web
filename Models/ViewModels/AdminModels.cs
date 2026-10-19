@@ -6,6 +6,7 @@ public class UserRow
 {
     public string Id { get; set; } = "";
     public string DisplayName { get; set; } = "";
+    public string? FullName { get; set; }
     public string Email { get; set; } = "";
     public string Role { get; set; } = "";
     public bool IsDisabled { get; set; }
@@ -28,38 +29,12 @@ public class UserListModel
     public List<UserRow> Users { get; set; } = [];
 }
 
-public class EditUserModel
-{
-    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
-    public DateTime? LastLoginUtc { get; set; }
-    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
-    public DateTime? LastPasswordChangedUtc { get; set; }
-    public string Id { get; set; } = "";
-    [Required(ErrorMessage = "Enter a username."), StringLength(50, MinimumLength = 2, ErrorMessage = AccountValidation.NameLengthMessage), Display(Name = "Username")]
-    [RegularExpression(AccountValidation.NamePattern, ErrorMessage = AccountValidation.NameMessage)]
-    public string DisplayName { get => displayName; set => displayName = value?.Trim() ?? ""; }
-    private string displayName = "";
-    [Required(ErrorMessage = "Enter your email address."), EmailAddress(ErrorMessage = AccountValidation.EmailMessage), StringLength(256)]
-    [RegularExpression(AccountValidation.EmailPattern, ErrorMessage = AccountValidation.EmailMessage)]
-    public string Email { get => email; set => email = value?.Trim() ?? ""; }
-    private string email = "";
-    [Required]
-    public string Role { get; set; } = "Student";
-    [Display(Name = "Disable this account")]
-    public bool IsDisabled { get; set; }
-}
-
-public class CreateUserModel : RegisterModel
-{
-    [Required]
-    public string Role { get; set; } = "Student";
-}
-
 public class AdminOverviewModel
 {
+    public int PendingApplications { get; set; }
     public int Users { get; set; }
     public int DisabledUsers { get; set; }
-    public int Teachers { get; set; }
+    public int Instructors { get; set; }
     public int Courses { get; set; }
     public int PublishedCourses { get; set; }
     public int Enrollments { get; set; }
@@ -71,7 +46,7 @@ public class CourseRow
     public int CourseId { get; set; }
     public string Title { get; set; } = "";
     public string? Category { get; set; }
-    public string Teacher { get; set; } = "";
+    public string Instructor { get; set; } = "";
     public bool IsPublished { get; set; }
     public int Enrollments { get; set; }
 }
@@ -100,7 +75,7 @@ public class EditCourseModel
     private string? category;
     [Display(Name = "Publish this course")]
     public bool IsPublished { get; set; }
-    public string Teacher { get; set; } = "";
+    public string Instructor { get; set; } = "";
 }
 
 public class LoginLogRow

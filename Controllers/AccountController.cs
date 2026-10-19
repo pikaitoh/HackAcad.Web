@@ -147,7 +147,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     public async Task<IActionResult> Dashboard()
     {
         if (User.IsInRole(AccountRoles.Admin)) return RedirectToAction("Index", "Admin");
-        if (User.IsInRole(AccountRoles.Teacher)) return RedirectToAction("Index", "TeacherCourses");
+        if (User.IsInRole(AccountRoles.Instructor)) return RedirectToAction("Index", "InstructorCourses");
         var id = users.GetUserId(User)!;
         var user = await users.FindByIdAsync(id);
         if (user is null) return Challenge();
@@ -161,8 +161,8 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         var courses = await db.Courses.Where(c => courseIds.Contains(c.CourseId)).ToListAsync();
         var courseMap = courses.ToDictionary(c => c.CourseId);
 
-        var teacherIds = courses.Select(c => c.TeacherId).Distinct().ToList();
-        var teacherNames = await db.Users.Where(u => teacherIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName);
+        var instructorIds = courses.Select(c => c.InstructorId).Distinct().ToList();
+        var instructorNames = await db.Users.Where(u => instructorIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName);
 
         var enrolledCards = new List<CourseCardViewModel>();
         foreach (var e in enrollments)
@@ -178,7 +178,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
                 .CountAsync(p => p.EnrollmentId == e.EnrollmentId && p.IsCompleted);
 
             var pct = totalItems > 0 ? (int)Math.Round((double)completedCount / totalItems * 100) : 0;
-            teacherNames.TryGetValue(course.TeacherId, out var teacherName);
+            instructorNames.TryGetValue(course.InstructorId, out var instructorName);
 
             enrolledCards.Add(new CourseCardViewModel
             {
@@ -187,7 +187,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
                 Description = course.Description,
                 Category = course.Category,
                 ThumbnailUrl = course.ThumbnailUrl,
-                TeacherName = teacherName ?? "Instructor",
+                InstructorName = instructorName ?? "Instructor",
                 IsEnrolled = true,
                 ProgressPercent = Math.Clamp(pct, 0, 100),
                 LessonCount = lessonCount,

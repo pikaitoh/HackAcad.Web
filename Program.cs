@@ -34,7 +34,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, serverVersion);
 });
 
-// --- Identity: password and Google sign-in. Roles live in Students/Teachers/Admins,
+// --- Identity: password and Google sign-in. Roles live in Students/Instructors/Admins,
 // not AspNetRoles — see Data/RoleClaimsTransformation.cs and Database_Schema.md v3.0. ---
 builder.Services
     .AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -83,6 +83,7 @@ builder.Services.AddHttpClient<GmailEmail>(client => client.Timeout = TimeSpan.F
 builder.Services.AddScoped<AccountRecords>();
 builder.Services.AddScoped<AccountSessions>();
 builder.Services.AddScoped<BadgeService>();
+builder.Services.AddScoped<InstructorApplications>();
 builder.Services.AddSingleton<PhoneVerification>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddHttpClient("twilio-verify", client => client.Timeout = TimeSpan.FromSeconds(20));

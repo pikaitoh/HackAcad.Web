@@ -45,7 +45,7 @@ string Totp(string key)
 try
 {
     Check((await Client().GetAsync(account+"TwoFactor")).StatusCode==HttpStatusCode.Redirect,"anonymous users cannot access 2FA settings");
-    foreach(var role in new[]{AccountRoles.Student,AccountRoles.Teacher,AccountRoles.Admin})
+    foreach(var role in new[]{AccountRoles.Student,AccountRoles.Instructor,AccountRoles.Admin})
     {
         var email=prefix+"."+role.ToLowerInvariant()+"@hackacad.local";
         using(var scope=factory.Services.CreateScope())

@@ -1,19 +1,19 @@
 @model AdminOverviewModel
 @{ ViewData["Title"] = "Admin dashboard"; }
 <div class="admin-content">
-    <div class="page-heading"><div><h1>Admin dashboard</h1><p class="text-secondary">A clear view of your community and learning content.</p></div><a class="btn btn-primary" asp-action="CreateUser">Create account</a></div>
+    <div class="page-heading"><div><h1>Admin dashboard</h1><p class="text-secondary">A clear view of your community and learning content.</p></div><a class="btn btn-primary" asp-action="Applications" asp-route-status="Pending">Review Instructor applications</a></div>
     <section class="platform-summary" aria-labelledby="platform-title">
-        <div class="summary-intro"><h2 id="platform-title">Your community, at a glance.</h2><p>Review access, support your teachers and keep learning content in order.</p><a asp-action="Users">Manage users <span aria-hidden="true">→</span></a></div>
-        <dl class="summary-values"><div><dt>Registered users</dt><dd>@Model.Users</dd></div><div><dt>Teachers</dt><dd>@Model.Teachers</dd></div><div><dt>Disabled accounts</dt><dd>@Model.DisabledUsers</dd></div></dl>
+        <div class="summary-intro"><h2 id="platform-title">Your community, at a glance.</h2><p>Review access, support your instructors and keep learning content in order.</p><a asp-action="Users">Manage users <span aria-hidden="true">→</span></a></div>
+        <dl class="summary-values"><div><dt>Registered users</dt><dd>@Model.Users</dd></div><div><dt>Instructors</dt><dd>@Model.Instructors</dd></div><div><dt>Disabled accounts</dt><dd>@Model.DisabledUsers</dd></div></dl>
     </section>
     <section class="review-queue" aria-labelledby="review-title">
-        <div><h2 id="review-title">Review queue</h2><p>Quick access to account status and unpublished content.</p></div>
-        <nav aria-label="Administration review queue"><a asp-action="Users" asp-route-status="disabled"><span>Disabled accounts</span><strong>@Model.DisabledUsers</strong></a><a asp-action="Courses" asp-route-status="draft"><span>Unpublished courses</span><strong>@(Model.Courses - Model.PublishedCourses)</strong></a></nav>
+        <div><h2 id="review-title">Review queue</h2><p>Applications awaiting a decision and account access records.</p></div>
+        <nav aria-label="Administration review queue"><a asp-action="Users" asp-route-status="disabled"><span>Disabled accounts</span><strong>@Model.DisabledUsers</strong></a><a asp-action="Applications" asp-route-status="Pending"><span>Pending Instructor applications</span><strong>@Model.PendingApplications</strong></a></nav>
     </section>
     <div class="overview-layout">
         <section class="surface-panel" aria-labelledby="recent-title"><div class="section-heading"><h2 id="recent-title">Recently joined</h2><a asp-action="Users">View all users</a></div>
             @if (Model.RecentUsers.Count == 0) { <p class="empty-state">No accounts have been registered yet.</p> }
-            else { <ul class="recent-users">@foreach (var account in Model.RecentUsers) { <li><div class="person-details"><span class="person-avatar" aria-hidden="true">@(string.IsNullOrWhiteSpace(account.DisplayName) ? "H" : account.DisplayName[..1].ToUpperInvariant())</span><div><a asp-action="EditUser" asp-route-id="@account.Id">@account.DisplayName</a><span class="record-secondary">@account.Email</span></div></div><span class="role-badge" data-role="@account.Role">@account.Role</span></li> }</ul> }
+            else { <ul class="recent-users">@foreach (var account in Model.RecentUsers) { <li><div class="person-details"><span class="person-avatar" aria-hidden="true">@(string.IsNullOrWhiteSpace(account.DisplayName) ? "H" : account.DisplayName[..1].ToUpperInvariant())</span><div><a asp-action="UserDetails" asp-route-id="@account.Id">@account.DisplayName</a><span class="record-secondary">@account.Email</span></div></div><span class="role-badge" data-role="@account.Role">@account.Role</span></li> }</ul> }
         </section>
         <section class="surface-panel" aria-labelledby="content-title"><div class="section-heading"><h2 id="content-title">Learning content</h2></div>
             <dl class="overview-facts"><div><dt>All courses</dt><dd>@Model.Courses</dd></div><div><dt>Published courses</dt><dd>@Model.PublishedCourses</dd></div><div><dt>Course enrolments</dt><dd>@Model.Enrollments</dd></div></dl>

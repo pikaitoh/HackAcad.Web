@@ -323,12 +323,12 @@ namespace HackAcad.Web.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("varchar(1000)");
 
-                    b.Property<bool>("IsPublished")
-                        .HasColumnType("tinyint(1)");
-
-                    b.Property<string>("TeacherId")
+                    b.Property<string>("InstructorId")
                         .IsRequired()
                         .HasColumnType("varchar(255)");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("tinyint(1)");
 
                     b.Property<string>("ThumbnailUrl")
                         .HasMaxLength(300)
@@ -341,7 +341,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasKey("CourseId");
 
-                    b.HasIndex("TeacherId");
+                    b.HasIndex("InstructorId");
 
                     b.ToTable("Courses");
                 });
@@ -379,6 +379,161 @@ namespace HackAcad.Web.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Enrollments");
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.Instructor", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("Instructors");
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.InstructorApplication", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("EvidenceName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<byte[]>("EvidencePdf")
+                        .IsRequired()
+                        .HasColumnType("longblob");
+
+                    b.Property<string>("ExperienceJson")
+                        .IsRequired()
+                        .HasMaxLength(6000)
+                        .HasColumnType("varchar(6000)");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<string>("SubmissionNote")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<DateTime>("SubmittedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("SupportingInformation")
+                        .IsRequired()
+                        .HasMaxLength(3000)
+                        .HasColumnType("varchar(3000)");
+
+                    b.Property<int>("TeachingDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TeachingTopics")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("WorkEmail")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("varchar(256)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Status", "SubmittedUtc");
+
+                    b.HasIndex("UserId", "Revision")
+                        .IsUnique();
+
+                    b.ToTable("InstructorApplications");
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.InstructorReview", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("ApplicationId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<bool>("DetailsConsistent")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("EvidenceVerified")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("ExperienceVerified")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<string>("ReasonCategory")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<bool>("RelevantTeaching")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<DateTime>("ReviewedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("ReviewerId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<string>("ReviewerName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<string>("VerificationNotes")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.Property<decimal>("VerifiedYears")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApplicationId")
+                        .IsUnique();
+
+                    b.ToTable("InstructorReviews");
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Lesson", b =>
@@ -546,16 +701,6 @@ namespace HackAcad.Web.Data.Migrations
                     b.HasKey("UserId");
 
                     b.ToTable("Students");
-                });
-
-            modelBuilder.Entity("HackAcad.Web.Models.Entities.Teacher", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("varchar(255)");
-
-                    b.HasKey("UserId");
-
-                    b.ToTable("Teachers");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -729,9 +874,9 @@ namespace HackAcad.Web.Data.Migrations
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Course", b =>
                 {
-                    b.HasOne("HackAcad.Web.Models.Entities.Teacher", null)
+                    b.HasOne("HackAcad.Web.Models.Entities.Instructor", null)
                         .WithMany()
-                        .HasForeignKey("TeacherId")
+                        .HasForeignKey("InstructorId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
@@ -742,6 +887,35 @@ namespace HackAcad.Web.Data.Migrations
                         .WithMany()
                         .HasForeignKey("LastLessonId")
                         .OnDelete(DeleteBehavior.SetNull);
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.Instructor", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.InstructorApplication", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.InstructorReview", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.InstructorApplication", null)
+                        .WithMany()
+                        .HasForeignKey("ApplicationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Lesson", b =>
@@ -796,17 +970,6 @@ namespace HackAcad.Web.Data.Migrations
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Student", b =>
-                {
-                    b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("HackAcad.Web.Models.Entities.Teacher", b =>
                 {
                     b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", "User")
                         .WithMany()

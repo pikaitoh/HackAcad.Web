@@ -19,7 +19,7 @@
                     @(Model.Course.Description ?? "Hands-on guided cybersecurity training path with theoretical lessons, downloadable CTF challenges, and real-time terminal labs.")
                 </p>
                 <div style="color:var(--ha-on-dark); font-size:0.875rem;">
-                    <span>Created by <strong>@Model.TeacherName</strong></span>
+                    <span>Created by <strong>@Model.InstructorName</strong></span>
                     <span class="mx-2">•</span>
                     <span>@Model.Lessons.Count Lessons</span>
                     <span class="mx-2">•</span>
@@ -55,7 +55,7 @@
                 else if (signedIn)
                 {
                     <h3 style="font-size:1.15rem; margin-bottom:0.5rem;">Course preview</h3>
-                    <a asp-controller="TeacherCourses" asp-action="Index" class="btn btn-outline-secondary w-100">Back to Teacher Studio</a>
+                    <a asp-controller="InstructorCourses" asp-action="Index" class="btn btn-outline-secondary w-100">Back to Instructor Studio</a>
                 }
                 else
                 {

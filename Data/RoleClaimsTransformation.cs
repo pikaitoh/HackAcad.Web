@@ -24,11 +24,11 @@ public class RoleClaimsTransformation(ApplicationDbContext db, ILogger<RoleClaim
                 u.IsDisabled,
                 u.EmailConfirmed,
                 IsAdmin = db.Admins.Any(a => a.UserId == u.Id),
-                IsTeacher = db.Teachers.Any(t => t.UserId == u.Id),
+                IsInstructor = db.Instructors.Any(t => t.UserId == u.Id),
                 IsStudent = db.Students.Any(s => s.UserId == u.Id)
             }).SingleOrDefaultAsync();
             if (user is null || user.IsDisabled || !user.EmailConfirmed) return new ClaimsPrincipal(new ClaimsIdentity());
-            var role = user.IsAdmin ? AccountRoles.Admin : user.IsTeacher ? AccountRoles.Teacher : user.IsStudent ? AccountRoles.Student : null;
+            var role = user.IsAdmin ? AccountRoles.Admin : user.IsInstructor ? AccountRoles.Instructor : user.IsStudent ? AccountRoles.Student : null;
             if (role is not null) identity.AddClaim(new Claim(identity.RoleClaimType, role));
         }
         catch (Exception ex)

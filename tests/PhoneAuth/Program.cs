@@ -98,7 +98,7 @@ try
     var removeDenied = await Post(owner, "RemovePhone", new() { { "CurrentPassword", "wrong" } }, "RemovePhone");
     Check(removeDenied.Body.Contains("Your current password is incorrect"), "removing a phone requires password confirmation");
 
-    foreach (var role in new[] { AccountRoles.Student, AccountRoles.Teacher, AccountRoles.Admin })
+    foreach (var role in new[] { AccountRoles.Student, AccountRoles.Instructor, AccountRoles.Admin })
     {
         var user = await Fixture(role.ToLowerInvariant(), role); var browser = Client(); await Login(browser, user.Email);
         var setup = await Post(browser, "BeginSmsTwoFactor", new() { { "CurrentPassword", password } });

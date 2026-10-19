@@ -2,22 +2,6 @@
 @{ var currentController = ViewContext.RouteData.Values["controller"]?.ToString(); var currentAction = ViewContext.RouteData.Values["action"]?.ToString(); }
 @if (User.Identity?.IsAuthenticated == true)
 {
-    @if (User.IsInRole(AccountRoles.Student))
-    {
-        <a class="nav-link" asp-controller="Courses" asp-action="Index" aria-current="@(currentController == "Courses" && currentAction == "Index" ? "page" : null)">Courses</a>
-    }
-    @if (User.IsInRole(AccountRoles.Teacher))
-    {
-        <a class="nav-link" asp-controller="TeacherCourses" asp-action="Index" aria-current="@(currentController == "TeacherCourses" ? "page" : null)">Teacher Studio</a>
-    }
-    @if (User.IsInRole(AccountRoles.Admin))
-    {
-        <a class="nav-link" asp-controller="Admin" asp-action="Index" aria-current="@(currentController == "Admin" && currentAction == "Index" ? "page" : null)">Admin</a>
-    }
-    else
-    {
-        <a class="nav-link" asp-controller="Account" asp-action="Dashboard" aria-current="@(currentController == "Account" && currentAction == "Dashboard" ? "page" : null)">Dashboard</a>
-    }
     var account = await UserManager.GetUserAsync(User);
     var name = account?.DisplayName ?? "Account";
     var initial = string.IsNullOrWhiteSpace(name) ? "H" : System.Globalization.StringInfo.GetNextTextElement(name).ToUpperInvariant();
@@ -28,18 +12,19 @@
             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><path d="m7 10 5 5 5-5" /></svg>
         </summary>
         <nav class="account-menu-panel" aria-label="Your account">
-            <div class="account-menu-heading"><strong>@name</strong><span class="record-secondary">@(User.IsInRole(AccountRoles.Admin) ? "Admin" : User.IsInRole(AccountRoles.Teacher) ? "Teacher" : "Student") account</span></div>
+            <div class="account-menu-heading"><strong>@name</strong><span class="record-secondary">@(User.IsInRole(AccountRoles.Admin) ? "Admin" : User.IsInRole(AccountRoles.Instructor) ? "Instructor" : "Student") account</span></div>
             <a asp-controller="Account" asp-action="Profile" aria-current="@(currentController == "Account" && (ViewData["AccountArea"] as string) == "profile" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4" /><path d="M4 21v-2a8 8 0 0 1 16 0v2" /></svg>View profile</a>
             <a asp-controller="Account" asp-action="Settings" aria-current="@(currentController == "Account" && (ViewData["AccountArea"] as string) == "manage" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4v5c0 5-8 9-8 9s-8-4-8-9V7Z" /><path d="m8 12 3 3 5-6" /></svg>Manage account</a>
+            <a asp-controller="Education" asp-action="Index"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m2 8 10-5 10 5-10 5Zm4 3v6c4 3 8 3 12 0v-6m4-3v10"/></svg>For Education</a>
             <form asp-controller="Account" asp-action="Logout" method="post"><button type="submit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4v16h6m4-13 5 5-5 5M9 12h10" /></svg>Log out</button></form>
         </nav>
     </details>
 }
 else
 {
-    <a class="nav-link" asp-controller="Courses" asp-action="Index" aria-current="@(currentController == "Courses" ? "page" : null)">Courses</a>
     <a class="nav-link" asp-controller="Home" asp-action="Index" aria-current="@(currentController == "Home" && currentAction == "Index" ? "page" : null)">Home</a>
     <a class="nav-link" asp-controller="Home" asp-action="Index" asp-fragment="learning-experience">How it works</a>
+    <a class="nav-link" asp-controller="Education" asp-action="Index" aria-current="@(currentController == "Education" ? "page" : null)">For Education</a>
     <a class="nav-link" asp-controller="Account" asp-action="Login">Log in</a>
     <a class="btn btn-sm btn-primary" asp-controller="Account" asp-action="Register">Create account</a>
 }

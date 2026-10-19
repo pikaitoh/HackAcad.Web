@@ -4,6 +4,8 @@ Run against an isolated test database, not production. Creates temporary users
 and deletes them at the end. Standard library only; no browser driver required.
 Usage: python tests/auth_smoke.py http://127.0.0.1:5097
 """
+raise SystemExit("Legacy Admin CRUD smoke test retired. Use tests/InstructorWorkflow and current authentication suites instead.")
+
 import http.cookiejar
 import html
 import os
@@ -314,18 +316,18 @@ try:
     path = edit_path(admin, test_email)
     invalid_role = admin.post(path, edit_data(test_email, role='SuperAdmin'))
     check('Choose a valid role' in invalid_role[2], 'unknown roles are rejected on the server')
-    promoted = admin.post(path, edit_data(test_email, role='Teacher'))
-    check('/Admin/Users' in promoted[1], 'Admin can promote a Student to Teacher')
+    promoted = admin.post(path, edit_data(test_email, role='Instructor'))
+    check('/Admin/Users' in promoted[1], 'Admin can promote a Student to Instructor')
     check('/Login' in fresh.request('/Identity/Account/Dashboard')[1], 'role change revokes existing sessions immediately')
-    check('>Teacher</span>' in fresh.login(test_email, 'Changed@123!')[2], 'promoted user receives Teacher claims')
-    check('/Identity/Account/Dashboard' in fresh.request('/')[1], 'signed-in Teacher is redirected from Home to Dashboard')
-    check(fresh.request('/Admin')[0] == 403, 'Teacher cannot open admin pages')
+    check('>Instructor</span>' in fresh.login(test_email, 'Changed@123!')[2], 'promoted user receives Instructor claims')
+    check('/Identity/Account/Dashboard' in fresh.request('/')[1], 'signed-in Instructor is redirected from Home to Dashboard')
+    check(fresh.request('/Admin')[0] == 403, 'Instructor cannot open admin pages')
 
-    disabled = admin.post(path, edit_data(test_email, role='Teacher', disabled=True))
+    disabled = admin.post(path, edit_data(test_email, role='Instructor', disabled=True))
     check('/Admin/Users' in disabled[1], 'Admin can disable an account')
     check('/Login' in fresh.request('/Identity/Account/Dashboard')[1], 'disabled account loses its active session immediately')
     check('Unable to sign in' in fresh.login(test_email, 'Changed@123!')[2], 'disabled account cannot log in')
-    check('/Admin/Users' in admin.post(path, edit_data(test_email, role='Teacher'))[1], 'Admin can re-enable an account')
+    check('/Admin/Users' in admin.post(path, edit_data(test_email, role='Instructor'))[1], 'Admin can re-enable an account')
     check('Dashboard' in fresh.login(test_email, 'Changed@123!')[1], 're-enabled account can log in')
 
     own_path = edit_path(admin, 'demo.admin@hackacad.local')
@@ -337,22 +339,22 @@ try:
     check('cannot delete your own account' in own_delete[2], 'Admin cannot delete their own account')
 
     invalid_account = admin.post('/Admin/CreateUser', {'DisplayName': 'A', 'Email': 'qw@e',
-        'Password': '12345678', 'ConfirmPassword': 'other', 'Role': 'Teacher'})
+        'Password': '12345678', 'ConfirmPassword': 'other', 'Role': 'Instructor'})
     check(all(field_error(invalid_account[2], field) for field in ('DisplayName', 'Email', 'Password', 'ConfirmPassword'))
         and 'validation-summary-errors' not in invalid_account[2], 'Admin creation reports each invalid field without a duplicate summary')
     invalid_edit = admin.post(path, edit_data('qw@e', name='A'))
     check(field_error(invalid_edit[2], 'Email') and field_error(invalid_edit[2], 'DisplayName'),
         'Admin edit uses the same name and email rules')
-    created = admin.post('/Admin/CreateUser', {'DisplayName': 'Created teacher', 'Email': created_email,
-        'Password': PASSWORD, 'ConfirmPassword': PASSWORD, 'Role': 'Teacher'})
-    check('/Admin/Users' in created[1], 'Admin can create a Teacher account with apostrophe/plus email characters')
+    created = admin.post('/Admin/CreateUser', {'DisplayName': 'Created instructor', 'Email': created_email,
+        'Password': PASSWORD, 'ConfirmPassword': PASSWORD, 'Role': 'Instructor'})
+    check('/Admin/Users' in created[1], 'Admin can create a Instructor account with apostrophe/plus email characters')
     unverified_created = Client()
     check('VerificationPending' in unverified_created.login(created_email)[1] and '/Login' in unverified_created.request('/Identity/Account/Profile')[1],
         'Admin-created account requires email verification and receives no application session')
     check('Email not verified' in admin.request('/Admin/Users?search=' + urllib.parse.quote(created_email))[2],
         'Admin can identify an account awaiting email verification')
     confirm_mail(Client(), created_email)
-    check('>Teacher</span>' in Client().login(created_email)[2], 'Admin-created account can authenticate with its assigned role')
+    check('>Instructor</span>' in Client().login(created_email)[2], 'Admin-created account can authenticate with its assigned role')
     duplicate = admin.post('/Admin/CreateUser', {'DisplayName': 'Duplicate', 'Email': created_email,
         'Password': PASSWORD, 'ConfirmPassword': PASSWORD, 'Role': 'Student'})
     check(field_error(duplicate[2], 'Email') and 'validation-summary-errors' not in duplicate[2], 'duplicate email appears only beside the email field')
@@ -395,14 +397,14 @@ try:
     old_session = Client()
     old_session.login(created_email)
     created_path = edit_path(admin, created_email)
-    changed_email_result = admin.post(created_path, edit_data(changed_email, role='Teacher'))
+    changed_email_result = admin.post(created_path, edit_data(changed_email, role='Instructor'))
     check('/Admin/Users' in changed_email_result[1], 'Admin can update an email address')
     check('/Login' in old_session.request('/Identity/Account/Dashboard')[1], 'email change revokes the old session')
     check('VerificationPending' in Client().login(changed_email)[1], 'new email must be verified before login')
     check("This link isn" in Client().request(old_link)[2], 'old email verification link cannot verify a changed address')
     check(len(mail_links(changed_email)) == 1, 'changed address receives its own verification email without the old address cooldown')
     check('Email verified' in confirm_mail(Client(), changed_email)[2], 'new email can be verified with its new link')
-    check('>Teacher</span>' in Client().login(changed_email)[2], 'verified new email retains the assigned role')
+    check('>Instructor</span>' in Client().login(changed_email)[2], 'verified new email retains the assigned role')
     temporary_users.remove(created_email)
     created_email = changed_email
 
@@ -463,7 +465,7 @@ try:
     check('/Login' in changer.request('/Identity/Account/Profile')[1]
         and '/Login' in change_session.request('/Identity/Account/Dashboard')[1], 'email change signs out current and other sessions')
     check('Unable to sign in' in Client().login(created_email)[2], 'old email cannot authenticate after confirmed change')
-    check('>Teacher</span>' in Client().login(new_address)[2], 'new email logs in with verification and assigned role preserved')
+    check('>Instructor</span>' in Client().login(new_address)[2], 'new email logs in with verification and assigned role preserved')
     check("This link isn" in Client().request(change_links[-1])[2], 'confirmed email-change link cannot be replayed')
     temporary_users.remove(created_email)
     created_email = new_address
@@ -482,7 +484,7 @@ try:
         check('/Admin/Courses' in boundary_course[1], 'course review accepts the exact title/category/description length limits')
         edited = admin.post('/Admin/EditCourse/' + retained,
             {'Title': '  Reviewed course  ', 'Description': '  Reviewed by Admin  ', 'Category': '  Security  ', 'IsPublished': 'true'})
-        check('/Admin/Courses' in edited[1] and 'Reviewed course' in edited[2], 'Admin can edit and publish another teacher\'s course')
+        check('/Admin/Courses' in edited[1] and 'Reviewed course' in edited[2], 'Admin can edit and publish another instructor\'s course')
         stored_course = admin.request('/Admin/EditCourse/' + retained)[2]
         stored_description = re.search(r'<textarea[^>]*id="Description"[^>]*>(.*?)</textarea>', stored_course, re.S)
         check('value="Reviewed course"' in stored_course and 'value="Security"' in stored_course
@@ -497,10 +499,10 @@ try:
         check('has learning records' in retained_result[2], 'course deletion preserves existing student learning records')
         deleted = admin.post('/Admin/DeleteCourse/' + unused, {})
         check('/Admin/Courses' in deleted[1], 'Admin can delete an unused course')
-        owner = edit_path(admin, 'demo.teacher@hackacad.local')
-        result = admin.post(owner, edit_data('demo.teacher@hackacad.local', role='Student'))
-        check('owns courses' in result[2], 'a course owner cannot be demoted while their courses depend on the Teacher role')
-        result = admin.post(owner.replace('EditUser', 'DeleteUser'), {'emailConfirmation': 'demo.teacher@hackacad.local'})
+        owner = edit_path(admin, 'demo.instructor@hackacad.local')
+        result = admin.post(owner, edit_data('demo.instructor@hackacad.local', role='Student'))
+        check('owns courses' in result[2], 'a course owner cannot be demoted while their courses depend on the Instructor role')
+        result = admin.post(owner.replace('EditUser', 'DeleteUser'), {'emailConfirmation': 'demo.instructor@hackacad.local'})
         check('owns courses' in result[2], 'a course owner cannot be deleted while they own courses')
 
     created_path = edit_path(admin, created_email)

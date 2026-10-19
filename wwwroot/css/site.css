@@ -88,7 +88,7 @@ input,textarea { caret-color: var(--ha-primary); }
 .form-actions { padding-top: .5rem; }
 .role-badge { display: inline-block; padding: .25rem .7rem; background: var(--ha-tint); color: #355d54; border-radius: 999px; font-size: .75rem; font-weight: 650; white-space: nowrap; }
 .role-badge[data-role="Admin"] { background: #eee6f7; color: #624080; }
-.role-badge[data-role="Teacher"] { background: #fff3c9; color: #6b5416; }
+.role-badge[data-role="Instructor"] { background: #fff3c9; color: #6b5416; }
 .record-secondary { display: block; color: var(--ha-muted); font-size: .8125rem; margin-top: .2rem; overflow-wrap: anywhere; }
 .status-label { display: inline-flex; align-items: center; gap: .4rem; font-size: .8125rem; font-weight: 550; }
 .status-label::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }

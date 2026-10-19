@@ -80,16 +80,16 @@ async Task Complete(HttpClient student,int course,int task,string[]? commands,bo
 }
 try
 {
-    var teacher=await Fixture("teacher",AccountRoles.Teacher);var otherTeacher=await Fixture("otherteacher",AccountRoles.Teacher);
+    var instructor=await Fixture("instructor",AccountRoles.Instructor);var otherInstructor=await Fixture("otherinstructor",AccountRoles.Instructor);
     var student=await Fixture("student",AccountRoles.Student);var otherStudent=await Fixture("otherstudent",AccountRoles.Student);var admin=await Fixture("admin",AccountRoles.Admin);
     using var t=Client();using var s=Client();using var t2=Client();using var s2=Client();using var a=Client();using var guest=Client();
-    await Login(t,teacher.Email);await Login(s,student.Email);await Login(t2,otherTeacher.Email);await Login(s2,otherStudent.Email);await Login(a,admin.Email);
+    await Login(t,instructor.Email);await Login(s,student.Email);await Login(t2,otherInstructor.Email);await Login(s2,otherStudent.Email);await Login(a,admin.Email);
     int privateId,publicId,lessonId,challengeId,draftChallengeId,simId,draftSimId;
     using(var scope=factory.Services.CreateScope())
     {
         var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var draft=new Course{Title=prefix+" private",TeacherId=teacher.Id,IsPublished=false};
-        var course=new Course{Title=prefix+" public",TeacherId=teacher.Id,IsPublished=true,CreatedDate=new DateTime(2026,1,1,1,30,0,DateTimeKind.Utc)};
+        var draft=new Course{Title=prefix+" private",InstructorId=instructor.Id,IsPublished=false};
+        var course=new Course{Title=prefix+" public",InstructorId=instructor.Id,IsPublished=true,CreatedDate=new DateTime(2026,1,1,1,30,0,DateTimeKind.Utc)};
         db.Courses.AddRange(draft,course);await db.SaveChangesAsync();privateId=draft.CourseId;publicId=course.CourseId;
         var lesson=new Lesson{CourseId=publicId,Title="Review lesson",Content="Review lesson content",OrderIndex=1};db.Lessons.Add(lesson);
         var challenge=new Challenge{CourseId=publicId,Title="Review challenge",IsPublished=true,Points=100,FlagHash=Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(flag))).ToLowerInvariant()};
@@ -100,24 +100,32 @@ try
         db.SimulationTasks.AddRange(sim,draftSim);await db.SaveChangesAsync();
         lessonId=lesson.LessonId;challengeId=challenge.ChallengeId;draftChallengeId=draftChallenge.ChallengeId;simId=sim.TaskId;draftSimId=draftSim.TaskId;
     }
-    Check((await guest.GetAsync("/Courses")).StatusCode==HttpStatusCode.OK,"public catalogue remains accessible");
+    foreach(var path in new[]{"/Courses","/Courses/Details/"+publicId})
+    {
+        var response=await guest.GetAsync(path);
+        Check(response.StatusCode==HttpStatusCode.Redirect&&response.Headers.Location!.OriginalString.Contains("/Identity/Account/Login"),"Guest course URL requires login: "+path);
+    }
+    var home=await guest.GetStringAsync("/");
+    var guestHeader=Regex.Match(home,"<header.*?</header>",RegexOptions.Singleline).Value;
+    Check(!guestHeader.Contains("href=\"/Courses\""),"Guest navigation has no course catalogue entry");
+    Check(home.Contains("id=\"home-title\"")&&home.Contains("data-learning-preview")&&home.Contains("/Identity/Account/Register"),"Guest landing page shows the learning preview and working signup entry");
     var adminCatalogue=await a.GetAsync("/Courses");
     Check(adminCatalogue.StatusCode==HttpStatusCode.Redirect&&adminCatalogue.Headers.Location?.OriginalString=="/Admin/Courses","Admin catalogue URL redirects to course management");
-    var teacherCatalogue=await t.GetAsync("/Courses");
-    Check(teacherCatalogue.StatusCode==HttpStatusCode.Redirect&&teacherCatalogue.Headers.Location?.OriginalString=="/TeacherCourses","Teacher catalogue URL redirects to Teacher Studio");
+    var instructorCatalogue=await t.GetAsync("/Courses");
+    Check(instructorCatalogue.StatusCode==HttpStatusCode.Redirect&&instructorCatalogue.Headers.Location?.OriginalString=="/InstructorCourses","Instructor catalogue URL redirects to Instructor Studio");
     Check((await a.GetAsync("/Admin/Courses")).StatusCode==HttpStatusCode.OK,"Admin retains the course moderation page");
-    Check((await t.GetAsync("/TeacherCourses")).StatusCode==HttpStatusCode.OK,"Teacher retains course authoring");
-    var teacherDashboard=await t.GetAsync("/Identity/Account/Dashboard");
-    Check(teacherDashboard.StatusCode==HttpStatusCode.Redirect&&teacherDashboard.Headers.Location?.OriginalString=="/TeacherCourses","Teacher dashboard opens Teacher Studio instead of student learning totals");
+    Check((await t.GetAsync("/InstructorCourses")).StatusCode==HttpStatusCode.OK,"Instructor retains course authoring");
+    var instructorDashboard=await t.GetAsync("/Identity/Account/Dashboard");
+    Check(instructorDashboard.StatusCode==HttpStatusCode.Redirect&&instructorDashboard.Headers.Location?.OriginalString=="/InstructorCourses","Instructor dashboard opens Instructor Studio instead of student learning totals");
     bool HasCatalogueLink(string html)=>Regex.IsMatch(Regex.Match(html,"<header.*?</header>",RegexOptions.Singleline).Value,"href=\"/Courses\"");
     Check(!HasCatalogueLink(await a.GetStringAsync("/Admin/Courses")),"Admin header has no student course link");
-    Check(!HasCatalogueLink(await t.GetStringAsync("/TeacherCourses")),"Teacher header has no student course link");
-    Check(HasCatalogueLink(await s.GetStringAsync("/Courses")),"Student header retains the course catalogue link");
+    Check(!HasCatalogueLink(await t.GetStringAsync("/InstructorCourses")),"Instructor header has no student course link");
+    Check((await s.GetStringAsync("/Courses")).Contains("Workspace navigation"),"Student workspace retains a sidebar catalogue link");
     // Existing enrollments from older versions must not bypass current role authorization.
     using(var scope=factory.Services.CreateScope())
     {
         var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        db.Enrollments.AddRange(new Enrollment{UserId=admin.Id,CourseId=publicId,Status="InProgress"},new Enrollment{UserId=teacher.Id,CourseId=publicId,Status="InProgress"});
+        db.Enrollments.AddRange(new Enrollment{UserId=admin.Id,CourseId=publicId,Status="InProgress"},new Enrollment{UserId=instructor.Id,CourseId=publicId,Status="InProgress"});
         await db.SaveChangesAsync();
     }
     foreach(var client in new[]{a,t})
@@ -133,14 +141,14 @@ try
         if(client==t)
         {
             var html=await preview.Content.ReadAsStringAsync();
-            Check(preview.StatusCode==HttpStatusCode.OK&&!html.Contains("Enrol Now")&&!html.Contains("Continue Learning")&&!html.Contains("Your Course Progress"),"Teacher preview hides enrollment and stale learning progress");
+            Check(preview.StatusCode==HttpStatusCode.OK&&!html.Contains("Enrol Now")&&!html.Contains("Continue Learning")&&!html.Contains("Your Course Progress"),"Instructor preview hides enrollment and stale learning progress");
         }
     }
     using(var scope=factory.Services.CreateScope())
     {
         var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        var oldEnrollments=await db.Enrollments.Where(e=>e.UserId==admin.Id||e.UserId==teacher.Id).Select(e=>e.EnrollmentId).ToListAsync();
-        Check(oldEnrollments.Count==2&&!await db.ProgressRecords.AnyAsync(p=>oldEnrollments.Contains(p.EnrollmentId))&&!await db.ChallengeSubmissions.AnyAsync(c=>c.UserId==admin.Id||c.UserId==teacher.Id),"blocked non-student requests preserve old enrollments and create no progress or attempts");
+        var oldEnrollments=await db.Enrollments.Where(e=>e.UserId==admin.Id||e.UserId==instructor.Id).Select(e=>e.EnrollmentId).ToListAsync();
+        Check(oldEnrollments.Count==2&&!await db.ProgressRecords.AnyAsync(p=>oldEnrollments.Contains(p.EnrollmentId))&&!await db.ChallengeSubmissions.AnyAsync(c=>c.UserId==admin.Id||c.UserId==instructor.Id),"blocked non-student requests preserve old enrollments and create no progress or attempts");
     }
     Check((await guest.GetAsync("/Courses/Learn/"+publicId)).StatusCode==HttpStatusCode.Redirect,"anonymous users cannot open learning routes");
     Check((await s.GetAsync("/Courses/Details/"+privateId)).StatusCode==HttpStatusCode.NotFound,"private details stay private");
@@ -149,7 +157,7 @@ try
     Check((await t.GetAsync("/Courses/Details/"+privateId)).StatusCode==HttpStatusCode.OK,"course owner retains private preview");
     var adminDetails=await a.GetAsync("/Courses/Details/"+privateId);
     Check(adminDetails.StatusCode==HttpStatusCode.Redirect&&adminDetails.Headers.Location?.OriginalString=="/Admin/EditCourse/"+privateId,"Admin course details open the moderation page");
-    Check((await t2.GetAsync("/Courses/Details/"+privateId)).StatusCode==HttpStatusCode.NotFound,"other teachers cannot preview a private course");
+    Check((await t2.GetAsync("/Courses/Details/"+privateId)).StatusCode==HttpStatusCode.NotFound,"other instructors cannot preview a private course");
     Check((await s.GetAsync("/Courses/Learn/"+publicId)).StatusCode==HttpStatusCode.Redirect,"GET Learn does not silently enroll a student");
     using(var scope=factory.Services.CreateScope())Check(!await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Enrollments.AnyAsync(e=>e.UserId==student.Id),"read requests create no enrollments");
     Check((await s.PostAsync("/Courses/Enroll",new FormUrlEncodedContent(Fields("id",publicId.ToString())))).StatusCode==HttpStatusCode.BadRequest,"enrollment still requires CSRF");
@@ -160,7 +168,7 @@ try
     Check((await Post(s,"/Courses/CompleteSimulation",Fields("courseId",publicId.ToString(),"taskId",draftSimId.ToString()))).StatusCode==HttpStatusCode.NotFound,"unpublished labs cannot be completed");
     Check((await Post(s2,"/Courses/CompleteLesson",Fields("courseId",publicId.ToString(),"lessonId",lessonId.ToString()))).StatusCode==HttpStatusCode.NotFound,"another student without enrollment cannot complete activities");
 
-    var forged=await Post(t,"/TeacherCourses/SaveChallenge",Fields("CourseId",publicId.ToString(),"Title",prefix+" forged","Category","Forensics","Difficulty","Easy","Points","100","PlaintextFlag",flag,"ExistingFilePath","../appsettings.json","IsPublished","true"));
+    var forged=await Post(t,"/InstructorCourses/SaveChallenge",Fields("CourseId",publicId.ToString(),"Title",prefix+" forged","Category","Forensics","Difficulty","Easy","Points","100","PlaintextFlag",flag,"ExistingFilePath","../appsettings.json","IsPublished","true"));
     int forgedId;
     using(var scope=factory.Services.CreateScope())
     {
@@ -177,7 +185,7 @@ try
         foreach(var f in Fields("CourseId",publicId.ToString(),"Title",prefix+" upload","Category","Forensics","Difficulty","Easy","Points","100","PlaintextFlag",flag,"IsPublished","true"))multipart.Add(new StringContent(f.Value),f.Key);
         multipart.Add(new StringContent(await Token(t,"/Identity/Account/Profile")),"__RequestVerificationToken");
         multipart.Add(new ByteArrayContent(Encoding.UTF8.GetBytes("<h1>Review attachment</h1>")),"UploadFile","review.html");
-        Check((await t.PostAsync("/TeacherCourses/SaveChallenge",multipart)).StatusCode==HttpStatusCode.Redirect,"Teacher can still upload a real challenge attachment");
+        Check((await t.PostAsync("/InstructorCourses/SaveChallenge",multipart)).StatusCode==HttpStatusCode.Redirect,"Instructor can still upload a real challenge attachment");
     }
     int uploadId; string? savedAttachmentPath;
     using(var scope=factory.Services.CreateScope())
@@ -190,13 +198,13 @@ try
     var attachment=await t.GetAsync("/Courses/DownloadChallengeFile/"+uploadId);
     Check(attachment.StatusCode==HttpStatusCode.OK&&attachment.Content.Headers.ContentDisposition?.DispositionType=="attachment","owner can safely download an HTML attachment without inline execution");
     Check((await guest.GetAsync("/uploads/ctf/auth_portal.js")).StatusCode==HttpStatusCode.NotFound,"static legacy attachment URLs cannot bypass access checks");
-    var editUpload=await Post(t,"/TeacherCourses/SaveChallenge",Fields("CourseId",publicId.ToString(),"ChallengeId",uploadId.ToString(),"Title",prefix+" upload","Category","Forensics","Difficulty","Easy","Points","100","ExistingFilePath","../appsettings.json","IsPublished","false"));
+    var editUpload=await Post(t,"/InstructorCourses/SaveChallenge",Fields("CourseId",publicId.ToString(),"ChallengeId",uploadId.ToString(),"Title",prefix+" upload","Category","Forensics","Difficulty","Easy","Points","100","ExistingFilePath","../appsettings.json","IsPublished","false"));
     using(var scope=factory.Services.CreateScope())Check(editUpload.StatusCode==HttpStatusCode.Redirect&&(await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Challenges.FindAsync(uploadId))?.FilePath==savedAttachmentPath,"editing an attachment ignores forged paths and preserves its existing file");
     var sizeRejected=false;
     try{await CourseFiles.SaveAsync(env,new Microsoft.AspNetCore.Http.FormFile(Stream.Null,0,CourseFiles.MaximumLength+1,"UploadFile","large.txt"));}catch(ArgumentException){sizeRejected=true;}
     Check(sizeRejected,"oversized uploads are rejected before any disk write");
-    var otherEdit=await Post(t2,"/TeacherCourses/SaveLesson",Fields("CourseId",publicId.ToString(),"LessonId",lessonId.ToString(),"Title","Changed"));
-    Check(otherEdit.StatusCode==HttpStatusCode.NotFound,"other teachers cannot edit course content by changing IDs");
+    var otherEdit=await Post(t2,"/InstructorCourses/SaveLesson",Fields("CourseId",publicId.ToString(),"LessonId",lessonId.ToString(),"Title","Changed"));
+    Check(otherEdit.StatusCode==HttpStatusCode.NotFound,"other instructors cannot edit course content by changing IDs");
     int unusedLessonId,unusedChallengeId,unusedSimId;
     using(var scope=factory.Services.CreateScope())
     {
@@ -205,7 +213,7 @@ try
         db.AddRange(l,c,task);await db.SaveChangesAsync();unusedLessonId=l.LessonId;unusedChallengeId=c.ChallengeId;unusedSimId=task.TaskId;
     }
     foreach(var pair in new[]{("DeleteLesson",unusedLessonId),("DeleteChallenge",unusedChallengeId),("DeleteSimulation",unusedSimId)})
-        Check((await Post(t,"/TeacherCourses/"+pair.Item1,Fields("id",pair.Item2.ToString()))).StatusCode==HttpStatusCode.Redirect,"unused content can still be deleted normally");
+        Check((await Post(t,"/InstructorCourses/"+pair.Item1,Fields("id",pair.Item2.ToString()))).StatusCode==HttpStatusCode.Redirect,"unused content can still be deleted normally");
     using(var scope=factory.Services.CreateScope())
     {
         var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -213,12 +221,12 @@ try
     }
 
 
-    var invalid=await Post(t,"/TeacherCourses/SaveSimulation",Fields("CourseId",publicId.ToString(),"TaskId",simId.ToString(),"Title","Review lab","VirtualFileSystemJson","invalid JSON","IsPublished","true"));
+    var invalid=await Post(t,"/InstructorCourses/SaveSimulation",Fields("CourseId",publicId.ToString(),"TaskId",simId.ToString(),"Title","Review lab","VirtualFileSystemJson","invalid JSON","IsPublished","true"));
     Check(invalid.StatusCode==HttpStatusCode.OK&&(await invalid.Content.ReadAsStringAsync()).Contains("Enter a JSON object"),"malformed simulation configuration shows an inline validation error");
     var scriptConfig=config.Replace("review token","</script><script>window.__reviewMarker=1</script><script>");
     var safeJson=SimulationVerifier.SafeJson(scriptConfig);
     Check(!safeJson.Contains("</script>")&&safeJson.Contains("u003C"),"HTML-safe serialization escapes script-closing sequences");
-    await Post(t,"/TeacherCourses/SaveSimulation",Fields("CourseId",publicId.ToString(),"TaskId",simId.ToString(),"Title","Review lab","VirtualFileSystemJson",scriptConfig,"RewardFlag","flag{reward}","IsPublished","true"));
+    await Post(t,"/InstructorCourses/SaveSimulation",Fields("CourseId",publicId.ToString(),"TaskId",simId.ToString(),"Title","Review lab","VirtualFileSystemJson",scriptConfig,"RewardFlag","flag{reward}","IsPublished","true"));
     var lab=await s.GetStringAsync($"/Courses/Learn/{publicId}?simulationId={simId}");
     Check(!lab.Contains("<script>window.__reviewMarker")&&lab.Contains("u003C"),"stored JSON cannot break out of the rendered lab script");
     await Complete(s,publicId,simId,null,false);await Complete(s,publicId,simId,["cd /var/secret","chmod 644 audit.sh","cat audit.sh"],false);
@@ -243,15 +251,15 @@ try
     }
     foreach(var pair in new[]{("DeleteLesson",lessonId),("DeleteChallenge",challengeId),("DeleteSimulation",simId)})
     {
-        var deleted=await Post(t,"/TeacherCourses/"+pair.Item1,Fields("id",pair.Item2.ToString()));
+        var deleted=await Post(t,"/InstructorCourses/"+pair.Item1,Fields("id",pair.Item2.ToString()));
         Check(deleted.StatusCode==HttpStatusCode.Redirect,"deletion with learning records returns a controlled redirect rather than 500");
-        Check((await t.GetStringAsync("/TeacherCourses/Curriculum/"+publicId)).Contains("cannot be deleted"),"curriculum explains why student records prevent deletion");
+        Check((await t.GetStringAsync("/InstructorCourses/Curriculum/"+publicId)).Contains("cannot be deleted"),"curriculum explains why student records prevent deletion");
     }
     Check((await s.GetStringAsync("/Identity/Account/Dashboard")).Contains("31 Dec 2025, 20:30:00"),"new Dashboard timestamps use the viewer's saved zone");
     Check((await s.GetStringAsync($"/Courses/Learn/{publicId}?challengeId={challengeId}")).Contains("31 Dec 2025, 20:30:00"),"new learning history uses the viewer's saved zone");
-    Check((await t.GetStringAsync("/TeacherCourses")).Contains("31 Dec 2025"),"Teacher course creation dates use the viewer's saved zone");
-    Check((await t.GetStringAsync("/TeacherCourses/Curriculum/"+publicId)).Contains("31 Dec 2025, 20:30:00"),"Teacher submission timestamps use the viewer's saved zone");
-    await Post(t,"/TeacherCourses/TogglePublish",Fields("id",publicId.ToString()));
+    Check((await t.GetStringAsync("/InstructorCourses")).Contains("31 Dec 2025"),"Instructor course creation dates use the viewer's saved zone");
+    Check((await t.GetStringAsync("/InstructorCourses/Curriculum/"+publicId)).Contains("31 Dec 2025, 20:30:00"),"Instructor submission timestamps use the viewer's saved zone");
+    await Post(t,"/InstructorCourses/TogglePublish",Fields("id",publicId.ToString()));
     Check((await s.GetAsync("/Courses/Learn/"+publicId)).StatusCode==HttpStatusCode.NotFound,"unpublishing revokes learning access for existing enrollments");
     Check((await Post(s,"/Courses/SubmitFlag",Fields("courseId",publicId.ToString(),"challengeId",challengeId.ToString(),"flag",flag))).StatusCode==HttpStatusCode.NotFound,"unpublishing also blocks completion submissions");
     Console.WriteLine($"All {checks} course security checks passed. No live email, SMS, shell or network commands were used.");

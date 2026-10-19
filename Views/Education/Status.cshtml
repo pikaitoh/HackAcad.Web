@@ -1,0 +1,7 @@
+@model ApplicationDetailsModel
+@{ ViewData["Title"] = "My Instructor application"; }
+<div class="container education-section application-measure"><div class="page-heading"><div><h1>My Instructor application</h1><p class="text-secondary">Follow your application, read review reasons and keep track of submitted evidence.</p></div></div>
+@if (Model.IsLatest && Model.Application.Status is ApplicationStatus.Rejected or ApplicationStatus.MoreInformation && User.IsInRole(AccountRoles.Student)) { <div class="alert alert-info"><p>Review the reason below, then submit a revised application with additional evidence. Previous submissions and decisions will remain in the history.</p><a class="btn btn-primary" asp-action="Apply">Revise and resubmit</a></div> }
+@if (Model.Application.Status == ApplicationStatus.Approved) { <div class="alert alert-success">Your application was approved. Log in again to use Instructor Studio.</div> }
+<partial name="_ApplicationRecord" model="Model" />
+</div>

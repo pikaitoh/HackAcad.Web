@@ -11,14 +11,15 @@ namespace HackAcad.Web.Controllers;
 
 [Authorize(Roles = AccountRoles.Admin)]
 [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
-public class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
-    SignInManager<ApplicationUser> signIn, UserAccounts accounts, EmailVerification verification, AccountRecords records, UserTimeZone userTime) : Controller
+public partial class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
+    UserAccounts accounts, AccountRecords records, UserTimeZone userTime) : Controller
 {
     public async Task<IActionResult> Index() => View(new AdminOverviewModel
     {
         Users = await db.Users.CountAsync(), DisabledUsers = await db.Users.CountAsync(u => u.IsDisabled),
-        Teachers = await db.Teachers.CountAsync(), Courses = await db.Courses.CountAsync(),
+        Instructors = await db.Instructors.CountAsync(), Courses = await db.Courses.CountAsync(),
         PublishedCourses = await db.Courses.CountAsync(c => c.IsPublished), Enrollments = await db.Enrollments.CountAsync(),
+        PendingApplications = await db.InstructorApplications.CountAsync(a => a.Status == ApplicationStatus.Pending),
         RecentUsers = await accounts.Query().OrderByDescending(u => u.JoinedDate).Take(5).ToListAsync()
     });
 
@@ -66,110 +67,15 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         return View(model);
     }
 
-    [HttpGet]
-    public IActionResult CreateUser() => View(new CreateUserModel());
-
-    [HttpPost]
-    public async Task<IActionResult> CreateUser(CreateUserModel input)
-    {
-        if (!AccountRoles.All.Contains(input.Role)) ModelState.AddModelError(nameof(input.Role), "Choose a valid role.");
-        if (!ModelState.IsValid) return View(input);
-        var user = new ApplicationUser { UserName = input.Email.Trim(), Email = input.Email.Trim(), DisplayName = input.DisplayName.Trim() };
-        var result = await accounts.CreateAsync(user, input.Password, input.Role, users.GetUserId(User)!);
-        if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result); return View(input); }
-        var delivered = await verification.SendAsync(user);
-        TempData["Success"] = delivered
-            ? $"Account created for {user.Email}. They must verify their email before logging in."
-            : $"Account created for {user.Email}, but the verification email could not be sent. Check mail settings; the user can request another email from Log in.";
-        return RedirectToAction(nameof(Users));
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> EditUser(string id)
-    {
-        var row = await accounts.Query().SingleOrDefaultAsync(u => u.Id == id);
-        return row is null ? NotFound() : View(new EditUserModel { Id = row.Id, DisplayName = row.DisplayName,
-            Email = row.Email, Role = row.Role, IsDisabled = row.IsDisabled,
-            LastLoginUtc = row.LastLoginUtc, LastPasswordChangedUtc = row.LastPasswordChangedUtc });
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> EditUser(string id, EditUserModel input)
-    {
-        input.Id = id;
-        var user = await users.FindByIdAsync(id);
-        if (user is null) return NotFound();
-        var row = await accounts.Query().SingleAsync(u => u.Id == id);
-        input.LastLoginUtc = row.LastLoginUtc;
-        input.LastPasswordChangedUtc = row.LastPasswordChangedUtc;
-        if (!ModelState.IsValid) return View(input);
-        var emailChanged = !string.Equals(user.Email, input.Email, StringComparison.OrdinalIgnoreCase);
-        try
-        {
-            var result = await accounts.UpdateAsync(user, input, users.GetUserId(User)!);
-            if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result); return View(input); }
-        }
-        catch (DbUpdateException)
-        {
-            ModelState.AddModelError("", "This account changed or has linked content. Reload the page and check its course ownership before trying again.");
-            return View(input);
-        }
-        if (emailChanged)
-        {
-            var delivered = await verification.SendAsync(user);
-            TempData["Success"] = delivered
-                ? "Account updated. The new email must be verified before the user can log in again."
-                : "Account updated. The new email needs verification, but the email could not be sent. Check mail settings; the user can request another email from Log in.";
-            if (id == users.GetUserId(User))
-            {
-                await signIn.SignOutAsync();
-                return RedirectToAction("Login", "Account");
-            }
-        }
-        else
-        {
-            if (id == users.GetUserId(User)) await signIn.RefreshSignInAsync(user);
-            TempData["Success"] = "Account updated. Role and status changes revoke existing sessions.";
-        }
-        return RedirectToAction(nameof(Users));
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> DeleteUser(string id)
-    {
-        var row = await accounts.Query().SingleOrDefaultAsync(u => u.Id == id);
-        return row is null ? NotFound() : View(row);
-    }
-
-    [HttpPost, ActionName("DeleteUser")]
-    public async Task<IActionResult> DeleteUserConfirmed(string id, string? emailConfirmation)
-    {
-        var user = await users.FindByIdAsync(id);
-        if (user is null) return NotFound();
-        if (!string.Equals(emailConfirmation?.Trim(), user.Email, StringComparison.OrdinalIgnoreCase))
-            ModelState.AddModelError(nameof(emailConfirmation), "Enter the account's email address to confirm deletion.");
-        if (ModelState.IsValid)
-        {
-            try
-            {
-                var result = await accounts.DeleteAsync(user, users.GetUserId(User)!);
-                if (result.Succeeded) { TempData["Success"] = "Account deleted."; return RedirectToAction(nameof(Users)); }
-                AccountValidation.AddIdentityErrors(ModelState, result);
-            }
-            catch (DbUpdateException) { ModelState.AddModelError("", "This account has linked records that prevent deletion. Disable it to preserve its content."); }
-        }
-        return View("DeleteUser", await accounts.Query().SingleAsync(u => u.Id == id));
-    }
-
     public async Task<IActionResult> Courses(string? search, string? status, int page = 1)
     {
         var query = from c in db.Courses.AsNoTracking()
-                    join teacher in db.Users on c.TeacherId equals teacher.Id
+                    join instructor in db.Users on c.InstructorId equals instructor.Id
                     select new CourseRow { CourseId = c.CourseId, Title = c.Title, Category = c.Category,
-                        IsPublished = c.IsPublished, Teacher = teacher.DisplayName,
+                        IsPublished = c.IsPublished, Instructor = instructor.DisplayName,
                         Enrollments = db.Enrollments.Count(e => e.CourseId == c.CourseId) };
         search = search?.Trim();
-        if (!string.IsNullOrEmpty(search)) query = query.Where(c => c.Title.Contains(search) || c.Teacher.Contains(search));
+        if (!string.IsNullOrEmpty(search)) query = query.Where(c => c.Title.Contains(search) || c.Instructor.Contains(search));
         if (status == "published") query = query.Where(c => c.IsPublished);
         if (status == "draft") query = query.Where(c => !c.IsPublished);
         var total = await query.CountAsync();
@@ -184,7 +90,7 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         var course = await db.Courses.AsNoTracking().SingleOrDefaultAsync(c => c.CourseId == id);
         if (course is null) return NotFound();
         return View(new EditCourseModel { CourseId = id, Title = course.Title, Description = course.Description,
-            Category = course.Category, IsPublished = course.IsPublished, Teacher = await TeacherName(course.TeacherId) });
+            Category = course.Category, IsPublished = course.IsPublished, Instructor = await InstructorName(course.InstructorId) });
     }
 
     [HttpPost]
@@ -193,7 +99,7 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
         var course = await db.Courses.SingleOrDefaultAsync(c => c.CourseId == id);
         if (course is null) return NotFound();
         input.CourseId = id;
-        input.Teacher = await TeacherName(course.TeacherId);
+        input.Instructor = await InstructorName(course.InstructorId);
         if (!ModelState.IsValid) return View(input);
         var publicationChanged = course.IsPublished != input.IsPublished;
         course.Title = input.Title.Trim();
@@ -238,15 +144,7 @@ public class AdminController(ApplicationDbContext db, UserManager<ApplicationUse
     }
 
     [HttpGet]
-    public async Task<IActionResult> Activity(int page = 1)
-    {
-        var id = users.GetUserId(User)!;
-        var query = db.AdminActivities.AsNoTracking().Where(r => r.ActorUserId == id);
-        var total = await query.CountAsync();
-        page = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(total / 20d)));
-        return View(new AdminActivityModel { Page = page, Total = total,
-            Records = await query.OrderByDescending(r => r.OccurredUtc).ThenByDescending(r => r.Id).Skip((page - 1) * 20).Take(20).ToListAsync() });
-    }
+    public IActionResult Activity() => RedirectToAction(nameof(AuditLog), new { mine = true });
 
-    private async Task<string> TeacherName(string id) => await db.Users.Where(u => u.Id == id).Select(u => u.DisplayName).FirstOrDefaultAsync() ?? "Unknown teacher";
+    private async Task<string> InstructorName(string id) => await db.Users.Where(u => u.Id == id).Select(u => u.DisplayName).FirstOrDefaultAsync() ?? "Unknown instructor";
 }

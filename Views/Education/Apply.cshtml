@@ -1,0 +1,20 @@
+@model InstructorApplicationInput
+@{ ViewData["Title"] = "Instructor application"; }
+<div class="container education-section application-measure"><div class="page-heading"><div><h1>Apply to become an Instructor</h1><p class="text-secondary">Provide at least five years of relevant teaching history and evidence an administrator can verify.</p></div></div>
+<form asp-action="Apply" method="post" enctype="multipart/form-data" class="surface-panel application-form" data-experience-form>
+<div asp-validation-summary="All" class="validation-summary" role="alert"></div>
+<div class="education-two-fields"><div><label asp-for="FullName" class="form-label"></label><input asp-for="FullName" class="form-control" required maxlength="100" autocomplete="name" /></div><div><label asp-for="WorkEmail" class="form-label"></label><input asp-for="WorkEmail" class="form-control" required maxlength="256" autocomplete="email" /></div></div>
+<div class="mb-4"><label asp-for="TeachingTopics" class="form-label"></label><input asp-for="TeachingTopics" class="form-control" required maxlength="200" placeholder="For example: network security, Linux or secure web development" /></div>
+<h2 class="h5">Teaching experience</h2><p class="form-text">List each institution and role. Leave the end date empty for a current role. Overlapping dates count only once; experience is calculated up to the submission date.</p>
+<div data-experience-rows>
+@for (var i = 0; i < Model.Experience.Count; i++) {
+<fieldset class="experience-row" data-experience-row><legend>Teaching role @(i + 1)</legend><div class="education-two-fields"><div><label asp-for="Experience[i].Institution" class="form-label">Institution</label><input asp-for="Experience[i].Institution" class="form-control" required maxlength="150" /></div><div><label asp-for="Experience[i].Position" class="form-label">Position</label><input asp-for="Experience[i].Position" class="form-control" required maxlength="100" /></div></div><div class="mb-3"><label asp-for="Experience[i].Subjects" class="form-label">Subjects taught</label><input asp-for="Experience[i].Subjects" class="form-control" required maxlength="200" /></div><div class="education-two-fields"><div><label asp-for="Experience[i].StartDate" class="form-label">Start date</label><input asp-for="Experience[i].StartDate" type="date" class="form-control" required /></div><div><label asp-for="Experience[i].EndDate" class="form-label">End date (optional)</label><input asp-for="Experience[i].EndDate" type="date" class="form-control" /></div></div><button type="button" class="btn btn-outline-secondary btn-sm mt-2" data-remove-experience>Remove role</button></fieldset>
+}
+</div><button type="button" class="btn btn-outline-secondary mb-4" data-add-experience>Add another teaching role</button>
+<div class="mb-4"><label asp-for="Evidence" class="form-label"></label><input asp-for="Evidence" type="file" accept="application/pdf,.pdf" class="form-control" required /><p class="form-text">Combine the relevant appointment/service evidence and verification references into one PDF. Each revised application needs a fresh upload. Only you and administrators can download it.</p></div>
+<div class="mb-4"><label asp-for="SupportingInformation" class="form-label"></label><textarea asp-for="SupportingInformation" class="form-control" rows="4" maxlength="3000"></textarea></div>
+<div class="mb-4"><label asp-for="SubmissionNote" class="form-label"></label><textarea asp-for="SubmissionNote" class="form-control" rows="3" maxlength="2000"></textarea></div>
+<div class="form-check mb-4"><input asp-for="Declaration" class="form-check-input" required /><label asp-for="Declaration" class="form-check-label">I confirm that my teaching history and supporting evidence are accurate.</label></div>
+<div class="form-actions"><button class="btn btn-primary" type="submit">Submit application</button><a asp-action="Index">Back to For Education</a></div>
+</form></div>
+@section Scripts { <script src="~/js/education.js" asp-append-version="true" defer></script> }

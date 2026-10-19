@@ -1,52 +1,110 @@
+@inject Microsoft.AspNetCore.Identity.SignInManager<ApplicationUser> HomeSignIn
 @{
     ViewData["Title"] = "Learn cybersecurity";
     ViewData["PageClass"] = "home-landing";
     ViewData["ThemeColor"] = "#193e46";
+    var hasGoogle = (await HomeSignIn.GetExternalAuthenticationSchemesAsync()).Any(s => s.Name == "Google");
 }
 @section Styles {
     <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
 }
-<section class="landing-hero" aria-labelledby="home-title">
-    <div class="landing-hero-inner">
-        <div class="landing-hero-copy">
-            <h1 id="home-title">Learn cybersecurity.<br /><span>Put it into practice.</span></h1>
-            <p>Study teacher-led lessons, solve security challenges and practise commands in a simulated terminal.</p>
-            <div class="landing-actions">
-                <a class="btn landing-button-main" asp-controller="Account" asp-action="Register">Start learning</a>
-                <a class="btn landing-button-secondary" asp-controller="Account" asp-action="Login">Log in</a>
+<section class="home-hero" aria-labelledby="home-title">
+    <div class="container home-hero-grid">
+        <div class="home-hero-copy">
+            <h1 id="home-title">Build your<br /><span>cybersecurity</span><br />skills.</h1>
+            <p>Learn the concepts. Investigate the clues. Build your skills with guided lessons, CTF challenges and browser-based labs.</p>
+            <div class="home-actions">
+                <a class="btn btn-primary" asp-controller="Account" asp-action="Register">Start learning <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14" /></svg></a>
+                @if (hasGoogle)
+                {
+                    <form asp-controller="Account" asp-action="GoogleLogin" method="post">
+                        <button type="submit" class="btn home-google"><partial name="_GoogleMark" /><span>Continue with Google</span></button>
+                    </form>
+                }
+            </div>
+            <ul class="home-assurances" aria-label="Learning formats">
+                <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>Guided lessons</li>
+                <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>Hands-on challenges</li>
+            </ul>
+            <a class="home-discover" href="#learning-experience">See how it works <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16m-6-6 6 6 6-6" /></svg></a>
+        </div>
+        <figure class="home-lab-preview">
+            <div class="home-lab-window">
+                <div class="home-lab-toolbar"><span class="home-window-dots" aria-hidden="true"><i></i><i></i><i></i></span><span>HackAcad · Learning workspace</span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 7v5c0 5 8 9 8 9s8-4 8-9V7Z"/><path d="m8 12 3 3 5-6"/></svg></div>
+                <div class="home-lab-body">
+                    <div class="home-lab-rail" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 5C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-6-1-9 1Zm0 0v15"/></svg><svg viewBox="0 0 24 24"><path d="M5 21V3m0 1c5-4 9 4 14 0v9c-5 4-9-4-14 0"/></svg><svg viewBox="0 0 24 24" class="home-rail-active"><path d="m5 7 5 5-5 5m8 0h6"/></svg></div>
+                    <div class="home-lab-task">
+                        <div class="home-lab-course">Linux basics / File permissions</div>
+                        <h2>A little practice.<br />A new skill unlocked.</h2>
+                        <p>Give the audit script permission to run.</p>
+                        <div class="home-console" aria-label="Example terminal output">
+                            <div><span>student@@hackacad</span>:<b>/var/secret</b>$</div>
+                            <pre><code>ls -l audit.sh
+<span class="home-console-muted">-rw-r--r--  student  audit.sh</span>
+
+<span class="home-console-prompt">$</span> chmod 755 audit.sh
+<span class="home-console-prompt">$</span> ls -l audit.sh
+<span class="home-console-result">-rwxr-xr-x</span>  student  audit.sh</code></pre>
+                            <div class="home-console-cursor" aria-hidden="true">$ <span></span></div>
+                        </div>
+                        <div class="home-task-result"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/></svg><div><strong>Permission updated</strong><span>Understand the command. See the result.</span></div></div>
+                    </div>
+                </div>
+            </div>
+            <figcaption>A preview of a simulated terminal exercise.</figcaption>
+        </figure>
+    </div>
+    <div class="container home-topics" aria-label="Topics to explore"><span>Build your foundations in</span><ul><li>Web security</li><li>Linux essentials</li><li>Cryptography</li><li>Capture the flag</li></ul></div>
+</section>
+
+<section class="home-experience" id="learning-experience" aria-labelledby="experience-title">
+    <div class="container">
+        <div class="home-section-heading"><h2 id="experience-title">Understanding comes<br />from doing.</h2><p>Move from a new idea to a practical exercise. Each learning format gives you a different way to work through the material.</p></div>
+        <div class="home-experience-grid" data-learning-preview>
+            <div class="home-methods" role="tablist" aria-label="Explore learning formats" aria-orientation="vertical">
+                <button type="button" role="tab" id="method-lesson" aria-controls="preview-lesson" aria-selected="true" tabindex="0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-6-1-9 1Zm0 0v15"/></svg><span><strong>Learn the foundations</strong><span>Instructor-led lessons, organised by topic.</span></span><svg class="home-method-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></button>
+                <button type="button" role="tab" id="method-ctf" aria-controls="preview-ctf" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V3m0 1c5-4 9 4 14 0v9c-5 4-9-4-14 0"/></svg><span><strong>Follow the clues</strong><span>Apply what you know to a CTF challenge.</span></span><svg class="home-method-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></button>
+                <button type="button" role="tab" id="method-terminal" aria-controls="preview-terminal" aria-selected="false" tabindex="-1"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="m7 9 3 3-3 3m6 0h4"/></svg><span><strong>Put commands to work</strong><span>Practise in a simulated browser terminal.</span></span><svg class="home-method-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg></button>
+            </div>
+            <div class="home-preview-stage">
+                <section id="preview-lesson" role="tabpanel" aria-labelledby="method-lesson" tabindex="0" class="home-format-preview">
+                    <div class="home-example-label">Lesson preview</div><h3>How does a website know it's you?</h3><p>Authentication checks who you are. Authorisation decides what you're allowed to do.</p>
+                    <div class="home-lesson-example"><div><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg><strong>Who are you?</strong><span>Sign in to your account</span></div><svg class="home-diagram-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h16m-6-6 6 6-6 6" /></svg><div><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/></svg><strong>What can you access?</strong><span>Check your account role</span></div></div>
+                    <p class="home-preview-note">Read the explanation, then use it in a challenge.</p>
+                </section>
+                <section id="preview-ctf" role="tabpanel" aria-labelledby="method-ctf" tabindex="0" class="home-format-preview" hidden>
+                    <div class="home-example-label">CTF preview</div><h3>There is a clue in the request.</h3><p>Inspect the sample access log. Which request might expose a file that should stay private?</p><pre class="home-log"><code>GET /index.html          200
+GET /images/logo.svg     200
+<mark>GET /backup/config.txt   200</mark>
+GET /favicon.svg         200</code></pre><p class="home-preview-note">Investigate the evidence and submit the flag you find.</p>
+                </section>
+                <section id="preview-terminal" role="tabpanel" aria-labelledby="method-terminal" tabindex="0" class="home-format-preview" hidden>
+                    <div class="home-example-label">Terminal preview</div><h3>Get comfortable with the command line.</h3><p>Navigate directories, read files and explore permissions through a simulated Linux environment.</p><pre class="home-log"><code><span>$</span> pwd
+/home/student
+<span>$</span> ls
+notes.txt  exercises  resources
+<span>$</span> cat notes.txt
+Your next challenge starts here.</code></pre><p class="home-preview-note">Work towards the lab objectives, one command at a time.</p>
+                </section>
             </div>
         </div>
-        <img class="landing-student" src="~/images/home-student.png" asp-append-version="true" width="1142" height="1377" fetchpriority="high" alt="A student working on a laptop" />
-        <aside class="landing-preview" aria-labelledby="preview-title">
-            <div class="preview-brand"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-6-1-9 1Zm0 0v15"/></svg><span>HackAcad</span></div>
-            <h2 id="preview-title">Your learning space</h2>
-            <ul>
-                <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><div><strong>Courses &amp; lessons</strong><span>Build your understanding</span></div></li>
-                <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><div><strong>CTF challenges</strong><span>Work through a problem</span></div></li>
-                <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg><div><strong>Terminal practice</strong><span>Try commands for yourself</span></div></li>
-            </ul>
-            <p>One account for your learning activity.</p>
-        </aside>
     </div>
 </section>
-<section class="landing-formats" id="learning-experience" aria-label="Learning on HackAcad">
-    <div class="container landing-formats-inner">
-        <div><h2>Learn the foundations</h2><p>Lessons organised by topic, created by your teachers.</p></div>
-        <div><h2>Work through a challenge</h2><p>Apply what you know and submit your answer.</p></div>
-        <div><h2>Practise in your browser</h2><p>Explore commands in a simulated terminal.</p></div>
-    </div>
-</section>
-<section class="container landing-practice" aria-labelledby="practice-title">
-    <div class="landing-practice-copy"><h2 id="practice-title">More than reading<br />through a lesson.</h2><p>Use the course material as a starting point. Then put the ideas to work through a challenge or a terminal exercise.</p><p>Your dashboard keeps your course enrolments and learning activity together.</p><a class="landing-text-link" href="#getting-started">Getting started with HackAcad <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></a></div>
-    <figure class="landing-terminal"><figcaption><span class="terminal-dots" aria-hidden="true"><i></i><i></i><i></i></span>Example terminal exercise</figcaption><div class="terminal-content"><p class="terminal-question">Find the current working directory.</p><pre><code><span class="terminal-prompt">student@hackacad:~$</span> pwd
-/home/student
 
-<span class="terminal-prompt">student@hackacad:~$</span> ls
-notes.txt  exercises  resources</code></pre><p class="terminal-caption">Read the output. Understand what the command does.</p></div></figure>
+<section class="home-journey" id="getting-started" aria-labelledby="journey-title">
+    <div class="container"><div class="home-section-heading"><h2 id="journey-title">From curious<br />to hands-on.</h2><p>You don't have to figure everything out at once. Start with an account, choose a course and take it one activity at a time.</p></div>
+        <ol class="home-steps"><li><span>01</span><h3>Make it your learning space</h3><p>Create a Student account and verify your email. You can also get started with Google.</p></li><li><span>02</span><h3>Find your starting point</h3><p>Log in to explore available courses and enrol in a topic you'd like to understand.</p></li><li><span>03</span><h3>Learn, practise, come back</h3><p>Work through lessons and challenges. Your dashboard keeps your progress together.</p></li></ol>
+    </div>
 </section>
-<section class="landing-teaching" id="for-teachers" aria-labelledby="teaching-title"><div class="container landing-teaching-inner"><div><h2 id="teaching-title">Have something to teach?</h2><p>Create an account, then ask an administrator for Teacher access.</p></div><a class="btn landing-button-secondary" asp-controller="Account" asp-action="Register">Join HackAcad</a></div></section>
-<section class="container landing-faq" id="getting-started" aria-labelledby="faq-title"><div><h2 id="faq-title">Before you get started</h2><p>A few things to know about your account.</p></div><div class="landing-questions">
-    <details><summary>What access do I get when I sign up?</summary><p>Public registration creates a Student account. Administrators can grant Teacher or Admin access.</p></details>
-    <details><summary>Where can I see my learning activity?</summary><p>Your dashboard shows your course enrolments, completed activities and solved challenges.</p></details>
-    <details><summary>Can I change my profile and password?</summary><p>Yes. After logging in, open My profile to update your username or change your password.</p></details>
+
+<section class="home-faq container" aria-labelledby="faq-title"><div><h2 id="faq-title">A few things<br />before you begin.</h2><p>New to HackAcad? Start here.</p></div><div class="home-questions">
+    <details><summary>Do I need to create an account first?</summary><p>Yes. Register and verify your email, or continue with Google. Log in to browse courses, enrol and save your learning progress.</p></details>
+    <details><summary>Do I need to install a terminal?</summary><p>No. Terminal exercises run in a simulated environment in your browser, using the commands supported by each lab.</p></details>
+    <details><summary>Can I use HackAcad as an instructor?</summary><p>Create a Student account, then apply through For Education with at least five years of relevant teaching experience and verifiable evidence. Instructor Studio lets you create courses, lessons, CTF challenges and terminal labs.</p></details>
+    <details><summary>Where do I manage my account?</summary><p>After logging in, open your avatar menu. View profile contains your personal details; Manage account contains your email, password, two-factor authentication and time zone settings.</p></details>
 </div></section>
+
+<section class="home-final" aria-labelledby="start-title"><div class="container home-final-inner"><div><h2 id="start-title">Let curiosity become a skill.</h2><p>Your next learning experience starts with a first step.</p></div><a class="btn btn-primary" asp-controller="Account" asp-action="Register">Create an account <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19 19 5M5 5h14v14" /></svg></a></div></section>
+@section Scripts {
+    <script src="~/js/home.js" asp-append-version="true" defer></script>
+}

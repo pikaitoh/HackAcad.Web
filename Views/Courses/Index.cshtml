@@ -9,9 +9,9 @@
             <h1>Course Catalogue</h1>
             <p class="text-secondary">Master web security, Linux forensics, cryptography, and hands-on CTFs.</p>
         </div>
-        @if (User.IsInRole(AccountRoles.Teacher))
+        @if (User.IsInRole(AccountRoles.Instructor))
         {
-            <a class="btn btn-primary" asp-controller="TeacherCourses" asp-action="Create">
+            <a class="btn btn-primary" asp-controller="InstructorCourses" asp-action="Create">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:0.35rem; vertical-align:-2px;"><path d="M12 5v14M5 12h14"/></svg>Create Course
             </a>
         }
@@ -78,7 +78,7 @@
                         <p>@(c.Description ?? "Practical guided lessons with hands-on CTF challenges and terminal simulations.")</p>
                         
                         <div class="course-card-meta">
-                            <span>Instructor: <strong>@c.TeacherName</strong></span>
+                            <span>Instructor: <strong>@c.InstructorName</strong></span>
                             <span>•</span>
                             <span>@(c.LessonCount) Lessons</span>
                             @if (c.ChallengeCount > 0)

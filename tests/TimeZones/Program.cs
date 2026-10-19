@@ -65,7 +65,7 @@ try
 {
     var anonymous = Client();
     Check((await anonymous.GetAsync(account+"TimeZone")).StatusCode == HttpStatusCode.Redirect,"anonymous visitor cannot access preferences");
-    foreach (var role in new[]{AccountRoles.Student,AccountRoles.Teacher,AccountRoles.Admin})
+    foreach (var role in new[]{AccountRoles.Student,AccountRoles.Instructor,AccountRoles.Admin})
     {
         var fixture = await Fixture(role.ToLowerInvariant(), role); var client = Client(); var secondDevice = Client();
         await Login(client,fixture.Email); await Login(secondDevice,fixture.Email);
@@ -105,10 +105,10 @@ try
         var logs=await Body(client,$"/Admin/LoginLogs?search={other.Email}&from=2026-03-08&to=2026-03-08");
         Check(logs.Contains("boundary-start")&&logs.Contains("boundary-end")&&!logs.Contains("boundary-before")&&!logs.Contains("boundary-after"),"Admin date filters include exactly the selected local DST day");
         Check(logs.Contains("08 Mar 2026")&&logs.Contains("23:59:59")&&logs.Contains("America/New_York"),"Admin logs format the same local day used for filtering");
-        Check((await Body(client,"/Admin/Activity")).Contains("31 Dec 2025, 20:30:00"),"Admin activity uses viewer time");
+        Check((await Body(client,"/Admin/AuditLog?mine=true&search=Timezone%20test")).Contains("31 Dec 2025, 20:30:00"),"Admin activity uses viewer time");
         Check((await Body(client,"/Admin/Users?search="+other.Email)).Contains("31 Dec 2025"),"Admin user list uses Admin preference for another user's Joined date");
-        var edit=await Body(client,"/Admin/EditUser/"+other.Id);
-        Check(edit.Contains("31 Dec 2025, 20:30:00")&&edit.Contains("America/New_York"),"Admin edit page uses Admin preference, not target user's zone");
+        var edit=await Body(client,"/Admin/UserDetails/"+other.Id);
+        Check(edit.Contains("31 Dec 2025, 20:30:00")&&edit.Contains("America/New_York"),"Admin read-only details page uses Admin preference, not target user's zone");
         Check((await Body(client,"/Admin/LoginLogs?from=2026-03-10&to=2026-03-08")).Contains("Choose an end date"),"reversed date range remains an inline validation error");
         Check((await Body(client,"/Admin/LoginLogs?to=9999-12-31")).Contains("Choose a valid end date"),"extreme end date cannot overflow into a server error");
         using(var scope=factory.Services.CreateScope())

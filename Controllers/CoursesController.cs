@@ -19,11 +19,12 @@ public class CoursesController(
     // ==========================================
     // 1. PUBLIC / STUDENT CATALOGUE
     // ==========================================
+    [Authorize]
     [HttpGet]
     public async Task<IActionResult> Index(string? search, string? category)
     {
         if (User.IsInRole(AccountRoles.Admin)) return RedirectToAction("Courses", "Admin");
-        if (User.IsInRole(AccountRoles.Teacher)) return RedirectToAction("Index", "TeacherCourses");
+        if (User.IsInRole(AccountRoles.Instructor)) return RedirectToAction("Index", "InstructorCourses");
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         var query = db.Courses.AsNoTracking().Where(c => c.IsPublished);
@@ -56,10 +57,10 @@ public class CoursesController(
 
         var enrollmentMap = userEnrollments.ToDictionary(e => e.CourseId);
 
-        // Preload teacher display names
-        var teacherIds = coursesList.Select(c => c.TeacherId).Distinct().ToList();
-        var teacherUsers = await db.Users.AsNoTracking()
-            .Where(u => teacherIds.Contains(u.Id))
+        // Preload instructor display names
+        var instructorIds = coursesList.Select(c => c.InstructorId).Distinct().ToList();
+        var instructorUsers = await db.Users.AsNoTracking()
+            .Where(u => instructorIds.Contains(u.Id))
             .ToDictionaryAsync(u => u.Id, u => u.DisplayName);
 
         var courseCards = new List<CourseCardViewModel>();
@@ -80,7 +81,7 @@ public class CoursesController(
                 progressPercent = Math.Clamp((int)Math.Round((double)completedCount / totalItems * 100), 0, 100);
             }
 
-            teacherUsers.TryGetValue(c.TeacherId, out var teacherName);
+            instructorUsers.TryGetValue(c.InstructorId, out var instructorName);
 
             courseCards.Add(new CourseCardViewModel
             {
@@ -89,7 +90,7 @@ public class CoursesController(
                 Description = c.Description,
                 Category = c.Category,
                 ThumbnailUrl = c.ThumbnailUrl,
-                TeacherName = teacherName ?? "Instructor",
+                InstructorName = instructorName ?? "Instructor",
                 IsEnrolled = isEnrolled,
                 ProgressPercent = progressPercent,
                 LessonCount = lessonCount,
@@ -113,6 +114,7 @@ public class CoursesController(
     // ==========================================
     // 2. COURSE DETAILS & SYLLABUS
     // ==========================================
+    [Authorize]
     [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
@@ -124,7 +126,7 @@ public class CoursesController(
 
         if (User.IsInRole(AccountRoles.Admin)) return RedirectToAction("EditCourse", "Admin", new { id });
 
-        var teacher = await db.Users.FindAsync(course.TeacherId);
+        var instructor = await db.Users.FindAsync(course.InstructorId);
         var lessons = await db.Lessons.Where(l => l.CourseId == id).OrderBy(l => l.OrderIndex).ToListAsync();
         var challenges = await db.Challenges.Where(c => c.CourseId == id && c.IsPublished).ToListAsync();
         var simulations = await db.SimulationTasks.Where(s => s.CourseId == id && s.IsPublished).ToListAsync();
@@ -159,7 +161,7 @@ public class CoursesController(
         var model = new CourseDetailsViewModel
         {
             Course = course,
-            TeacherName = teacher?.DisplayName ?? "Instructor",
+            InstructorName = instructor?.DisplayName ?? "Instructor",
             IsEnrolled = enrollment != null,
             ProgressPercent = progressPercent,
             ResumeLessonId = enrollment?.LastLessonId ?? lessons.FirstOrDefault()?.LessonId,
@@ -563,15 +565,15 @@ public class CoursesController(
     // HELPERS
     // ==========================================
     private bool CanReadCourse(Course course) => course.IsPublished
-        || User.IsInRole(AccountRoles.Admin) || IsCourseOwner(course.TeacherId);
+        || User.IsInRole(AccountRoles.Admin) || IsCourseOwner(course.InstructorId);
 
     private bool CanReadActivity(Course course, bool published) => CanReadCourse(course)
-        && (published || User.IsInRole(AccountRoles.Admin) || IsCourseOwner(course.TeacherId));
+        && (published || User.IsInRole(AccountRoles.Admin) || IsCourseOwner(course.InstructorId));
 
-    private bool IsCourseOwner(string teacherId)
+    private bool IsCourseOwner(string instructorId)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        return currentUserId != null && currentUserId == teacherId;
+        return currentUserId != null && currentUserId == instructorId;
     }
 
     private static string ComputeSha256(string input)

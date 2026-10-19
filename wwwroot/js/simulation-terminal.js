@@ -66,7 +66,7 @@
             return target.includes('/') ? resolvePath(path).join('/') === resolvePath(target).join('/') : resolvePath(path).at(-1) === target;
         }
 
-        // Parse teacher config
+        // Parse instructor config
         if (config) {
             try {
                 const parsed = typeof config === 'string' ? JSON.parse(config) : config;
@@ -221,7 +221,7 @@
             const cmd = parts[0].toLowerCase();
             const args = parts.slice(1);
 
-            // Check if command is permitted by teacher in this exercise
+            // Check if command is permitted by instructor in this exercise
             if (!allowedCommands.includes(cmd)) {
                 printLine(`hackacad-sh: <strong>${escapeHtml(cmd)}</strong>: command not allowed in this lab exercise.`, 'term-error');
                 printLine(`Type <span class="term-highlight">help</span> for allowed commands.`, 'text-secondary');

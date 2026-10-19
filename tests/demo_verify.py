@@ -100,29 +100,29 @@ def test_flow():
     assert "simulation-terminal.js" in sim_html, "Terminal script missing"
     print("[PASS] 8. NetAcad-style Simulated Terminal environment configured.")
 
-    # 8. Teacher Flow
-    teacher_client = create_client()
-    t_login_page = teacher_client.open(f"{BASE_URL}/Identity/Account/Login").read().decode('utf-8')
+    # 8. Instructor Flow
+    instructor_client = create_client()
+    t_login_page = instructor_client.open(f"{BASE_URL}/Identity/Account/Login").read().decode('utf-8')
     t_token = extract_token(t_login_page)
 
     t_login_data = urllib.parse.urlencode({
-        "Email": "demo.teacher@hackacad.local",
+        "Email": "demo.instructor@hackacad.local",
         "Password": "HackAcad@123!",
         "__RequestVerificationToken": t_token
     }).encode('utf-8')
 
-    teacher_client.open(urllib.request.Request(f"{BASE_URL}/Identity/Account/Login", data=t_login_data, method="POST"))
+    instructor_client.open(urllib.request.Request(f"{BASE_URL}/Identity/Account/Login", data=t_login_data, method="POST"))
 
-    t_dash_html = teacher_client.open(f"{BASE_URL}/TeacherCourses").read().decode('utf-8')
-    assert "Teacher Studio" in t_dash_html, "Teacher studio missing"
-    assert "Total Enrolled Students" in t_dash_html, "Teacher statistics missing"
-    print("[PASS] 9. Teacher Studio shows created courses and enrollment metrics.")
+    t_dash_html = instructor_client.open(f"{BASE_URL}/InstructorCourses").read().decode('utf-8')
+    assert "Instructor Studio" in t_dash_html, "Instructor studio missing"
+    assert "Total Enrolled Students" in t_dash_html, "Instructor statistics missing"
+    print("[PASS] 9. Instructor Studio shows created courses and enrollment metrics.")
 
-    t_curric_html = teacher_client.open(f"{BASE_URL}/TeacherCourses/Curriculum/1").read().decode('utf-8')
+    t_curric_html = instructor_client.open(f"{BASE_URL}/InstructorCourses/Curriculum/1").read().decode('utf-8')
     assert "Theory &amp; Technical Lessons" in t_curric_html or "Theory & Technical Lessons" in t_curric_html, "Lessons tab missing"
     assert "CTF Cybersecurity Challenges" in t_curric_html, "CTF tab missing"
     assert "Simulated Terminal Lab Exercises" in t_curric_html, "Terminal labs tab missing"
-    print("[PASS] 10. Teacher Curriculum manager provides full CRUD authoring for Lessons, CTFs, and Labs.")
+    print("[PASS] 10. Instructor Curriculum manager provides full CRUD authoring for Lessons, CTFs, and Labs.")
 
     print("\n>>> ALL 10 TESTS PASSED CLEANLY! HACKACAD DEMO IS FULLY OPERATIONAL! <<<")
 

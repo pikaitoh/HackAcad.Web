@@ -1,7 +1,8 @@
 @model DashboardModel
 @{
+    Layout = "_WorkspaceLayout";
     ViewData["Title"] = "Dashboard";
-    var isTeacher = User.IsInRole(AccountRoles.Teacher);
+    var isInstructor = User.IsInRole(AccountRoles.Instructor);
 }
 
 <div class="container module-shell">
@@ -12,9 +13,9 @@
         </div>
         <div class="d-flex gap-2 align-items-center">
             <span class="role-badge" data-role="@Model.Role">@Model.Role</span>
-            @if (isTeacher)
+            @if (isInstructor)
             {
-                <a class="btn btn-outline-secondary btn-sm" asp-controller="TeacherCourses" asp-action="Index">Teacher Studio</a>
+                <a class="btn btn-outline-secondary btn-sm" asp-controller="InstructorCourses" asp-action="Index">Instructor Studio</a>
             }
             <a class="btn btn-primary btn-sm" asp-controller="Courses" asp-action="Index">Browse Courses</a>
         </div>
@@ -237,13 +238,13 @@
 
             <div class="account-access">
                 <h3>@Model.Role Access</h3>
-                @if (isTeacher)
+                @if (isInstructor)
                 {
-                    <p>Your account has Teacher access. You can create courses, author CTF challenges, and build simulated terminal labs in the <a asp-controller="TeacherCourses" asp-action="Index">Teacher Studio</a>.</p>
+                    <p>Your account has Instructor access. You can create courses, author CTF challenges, and build simulated terminal labs in the <a asp-controller="InstructorCourses" asp-action="Index">Instructor Studio</a>.</p>
                 }
                 else
                 {
-                    <p>Your account has Student access. You can enrol into any published course and solve interactive challenges. Contact an administrator to upgrade to Teacher.</p>
+                    <p>Your account has Student access. You can enrol into any published course and solve interactive challenges. Apply through For Education if you meet the Instructor teaching requirements.</p>
                 }
             </div>
         </aside>

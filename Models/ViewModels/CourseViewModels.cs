@@ -11,7 +11,7 @@ public class CourseCardViewModel
     public string? Description { get; set; }
     public string? Category { get; set; }
     public string? ThumbnailUrl { get; set; }
-    public string TeacherName { get; set; } = string.Empty;
+    public string InstructorName { get; set; } = string.Empty;
     public bool IsEnrolled { get; set; }
     public int ProgressPercent { get; set; }
     public int LessonCount { get; set; }
@@ -31,7 +31,7 @@ public class CourseIndexViewModel
 public class CourseDetailsViewModel
 {
     public Course Course { get; set; } = null!;
-    public string TeacherName { get; set; } = string.Empty;
+    public string InstructorName { get; set; } = string.Empty;
     public bool IsEnrolled { get; set; }
     public int ProgressPercent { get; set; }
     public int? ResumeLessonId { get; set; }
@@ -162,7 +162,7 @@ public class SimulationCreateEditModel
     public bool IsPublished { get; set; } = true;
 }
 
-public class TeacherCourseRow
+public class InstructorCourseRow
 {
     public Course Course { get; set; } = null!;
     public int LessonCount { get; set; }
@@ -172,9 +172,9 @@ public class TeacherCourseRow
     public int CompletedStudentsCount { get; set; }
 }
 
-public class TeacherDashboardViewModel
+public class InstructorDashboardViewModel
 {
-    public List<TeacherCourseRow> Courses { get; set; } = [];
+    public List<InstructorCourseRow> Courses { get; set; } = [];
     public int TotalStudentsEnrolled { get; set; }
     public int TotalSubmissionsReceived { get; set; }
 }
