@@ -10,7 +10,11 @@ public class BadgeService(ApplicationDbContext db)
     public async Task<List<BadgeItem>> GetUserBadgesAsync(string userId)
     {
         // 1. Enrollment stats
-        var enrollments = await db.Enrollments.Where(e => e.UserId == userId).ToListAsync();
+        var isInstructor = await db.Instructors.AnyAsync(i => i.UserId == userId);
+        var enrollments = await db.Enrollments
+            .Where(e => e.UserId == userId && (!isInstructor
+                || !db.Courses.Any(c => c.CourseId == e.CourseId && c.InstructorId == userId)))
+            .ToListAsync();
         var enrollmentCount = enrollments.Count;
 
         // 2. Completed items by type

@@ -1,6 +1,8 @@
 @{ var controller = ViewContext.RouteData.Values["controller"]?.ToString(); var action = ViewContext.RouteData.Values["action"]?.ToString(); }
 <nav class="admin-nav" aria-label="Workspace navigation">
 @if (User.IsInRole(AccountRoles.Instructor)) {
+<a asp-controller="Account" asp-action="Dashboard" aria-current="@(controller == "Account" && action == "Dashboard" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>My learning</a>
+<a asp-controller="Courses" asp-action="Index" aria-current="@(controller == "Courses" && action == "Index" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-6-1-9 1Zm0 0v15"/></svg>Courses</a>
 <a asp-controller="InstructorCourses" asp-action="Index" aria-current="@(controller == "InstructorCourses" && action != "Create" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Instructor Studio</a>
 <a asp-controller="InstructorCourses" asp-action="Create" aria-current="@(controller == "InstructorCourses" && action == "Create" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>Create course</a>
 } else {

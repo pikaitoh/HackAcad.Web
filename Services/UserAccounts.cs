@@ -11,6 +11,7 @@ public static class AccountRoles
     public const string Student = "Student";
     public const string Instructor = "Instructor";
     public const string Admin = "Admin";
+    public const string Learner = Student + "," + Instructor;
     public static readonly string[] All = [Student, Instructor, Admin];
 }
 

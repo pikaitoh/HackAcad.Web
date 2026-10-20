@@ -112,16 +112,18 @@ try
     var adminCatalogue=await a.GetAsync("/Courses");
     Check(adminCatalogue.StatusCode==HttpStatusCode.Redirect&&adminCatalogue.Headers.Location?.OriginalString=="/Admin/Courses","Admin catalogue URL redirects to course management");
     var instructorCatalogue=await t.GetAsync("/Courses");
-    Check(instructorCatalogue.StatusCode==HttpStatusCode.Redirect&&instructorCatalogue.Headers.Location?.OriginalString=="/InstructorCourses","Instructor catalogue URL redirects to Instructor Studio");
+    Check(instructorCatalogue.StatusCode==HttpStatusCode.OK,"Instructor can browse the course catalogue");
     Check((await a.GetAsync("/Admin/Courses")).StatusCode==HttpStatusCode.OK,"Admin retains the course moderation page");
     Check((await t.GetAsync("/InstructorCourses")).StatusCode==HttpStatusCode.OK,"Instructor retains course authoring");
     var instructorDashboard=await t.GetAsync("/Identity/Account/Dashboard");
-    Check(instructorDashboard.StatusCode==HttpStatusCode.Redirect&&instructorDashboard.Headers.Location?.OriginalString=="/InstructorCourses","Instructor dashboard opens Instructor Studio instead of student learning totals");
+    var instructorDashboardHtml=await instructorDashboard.Content.ReadAsStringAsync();
+    Check(instructorDashboard.StatusCode==HttpStatusCode.OK&&instructorDashboardHtml.Contains("Your Progress Totals")&&instructorDashboardHtml.Contains("Badges &amp; Achievements"),"Instructor dashboard includes learner progress and badges");
     bool HasCatalogueLink(string html)=>Regex.IsMatch(Regex.Match(html,"<header.*?</header>",RegexOptions.Singleline).Value,"href=\"/Courses\"");
     Check(!HasCatalogueLink(await a.GetStringAsync("/Admin/Courses")),"Admin header has no student course link");
-    Check(!HasCatalogueLink(await t.GetStringAsync("/InstructorCourses")),"Instructor header has no student course link");
+    var instructorWorkspace=await t.GetStringAsync("/InstructorCourses");
+    Check(!HasCatalogueLink(instructorWorkspace)&&instructorWorkspace.Contains("href=\"/Courses\""),"Instructor workspace keeps a course catalogue link");
     Check((await s.GetStringAsync("/Courses")).Contains("Workspace navigation"),"Student workspace retains a sidebar catalogue link");
-    // Existing enrollments from older versions must not bypass current role authorization.
+    // Existing self-enrollments must not let a course owner learn from their own course.
     using(var scope=factory.Services.CreateScope())
     {
         var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -131,24 +133,40 @@ try
     foreach(var client in new[]{a,t})
     {
         var denied=await client.GetAsync("/Courses/Learn/"+publicId);
-        Check(denied.StatusCode==HttpStatusCode.Redirect&&denied.Headers.Location!.OriginalString.Contains("/Identity/Account/AccessDenied"),"non-student cannot open Learn even with an existing enrollment");
+        Check(denied.StatusCode==HttpStatusCode.Redirect&&denied.Headers.Location!.OriginalString.Contains("/Identity/Account/AccessDenied"),"Admin and course owner cannot open Learn for this course");
         foreach(var action in new[]{"Enroll","CompleteLesson","SubmitFlag","CompleteSimulation"})
         {
             var response=await Post(client,"/Courses/"+action,Fields("id",publicId.ToString(),"courseId",publicId.ToString(),"lessonId",lessonId.ToString(),"challengeId",challengeId.ToString(),"taskId",simId.ToString(),"flag",flag));
-            Check(response.StatusCode==HttpStatusCode.Redirect&&response.Headers.Location!.OriginalString.Contains("/Identity/Account/AccessDenied"),"non-student direct POST is denied: "+action);
+            Check(response.StatusCode==HttpStatusCode.Redirect&&response.Headers.Location!.OriginalString.Contains("/Identity/Account/AccessDenied"),"Admin or course owner is denied direct learner action: "+action);
         }
         var preview=await client.GetAsync("/Courses/Details/"+publicId);
         if(client==t)
         {
             var html=await preview.Content.ReadAsStringAsync();
-            Check(preview.StatusCode==HttpStatusCode.OK&&!html.Contains("Enrol Now")&&!html.Contains("Continue Learning")&&!html.Contains("Your Course Progress"),"Instructor preview hides enrollment and stale learning progress");
+            Check(preview.StatusCode==HttpStatusCode.OK&&!html.Contains("Enrol Now")&&!html.Contains("Continue Learning")&&!html.Contains("Your Course Progress"),"Course owner view hides learner controls and stale progress");
         }
     }
+    var otherTeacherCourse=await t2.GetStringAsync("/Courses/Details/"+publicId);
+    Check(otherTeacherCourse.Contains("Enrol Now")&&otherTeacherCourse.Contains("Save Course"),"Instructor can enrol in and save another instructor's course");
+    await Post(t2,"/Courses/Enroll",Fields("id",publicId.ToString()));
+    Check((await t2.GetAsync("/Courses/Learn/"+publicId)).StatusCode==HttpStatusCode.OK,"Instructor can open another instructor's enrolled course");
+    var savedByInstructor=await Post(t2,"/Courses/SaveCourse",Fields("id",publicId.ToString()));
+    Check(savedByInstructor.StatusCode==HttpStatusCode.Redirect&&savedByInstructor.Headers.Location?.OriginalString.Contains("/Courses/Details/"+publicId)==true,"Instructor can save another instructor's course");
+    Check((await t2.GetStringAsync("/Courses/Saved")).Contains(prefix+" public"),"Instructor can view saved courses");
+    Check((await Post(t2,"/Courses/CompleteLesson",Fields("courseId",publicId.ToString(),"lessonId",lessonId.ToString()))).StatusCode==HttpStatusCode.Redirect,"Instructor can save lesson progress");
+    Check((await Post(t2,"/Courses/SubmitFlag",Fields("courseId",publicId.ToString(),"challengeId",challengeId.ToString(),"flag",flag))).StatusCode==HttpStatusCode.Redirect,"Instructor can submit a challenge flag");
+    await Complete(t2,publicId,simId,["cd /var/secret","chmod 755 audit.sh","cat audit.sh"],true);
+    var completionPage=await t2.GetStringAsync("/Courses/Learn/"+publicId);
+    Check(completionPage.Contains("Finish Course"),"Instructor sees the one-time finish action after completing the course");
+    await Post(t2,"/Courses/FinishCourse",Fields("courseId",publicId.ToString()));
+    var learnerDashboard=await t2.GetStringAsync("/Identity/Account/Dashboard");
+    Check(learnerDashboard.Contains("Academy Graduate")&&learnerDashboard.Contains("Congratulations! You completed"),"Instructor dashboard shows earned badges and course completion message");
+    Check(!(await t2.GetStringAsync("/Courses/Learn/"+publicId)).Contains("Finish Course"),"Instructor does not see the finish action again after acknowledgement");
     using(var scope=factory.Services.CreateScope())
     {
         var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var oldEnrollments=await db.Enrollments.Where(e=>e.UserId==admin.Id||e.UserId==instructor.Id).Select(e=>e.EnrollmentId).ToListAsync();
-        Check(oldEnrollments.Count==2&&!await db.ProgressRecords.AnyAsync(p=>oldEnrollments.Contains(p.EnrollmentId))&&!await db.ChallengeSubmissions.AnyAsync(c=>c.UserId==admin.Id||c.UserId==instructor.Id),"blocked non-student requests preserve old enrollments and create no progress or attempts");
+        Check(oldEnrollments.Count==2&&!await db.ProgressRecords.AnyAsync(p=>oldEnrollments.Contains(p.EnrollmentId))&&!await db.ChallengeSubmissions.AnyAsync(c=>c.UserId==admin.Id||c.UserId==instructor.Id),"blocked Admin and own-course requests preserve enrollments without progress or attempts");
     }
     Check((await guest.GetAsync("/Courses/Learn/"+publicId)).StatusCode==HttpStatusCode.Redirect,"anonymous users cannot open learning routes");
     Check((await s.GetAsync("/Courses/Details/"+privateId)).StatusCode==HttpStatusCode.NotFound,"private details stay private");

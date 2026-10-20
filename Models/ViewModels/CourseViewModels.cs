@@ -40,6 +40,7 @@ public class CourseDetailsViewModel
     public Course Course { get; set; } = null!;
     public string InstructorName { get; set; } = string.Empty;
     public bool IsEnrolled { get; set; }
+    public bool IsOwnCourse { get; set; }
     public bool IsSaved { get; set; }
     public int ProgressPercent { get; set; }
     public int? ResumeLessonId { get; set; }

@@ -24,7 +24,6 @@ public class CoursesController(
     public async Task<IActionResult> Index(string? search, string? category)
     {
         if (User.IsInRole(AccountRoles.Admin)) return RedirectToAction("Courses", "Admin");
-        if (User.IsInRole(AccountRoles.Instructor)) return RedirectToAction("Index", "InstructorCourses");
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         var query = db.Courses.AsNoTracking().Where(c => c.IsPublished);
@@ -70,7 +69,9 @@ public class CoursesController(
 
         foreach (var c in coursesList)
         {
-            var isEnrolled = enrollmentMap.TryGetValue(c.CourseId, out var enrollment);
+            var isOwnCourse = User.IsInRole(AccountRoles.Instructor) && c.InstructorId == currentUserId;
+            var hasEnrollment = enrollmentMap.TryGetValue(c.CourseId, out var enrollment);
+            var isEnrolled = !isOwnCourse && hasEnrollment;
             var lessonCount = await db.Lessons.CountAsync(l => l.CourseId == c.CourseId);
             var challengeCount = await db.Challenges.CountAsync(ch => ch.CourseId == c.CourseId && ch.IsPublished);
             var simulationCount = await db.SimulationTasks.CountAsync(s => s.CourseId == c.CourseId && s.IsPublished);
@@ -100,7 +101,7 @@ public class CoursesController(
                 LessonCount = lessonCount,
                 ChallengeCount = challengeCount,
                 SimulationCount = simulationCount,
-                LastLessonId = enrollment?.LastLessonId
+                LastLessonId = isEnrolled ? enrollment?.LastLessonId : null
             });
         }
 
@@ -136,10 +137,11 @@ public class CoursesController(
         var simulations = await db.SimulationTasks.Where(s => s.CourseId == id && s.IsPublished).ToListAsync();
 
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var enrollment = User.IsInRole(AccountRoles.Student) && currentUserId != null
+        var isOwnCourse = User.IsInRole(AccountRoles.Instructor) && IsCourseOwner(course.InstructorId);
+        var enrollment = !isOwnCourse && currentUserId != null
             ? await db.Enrollments.FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == id)
             : null;
-        var isSaved = User.IsInRole(AccountRoles.Student) && currentUserId != null
+        var isSaved = (User.IsInRole(AccountRoles.Student) || User.IsInRole(AccountRoles.Instructor)) && currentUserId != null
             && await db.SavedCourses.AnyAsync(s => s.UserId == currentUserId && s.CourseId == id);
 
         var completedLessons = new HashSet<int>();
@@ -169,6 +171,7 @@ public class CoursesController(
             Course = course,
             InstructorName = instructor?.DisplayName ?? "Instructor",
             IsEnrolled = enrollment != null,
+            IsOwnCourse = isOwnCourse,
             IsSaved = isSaved,
             ProgressPercent = progressPercent,
             ResumeLessonId = enrollment?.LastLessonId ?? lessons.FirstOrDefault()?.LessonId,
@@ -183,7 +186,7 @@ public class CoursesController(
         return View(model);
     }
 
-    [Authorize(Roles = AccountRoles.Student)]
+    [Authorize(Roles = AccountRoles.Learner)]
     [HttpGet]
     public async Task<IActionResult> Saved()
     {
@@ -226,7 +229,7 @@ public class CoursesController(
         return View(new SavedCoursesViewModel { Courses = cards });
     }
 
-    [Authorize(Roles = AccountRoles.Student)]
+    [Authorize(Roles = AccountRoles.Learner)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveCourse(int id, string? returnUrl)
@@ -255,7 +258,7 @@ public class CoursesController(
     // ==========================================
     // 3. ENROLL IN COURSE
     // ==========================================
-    [Authorize(Roles = AccountRoles.Student)]
+    [Authorize(Roles = AccountRoles.Learner)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Enroll(int id)
@@ -263,6 +266,7 @@ public class CoursesController(
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var course = await db.Courses.FindAsync(id);
         if (course == null || !CanReadCourse(course)) return NotFound("Course does not exist.");
+        if (!CanLearnCourse(course)) return Forbid();
 
         var existingEnrollment = await db.Enrollments
             .FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == id);
@@ -294,13 +298,14 @@ public class CoursesController(
     // ==========================================
     // 4. INTERACTIVE LEARNING PORTAL (PLAYER)
     // ==========================================
-    [Authorize(Roles = AccountRoles.Student)]
+    [Authorize(Roles = AccountRoles.Learner)]
     [HttpGet]
     public async Task<IActionResult> Learn(int id, int? lessonId, int? challengeId, int? simulationId)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var course = await db.Courses.FindAsync(id);
         if (course == null || !CanReadCourse(course)) return NotFound("Course not found.");
+        if (!CanLearnCourse(course)) return Forbid();
 
         var enrollment = await db.Enrollments
             .FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == id);
@@ -432,7 +437,7 @@ public class CoursesController(
         return View(viewModel);
     }
 
-    [Authorize(Roles = AccountRoles.Student)]
+    [Authorize(Roles = AccountRoles.Learner)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> FinishCourse(int courseId)
@@ -440,6 +445,7 @@ public class CoursesController(
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var course = await db.Courses.FindAsync(courseId);
         if (course is null || !CanReadCourse(course)) return NotFound();
+        if (!CanLearnCourse(course)) return Forbid();
 
         var enrollment = await db.Enrollments
             .FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == courseId);
@@ -465,13 +471,14 @@ public class CoursesController(
     // ==========================================
     // 5. COMPLETE LESSON
     // ==========================================
-    [Authorize(Roles = AccountRoles.Student)]
+    [Authorize(Roles = AccountRoles.Learner)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CompleteLesson(int lessonId, int courseId)
     {
         var course = await db.Courses.FindAsync(courseId);
         if (course is null || !CanReadCourse(course)) return NotFound();
+        if (!CanLearnCourse(course)) return Forbid();
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var enrollment = await db.Enrollments.FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == courseId);
         if (enrollment == null) return NotFound("Enrollment not found.");
@@ -522,13 +529,14 @@ public class CoursesController(
     // ==========================================
     // 6. CTF FLAG SUBMISSION
     // ==========================================
-    [Authorize(Roles = AccountRoles.Student)]
+    [Authorize(Roles = AccountRoles.Learner)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SubmitFlag(int challengeId, int courseId, string flag)
     {
         var course = await db.Courses.FindAsync(courseId);
         if (course is null || !CanReadCourse(course)) return NotFound();
+        if (!CanLearnCourse(course)) return Forbid();
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var enrollment = await db.Enrollments.FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == courseId);
         if (enrollment == null) return NotFound("Enrollment not found.");
@@ -622,7 +630,7 @@ public class CoursesController(
     // ==========================================
     // 8. COMPLETE SIMULATION TASK
     // ==========================================
-    [Authorize(Roles = AccountRoles.Student)]
+    [Authorize(Roles = AccountRoles.Learner)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(128 * 1024)]
@@ -630,6 +638,7 @@ public class CoursesController(
     {
         var course = await db.Courses.FindAsync(courseId);
         if (course is null || !CanReadCourse(course)) return NotFound();
+        if (!CanLearnCourse(course)) return Forbid();
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var enrollment = await db.Enrollments.FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == courseId);
         if (enrollment == null) return NotFound(new { success = false, message = "Enrollment not found." });
@@ -688,6 +697,9 @@ public class CoursesController(
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         return currentUserId != null && currentUserId == instructorId;
     }
+
+    private bool CanLearnCourse(Course course) =>
+        !User.IsInRole(AccountRoles.Instructor) || !IsCourseOwner(course.InstructorId);
 
     private static string ComputeSha256(string input)
     {

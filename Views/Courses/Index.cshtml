@@ -114,7 +114,7 @@
                             {
                                 <a asp-action="Details" asp-route-id="@c.CourseId" class="btn btn-sm btn-outline-secondary">View Curriculum</a>
                             }
-                            @if (User.IsInRole(AccountRoles.Student))
+                            @if (User.IsInRole(AccountRoles.Student) || User.IsInRole(AccountRoles.Instructor))
                             {
                                 <form asp-action="SaveCourse" method="post">
                                     <input type="hidden" name="id" value="@c.CourseId" />

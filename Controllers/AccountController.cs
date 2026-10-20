@@ -147,13 +147,14 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     public async Task<IActionResult> Dashboard()
     {
         if (User.IsInRole(AccountRoles.Admin)) return RedirectToAction("Index", "Admin");
-        if (User.IsInRole(AccountRoles.Instructor)) return RedirectToAction("Index", "InstructorCourses");
         var id = users.GetUserId(User)!;
+        var isInstructor = User.IsInRole(AccountRoles.Instructor);
         var user = await users.FindByIdAsync(id);
         if (user is null) return Challenge();
 
         var enrollments = await db.Enrollments
-            .Where(e => e.UserId == id)
+            .Where(e => e.UserId == id && (!isInstructor
+                || !db.Courses.Any(c => c.CourseId == e.CourseId && c.InstructorId == id)))
             .OrderByDescending(e => e.EnrolledDate)
             .ToListAsync();
 

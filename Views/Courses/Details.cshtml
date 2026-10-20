@@ -45,7 +45,7 @@
                         Continue Learning →
                     </a>
                 }
-                else if (User.IsInRole(AccountRoles.Student))
+                else if ((User.IsInRole(AccountRoles.Student) || User.IsInRole(AccountRoles.Instructor)) && !Model.IsOwnCourse)
                 {
                     <h3 style="font-size:1.15rem; margin-bottom:0.5rem;">Free Enrolment</h3>
                     <p class="text-secondary small mb-3">Instant self-paced access. Progress automatically saved as you learn.</p>
@@ -55,8 +55,16 @@
                 }
                 else if (signedIn)
                 {
-                    <h3 style="font-size:1.15rem; margin-bottom:0.5rem;">Course preview</h3>
-                    <a asp-controller="InstructorCourses" asp-action="Index" class="btn btn-outline-secondary w-100">Back to Instructor Studio</a>
+                    <h3 style="font-size:1.15rem; margin-bottom:0.5rem;">@(Model.IsOwnCourse ? "Your course" : "Course preview")</h3>
+                    @if (Model.IsOwnCourse)
+                    {
+                        <p class="text-secondary small">You cannot enrol in or take a course you created.</p>
+                        <a asp-controller="InstructorCourses" asp-action="Curriculum" asp-route-id="@Model.Course.CourseId" class="btn btn-outline-secondary w-100">Manage course</a>
+                    }
+                    else
+                    {
+                        <a asp-controller="InstructorCourses" asp-action="Index" class="btn btn-outline-secondary w-100">Back to Instructor Studio</a>
+                    }
                 }
                 else
                 {
@@ -66,7 +74,7 @@
                         Log in to Enrol
                     </a>
                 }
-                @if (User.IsInRole(AccountRoles.Student))
+                @if (Model.Course.IsPublished && (User.IsInRole(AccountRoles.Student) || User.IsInRole(AccountRoles.Instructor)))
                 {
                     <form asp-action="SaveCourse" method="post" class="mt-3">
                         <input type="hidden" name="id" value="@Model.Course.CourseId" />
