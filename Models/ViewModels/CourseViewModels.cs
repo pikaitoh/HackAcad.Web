@@ -13,6 +13,8 @@ public class CourseCardViewModel
     public string? ThumbnailUrl { get; set; }
     public string InstructorName { get; set; } = string.Empty;
     public bool IsEnrolled { get; set; }
+    public bool IsCompleted { get; set; }
+    public bool IsSaved { get; set; }
     public int ProgressPercent { get; set; }
     public int LessonCount { get; set; }
     public int ChallengeCount { get; set; }
@@ -28,11 +30,18 @@ public class CourseIndexViewModel
     public List<string> Categories { get; set; } = [];
 }
 
+public class SavedCoursesViewModel
+{
+    public List<CourseCardViewModel> Courses { get; set; } = [];
+}
+
 public class CourseDetailsViewModel
 {
     public Course Course { get; set; } = null!;
     public string InstructorName { get; set; } = string.Empty;
     public bool IsEnrolled { get; set; }
+    public bool IsOwnCourse { get; set; }
+    public bool IsSaved { get; set; }
     public int ProgressPercent { get; set; }
     public int? ResumeLessonId { get; set; }
     public List<Lesson> Lessons { get; set; } = [];
@@ -55,6 +64,7 @@ public class CourseLearnViewModel
     public Course Course { get; set; } = null!;
     public Enrollment Enrollment { get; set; } = null!;
     public int ProgressPercent { get; set; }
+    public bool IsCourseCompleted { get; set; }
 
     public List<Lesson> Lessons { get; set; } = [];
     public List<Challenge> Challenges { get; set; } = [];
@@ -186,7 +196,21 @@ public class StudentCourseActivityRow
     public string StudentEmail { get; set; } = string.Empty;
     public DateTime EnrolledDate { get; set; }
     public int ProgressPercent { get; set; }
+    public TimeSpan? ElapsedCourseTime { get; set; }
+    public DateTime? LatestActivityUtc { get; set; }
     public string Status { get; set; } = string.Empty;
+
+    public string ElapsedCourseTimeLabel
+    {
+        get
+        {
+            if (ElapsedCourseTime is null) return "No completed activity";
+            var totalMinutes = Math.Max(0, (int)ElapsedCourseTime.Value.TotalMinutes);
+            if (totalMinutes >= 1440) return $"{totalMinutes / 1440}d {(totalMinutes % 1440) / 60}h";
+            if (totalMinutes >= 60) return $"{totalMinutes / 60}h {totalMinutes % 60}m";
+            return $"{totalMinutes}m";
+        }
+    }
 }
 
 public class CourseCurriculumViewModel

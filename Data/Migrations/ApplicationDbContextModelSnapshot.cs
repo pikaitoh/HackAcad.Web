@@ -269,6 +269,37 @@ namespace HackAcad.Web.Data.Migrations
                     b.ToTable("BannerRewards");
                 });
 
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.SavedCourse", b =>
+                {
+                    b.Property<int>("SavedCourseId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("SavedCourseId"));
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SavedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("SavedCourseId");
+
+                    b.HasIndex("CourseId");
+
+                    b.HasIndex("UserId", "CourseId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "SavedUtc");
+
+                    b.ToTable("SavedCourses");
+                });
+
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Challenge", b =>
                 {
                     b.Property<int>("ChallengeId")
@@ -405,6 +436,9 @@ namespace HackAcad.Web.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("EnrolledDate")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("FinishedUtc")
                         .HasColumnType("datetime(6)");
 
                     b.Property<int?>("LastLessonId")
@@ -961,6 +995,21 @@ namespace HackAcad.Web.Data.Migrations
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.BannerReward", b =>
                 {
+                    b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.SavedCourse", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.Course", null)
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")

@@ -284,7 +284,7 @@
         <div class="tab-pane fade" id="students-content" role="tabpanel">
             <div class="surface-panel p-4 mb-4">
                 <h2>Enrolled Learners</h2>
-                <p class="text-secondary mb-3">Monitor enrolled students and their learning progress in real time.</p>
+                <p class="text-secondary mb-3">Monitor enrolled students, completion, and elapsed time from enrolment to their latest completed activity.</p>
 
                 @if (Model.EnrolledStudents.Count == 0)
                 {
@@ -301,6 +301,8 @@
                                     <th>Student</th>
                                     <th>Enrolled Date</th>
                                     <th>Progress</th>
+                                    <th>Course Time</th>
+                                    <th>Latest Activity</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -319,6 +321,8 @@
                                                 <strong>@st.ProgressPercent%</strong>
                                             </div>
                                         </td>
+                                        <td>@st.ElapsedCourseTimeLabel</td>
+                                        <td>@(st.LatestActivityUtc.HasValue ? UserTime.Format(st.LatestActivityUtc.Value, "dd MMM yyyy, HH:mm") : "—")</td>
                                         <td>
                                             <span class="badge @(st.Status == "Completed" ? "bg-success" : "bg-warning text-dark")">
                                                 @st.Status

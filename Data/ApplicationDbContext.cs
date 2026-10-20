@@ -21,6 +21,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Course> Courses => Set<Course>();
     public DbSet<Lesson> Lessons => Set<Lesson>();
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
+    public DbSet<SavedCourse> SavedCourses => Set<SavedCourse>();
     public DbSet<Progress> ProgressRecords => Set<Progress>();
     public DbSet<Challenge> Challenges => Set<Challenge>();
     public DbSet<ChallengeSubmission> ChallengeSubmissions => Set<ChallengeSubmission>();
@@ -42,6 +43,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<UserNotification>().HasOne<ApplicationUser>().WithMany().HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<BannerReward>().HasIndex(r => new { r.UserId, r.CourseId }).IsUnique();
         builder.Entity<BannerReward>().HasOne<ApplicationUser>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<SavedCourse>().HasIndex(s => new { s.UserId, s.CourseId }).IsUnique();
+        builder.Entity<SavedCourse>().HasIndex(s => new { s.UserId, s.SavedUtc });
+        builder.Entity<SavedCourse>().HasOne<ApplicationUser>().WithMany().HasForeignKey(s => s.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<SavedCourse>().HasOne<Course>().WithMany().HasForeignKey(s => s.CourseId).OnDelete(DeleteBehavior.Cascade);
 
         builder.Entity<ApplicationUser>().Property(u => u.TimeZoneId).HasDefaultValue("Asia/Kuala_Lumpur");
         builder.Entity<ApplicationUser>().Property(u => u.PhoneNumber).HasMaxLength(16);

@@ -24,7 +24,6 @@ public class CoursesController(
     public async Task<IActionResult> Index(string? search, string? category)
     {
         if (User.IsInRole(AccountRoles.Admin)) return RedirectToAction("Courses", "Admin");
-        if (User.IsInRole(AccountRoles.Instructor)) return RedirectToAction("Index", "InstructorCourses");
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
         var query = db.Courses.AsNoTracking().Where(c => c.IsPublished);
@@ -56,6 +55,9 @@ public class CoursesController(
             : [];
 
         var enrollmentMap = userEnrollments.ToDictionary(e => e.CourseId);
+        var savedCourseIds = currentUserId != null
+            ? (await db.SavedCourses.AsNoTracking().Where(s => s.UserId == currentUserId).Select(s => s.CourseId).ToListAsync()).ToHashSet()
+            : [];
 
         // Preload instructor display names
         var instructorIds = coursesList.Select(c => c.InstructorId).Distinct().ToList();
@@ -67,7 +69,9 @@ public class CoursesController(
 
         foreach (var c in coursesList)
         {
-            var isEnrolled = enrollmentMap.TryGetValue(c.CourseId, out var enrollment);
+            var isOwnCourse = User.IsInRole(AccountRoles.Instructor) && c.InstructorId == currentUserId;
+            var hasEnrollment = enrollmentMap.TryGetValue(c.CourseId, out var enrollment);
+            var isEnrolled = !isOwnCourse && hasEnrollment;
             var lessonCount = await db.Lessons.CountAsync(l => l.CourseId == c.CourseId);
             var challengeCount = await db.Challenges.CountAsync(ch => ch.CourseId == c.CourseId && ch.IsPublished);
             var simulationCount = await db.SimulationTasks.CountAsync(s => s.CourseId == c.CourseId && s.IsPublished);
@@ -92,11 +96,12 @@ public class CoursesController(
                 ThumbnailUrl = c.ThumbnailUrl,
                 InstructorName = instructorName ?? "Instructor",
                 IsEnrolled = isEnrolled,
+                IsSaved = savedCourseIds.Contains(c.CourseId),
                 ProgressPercent = progressPercent,
                 LessonCount = lessonCount,
                 ChallengeCount = challengeCount,
                 SimulationCount = simulationCount,
-                LastLessonId = enrollment?.LastLessonId
+                LastLessonId = isEnrolled ? enrollment?.LastLessonId : null
             });
         }
 
@@ -132,9 +137,12 @@ public class CoursesController(
         var simulations = await db.SimulationTasks.Where(s => s.CourseId == id && s.IsPublished).ToListAsync();
 
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-        var enrollment = User.IsInRole(AccountRoles.Student) && currentUserId != null
+        var isOwnCourse = User.IsInRole(AccountRoles.Instructor) && IsCourseOwner(course.InstructorId);
+        var enrollment = !isOwnCourse && currentUserId != null
             ? await db.Enrollments.FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == id)
             : null;
+        var isSaved = (User.IsInRole(AccountRoles.Student) || User.IsInRole(AccountRoles.Instructor)) && currentUserId != null
+            && await db.SavedCourses.AnyAsync(s => s.UserId == currentUserId && s.CourseId == id);
 
         var completedLessons = new HashSet<int>();
         var completedChallenges = new HashSet<int>();
@@ -163,6 +171,8 @@ public class CoursesController(
             Course = course,
             InstructorName = instructor?.DisplayName ?? "Instructor",
             IsEnrolled = enrollment != null,
+            IsOwnCourse = isOwnCourse,
+            IsSaved = isSaved,
             ProgressPercent = progressPercent,
             ResumeLessonId = enrollment?.LastLessonId ?? lessons.FirstOrDefault()?.LessonId,
             Lessons = lessons,
@@ -176,10 +186,79 @@ public class CoursesController(
         return View(model);
     }
 
+    [Authorize(Roles = AccountRoles.Learner)]
+    [HttpGet]
+    public async Task<IActionResult> Saved()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var savedIds = await db.SavedCourses.AsNoTracking()
+            .Where(s => s.UserId == userId)
+            .OrderByDescending(s => s.SavedUtc)
+            .Select(s => s.CourseId)
+            .ToListAsync();
+
+        var courses = await db.Courses.AsNoTracking()
+            .Where(c => savedIds.Contains(c.CourseId) && c.IsPublished)
+            .ToListAsync();
+        var courseMap = courses.ToDictionary(c => c.CourseId);
+        var instructorIds = courses.Select(c => c.InstructorId).Distinct().ToList();
+        var instructorNames = await db.Users.AsNoTracking()
+            .Where(u => instructorIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.DisplayName);
+
+        var cards = new List<CourseCardViewModel>();
+        foreach (var courseId in savedIds)
+        {
+            if (!courseMap.TryGetValue(courseId, out var course)) continue;
+            instructorNames.TryGetValue(course.InstructorId, out var instructorName);
+            cards.Add(new CourseCardViewModel
+            {
+                CourseId = course.CourseId,
+                Title = course.Title,
+                Description = course.Description,
+                Category = course.Category,
+                ThumbnailUrl = course.ThumbnailUrl,
+                InstructorName = instructorName ?? "Instructor",
+                IsSaved = true,
+                LessonCount = await db.Lessons.CountAsync(l => l.CourseId == course.CourseId),
+                ChallengeCount = await db.Challenges.CountAsync(c => c.CourseId == course.CourseId && c.IsPublished),
+                SimulationCount = await db.SimulationTasks.CountAsync(s => s.CourseId == course.CourseId && s.IsPublished)
+            });
+        }
+
+        return View(new SavedCoursesViewModel { Courses = cards });
+    }
+
+    [Authorize(Roles = AccountRoles.Learner)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveCourse(int id, string? returnUrl)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FindAsync(id);
+        if (course is null || !course.IsPublished) return NotFound();
+
+        var savedCourse = await db.SavedCourses
+            .FirstOrDefaultAsync(s => s.UserId == userId && s.CourseId == id);
+        if (savedCourse is null)
+        {
+            db.SavedCourses.Add(new SavedCourse { UserId = userId, CourseId = id, SavedUtc = DateTime.UtcNow });
+            TempData["Success"] = $"{course.Title} was added to your saved courses.";
+        }
+        else
+        {
+            db.SavedCourses.Remove(savedCourse);
+            TempData["Success"] = $"{course.Title} was removed from your saved courses.";
+        }
+
+        await db.SaveChangesAsync();
+        return Url.IsLocalUrl(returnUrl) ? LocalRedirect(returnUrl!) : RedirectToAction(nameof(Details), new { id });
+    }
+
     // ==========================================
     // 3. ENROLL IN COURSE
     // ==========================================
-    [Authorize(Roles = AccountRoles.Student)]
+    [Authorize(Roles = AccountRoles.Learner)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Enroll(int id)
@@ -187,6 +266,7 @@ public class CoursesController(
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var course = await db.Courses.FindAsync(id);
         if (course == null || !CanReadCourse(course)) return NotFound("Course does not exist.");
+        if (!CanLearnCourse(course)) return Forbid();
 
         var existingEnrollment = await db.Enrollments
             .FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == id);
@@ -218,13 +298,14 @@ public class CoursesController(
     // ==========================================
     // 4. INTERACTIVE LEARNING PORTAL (PLAYER)
     // ==========================================
-    [Authorize(Roles = AccountRoles.Student)]
+    [Authorize(Roles = AccountRoles.Learner)]
     [HttpGet]
     public async Task<IActionResult> Learn(int id, int? lessonId, int? challengeId, int? simulationId)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var course = await db.Courses.FindAsync(id);
         if (course == null || !CanReadCourse(course)) return NotFound("Course not found.");
+        if (!CanLearnCourse(course)) return Forbid();
 
         var enrollment = await db.Enrollments
             .FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == id);
@@ -243,11 +324,16 @@ public class CoursesController(
         var completedLessonIds = progressList.Where(p => p.LessonId.HasValue).Select(p => p.LessonId!.Value).ToHashSet();
         var completedChallengeIds = progressList.Where(p => p.ChallengeId.HasValue).Select(p => p.ChallengeId!.Value).ToHashSet();
         var completedSimulationIds = progressList.Where(p => p.SimulationTaskId.HasValue).Select(p => p.SimulationTaskId!.Value).ToHashSet();
+        completedLessonIds.IntersectWith(lessons.Select(l => l.LessonId));
+        completedChallengeIds.IntersectWith(challenges.Select(c => c.ChallengeId));
+        completedSimulationIds.IntersectWith(simulations.Select(s => s.TaskId));
 
         var totalItems = lessons.Count + challenges.Count + simulations.Count;
+        var completedItemCount = completedLessonIds.Count + completedChallengeIds.Count + completedSimulationIds.Count;
         var progressPercent = totalItems > 0
-            ? Math.Clamp((int)Math.Round((double)progressList.Count / totalItems * 100), 0, 100)
+            ? Math.Clamp((int)Math.Round((double)completedItemCount / totalItems * 100), 0, 100)
             : 0;
+        var isCourseCompleted = totalItems > 0 && completedItemCount >= totalItems && enrollment.FinishedUtc is null;
 
         // Determine current view item
         LearnContentType currentType;
@@ -331,6 +417,7 @@ public class CoursesController(
             Course = course,
             Enrollment = enrollment,
             ProgressPercent = progressPercent,
+            IsCourseCompleted = isCourseCompleted,
             Lessons = lessons,
             Challenges = challenges,
             SimulationTasks = simulations,
@@ -350,16 +437,48 @@ public class CoursesController(
         return View(viewModel);
     }
 
+    [Authorize(Roles = AccountRoles.Learner)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> FinishCourse(int courseId)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FindAsync(courseId);
+        if (course is null || !CanReadCourse(course)) return NotFound();
+        if (!CanLearnCourse(course)) return Forbid();
+
+        var enrollment = await db.Enrollments
+            .FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == courseId);
+        if (enrollment is null) return NotFound("Enrollment not found.");
+
+        if (!await IsCourseCompleteAsync(enrollment, courseId))
+        {
+            TempData["Success"] = "There are still course activities to complete. Keep going!";
+            return RedirectToAction(nameof(Learn), new { id = courseId });
+        }
+
+        if (enrollment.FinishedUtc is not null)
+        {
+            return RedirectToAction("Dashboard", "Account");
+        }
+
+        enrollment.FinishedUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        TempData["Success"] = $"Congratulations! You completed {course.Title}. Keep up the great work!";
+        return RedirectToAction("Dashboard", "Account");
+    }
+
     // ==========================================
     // 5. COMPLETE LESSON
     // ==========================================
-    [Authorize(Roles = AccountRoles.Student)]
+    [Authorize(Roles = AccountRoles.Learner)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CompleteLesson(int lessonId, int courseId)
     {
         var course = await db.Courses.FindAsync(courseId);
         if (course is null || !CanReadCourse(course)) return NotFound();
+        if (!CanLearnCourse(course)) return Forbid();
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var enrollment = await db.Enrollments.FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == courseId);
         if (enrollment == null) return NotFound("Enrollment not found.");
@@ -410,13 +529,14 @@ public class CoursesController(
     // ==========================================
     // 6. CTF FLAG SUBMISSION
     // ==========================================
-    [Authorize(Roles = AccountRoles.Student)]
+    [Authorize(Roles = AccountRoles.Learner)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SubmitFlag(int challengeId, int courseId, string flag)
     {
         var course = await db.Courses.FindAsync(courseId);
         if (course is null || !CanReadCourse(course)) return NotFound();
+        if (!CanLearnCourse(course)) return Forbid();
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var enrollment = await db.Enrollments.FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == courseId);
         if (enrollment == null) return NotFound("Enrollment not found.");
@@ -510,7 +630,7 @@ public class CoursesController(
     // ==========================================
     // 8. COMPLETE SIMULATION TASK
     // ==========================================
-    [Authorize(Roles = AccountRoles.Student)]
+    [Authorize(Roles = AccountRoles.Learner)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     [RequestSizeLimit(128 * 1024)]
@@ -518,6 +638,7 @@ public class CoursesController(
     {
         var course = await db.Courses.FindAsync(courseId);
         if (course is null || !CanReadCourse(course)) return NotFound();
+        if (!CanLearnCourse(course)) return Forbid();
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var enrollment = await db.Enrollments.FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == courseId);
         if (enrollment == null) return NotFound(new { success = false, message = "Enrollment not found." });
@@ -557,7 +678,8 @@ public class CoursesController(
         {
             success = true,
             message = "Lab exercise completed successfully! Progress saved.",
-            reward = simulation.RewardFlagHash
+            reward = simulation.RewardFlagHash,
+            courseCompleted = await IsCourseCompleteAsync(enrollment, courseId)
         });
     }
 
@@ -576,6 +698,9 @@ public class CoursesController(
         return currentUserId != null && currentUserId == instructorId;
     }
 
+    private bool CanLearnCourse(Course course) =>
+        !User.IsInRole(AccountRoles.Instructor) || !IsCourseOwner(course.InstructorId);
+
     private static string ComputeSha256(string input)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
@@ -586,27 +711,26 @@ public class CoursesController(
     {
         await using var transaction = await db.Database.BeginTransactionAsync();
         await db.SaveChangesAsync();
+        enrollment.Status = await IsCourseCompleteAsync(enrollment, courseId) ? "Completed" : "InProgress";
+        await db.SaveChangesAsync();
+        await personalization.SyncRewards(enrollment.UserId);
+        await transaction.CommitAsync();
+    }
+
+    private async Task<bool> IsCourseCompleteAsync(Enrollment enrollment, int courseId)
+    {
         var totalLessons = await db.Lessons.CountAsync(l => l.CourseId == courseId);
         var totalChallenges = await db.Challenges.CountAsync(c => c.CourseId == courseId && c.IsPublished);
         var totalSimulations = await db.SimulationTasks.CountAsync(s => s.CourseId == courseId && s.IsPublished);
         var total = totalLessons + totalChallenges + totalSimulations;
+        if (total == 0) return false;
 
-        if (total > 0)
-        {
-            var completedCount = await db.ProgressRecords
-                .CountAsync(p => p.EnrollmentId == enrollment.EnrollmentId && p.IsCompleted
-                    && (p.ContentType == ProgressContentType.Lesson && db.Lessons.Any(l => l.LessonId == p.LessonId && l.CourseId == courseId)
-                        || p.ContentType == ProgressContentType.Challenge && db.Challenges.Any(c => c.ChallengeId == p.ChallengeId && c.CourseId == courseId && c.IsPublished)
-                        || p.ContentType == ProgressContentType.Simulation && db.SimulationTasks.Any(t => t.TaskId == p.SimulationTaskId && t.CourseId == courseId && t.IsPublished)));
+        var completedCount = await db.ProgressRecords
+            .CountAsync(p => p.EnrollmentId == enrollment.EnrollmentId && p.IsCompleted
+                && (p.ContentType == ProgressContentType.Lesson && db.Lessons.Any(l => l.LessonId == p.LessonId && l.CourseId == courseId)
+                    || p.ContentType == ProgressContentType.Challenge && db.Challenges.Any(c => c.ChallengeId == p.ChallengeId && c.CourseId == courseId && c.IsPublished)
+                    || p.ContentType == ProgressContentType.Simulation && db.SimulationTasks.Any(t => t.TaskId == p.SimulationTaskId && t.CourseId == courseId && t.IsPublished)));
 
-            if (completedCount >= total)
-            {
-                enrollment.Status = "Completed";
-            }
-            else enrollment.Status = "InProgress";
-        }
-        await db.SaveChangesAsync();
-        await personalization.SyncRewards(enrollment.UserId);
-        await transaction.CommitAsync();
+        return completedCount >= total;
     }
 }

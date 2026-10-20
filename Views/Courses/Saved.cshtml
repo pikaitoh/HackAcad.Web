@@ -1,0 +1,65 @@
+@model SavedCoursesViewModel
+@{
+    ViewData["Title"] = "Saved Courses";
+    var returnUrl = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
+}
+
+<div class="container module-shell">
+    <div class="page-heading">
+        <div>
+            <h1>Saved Courses</h1>
+            <p class="text-secondary">Keep your favorite courses close so you can find them again easily.</p>
+        </div>
+        <a asp-controller="Courses" asp-action="Index" class="btn btn-outline-secondary">Browse Courses</a>
+    </div>
+
+    @if (Model.Courses.Count == 0)
+    {
+        <div class="surface-panel p-5 text-center">
+            <div style="font-size:2.5rem; margin-bottom:0.5rem;">☆</div>
+            <h2>No saved courses yet</h2>
+            <p class="text-secondary">Save a course from the catalogue or its curriculum page, and it will appear here.</p>
+            <a asp-controller="Courses" asp-action="Index" class="btn btn-primary">Explore Courses</a>
+        </div>
+    }
+    else
+    {
+        <div class="courses-grid">
+            @foreach (var course in Model.Courses)
+            {
+                <article class="course-card">
+                    <div class="course-card-thumb">
+                        @if (!string.IsNullOrEmpty(course.ThumbnailUrl))
+                        {
+                            <img src="@course.ThumbnailUrl" alt="@course.Title thumbnail" />
+                        }
+                        else
+                        {
+                            <div class="course-card-thumb-icon">🛡️</div>
+                        }
+                        <span class="category-pill">@(course.Category ?? "Cybersecurity")</span>
+                    </div>
+                    <div class="course-card-body">
+                        <h2><a asp-action="Details" asp-route-id="@course.CourseId" style="color:inherit; text-decoration:none;">@course.Title</a></h2>
+                        <p>@(course.Description ?? "Explore this practical cybersecurity course.")</p>
+                        <div class="course-card-meta">
+                            <span>Instructor: <strong>@course.InstructorName</strong></span>
+                            <span>•</span>
+                            <span>@course.LessonCount Lessons</span>
+                            @if (course.ChallengeCount > 0) { <span>•</span><span>@course.ChallengeCount CTFs</span> }
+                            @if (course.SimulationCount > 0) { <span>•</span><span>@course.SimulationCount Labs</span> }
+                        </div>
+                        <div class="course-card-footer course-card-actions">
+                            <a asp-action="Details" asp-route-id="@course.CourseId" class="btn btn-sm btn-primary">View Course</a>
+                            <form asp-action="SaveCourse" method="post">
+                                <input type="hidden" name="id" value="@course.CourseId" />
+                                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Remove Saved Course</button>
+                            </form>
+                        </div>
+                    </div>
+                </article>
+            }
+        </div>
+    }
+</div>

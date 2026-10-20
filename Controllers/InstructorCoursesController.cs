@@ -174,6 +174,13 @@ public class InstructorCoursesController(
         var enrollments = await db.Enrollments.Where(e => e.CourseId == id).ToListAsync();
         var studentIds = enrollments.Select(e => e.UserId).Distinct().ToList();
         var studentUsers = await db.Users.Where(u => studentIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id);
+        var enrollmentIds = enrollments.Select(e => e.EnrollmentId).ToList();
+        var completedProgress = await db.ProgressRecords.AsNoTracking()
+            .Where(p => enrollmentIds.Contains(p.EnrollmentId) && p.IsCompleted)
+            .Select(p => new { p.EnrollmentId, p.LastUpdatedDate })
+            .ToListAsync();
+        var progressByEnrollment = completedProgress.GroupBy(p => p.EnrollmentId)
+            .ToDictionary(g => g.Key, g => g.Select(p => p.LastUpdatedDate).ToList());
 
         var studentRows = new List<StudentCourseActivityRow>();
         var totalItems = lessons.Count + challenges.Count + simulations.Count;
@@ -181,10 +188,15 @@ public class InstructorCoursesController(
         foreach (var enrollment in enrollments)
         {
             studentUsers.TryGetValue(enrollment.UserId, out var user);
-            var completedCount = await db.ProgressRecords
-                .CountAsync(p => p.EnrollmentId == enrollment.EnrollmentId && p.IsCompleted);
+            progressByEnrollment.TryGetValue(enrollment.EnrollmentId, out var activityDates);
+            var completedCount = activityDates?.Count ?? 0;
+            var latestActivityUtc = activityDates?.Count > 0 ? activityDates.Max() : (DateTime?)null;
 
             var pct = totalItems > 0 ? (int)Math.Round((double)completedCount / totalItems * 100) : 0;
+            var elapsedCourseTime = latestActivityUtc.HasValue
+                ? latestActivityUtc.Value - enrollment.EnrolledDate
+                : (TimeSpan?)null;
+            if (elapsedCourseTime < TimeSpan.Zero) elapsedCourseTime = TimeSpan.Zero;
 
             studentRows.Add(new StudentCourseActivityRow
             {
@@ -193,6 +205,8 @@ public class InstructorCoursesController(
                 StudentEmail = user?.Email ?? "",
                 EnrolledDate = enrollment.EnrolledDate,
                 ProgressPercent = Math.Clamp(pct, 0, 100),
+                ElapsedCourseTime = elapsedCourseTime,
+                LatestActivityUtc = latestActivityUtc,
                 Status = enrollment.Status
             });
         }

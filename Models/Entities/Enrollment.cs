@@ -16,4 +16,7 @@ public class Enrollment
 
     public string Status { get; set; } = "InProgress";
     public DateTime EnrolledDate { get; set; } = DateTime.UtcNow;
+
+    // Set once when the student acknowledges the completed course.
+    public DateTime? FinishedUtc { get; set; }
 }
