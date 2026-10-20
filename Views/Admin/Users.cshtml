@@ -1,13 +1,14 @@
 @model UserListModel
 @{ ViewData["Title"] = "Manage users"; }
 <div class="admin-content">
-    <div class="page-heading"><div><h1>Manage users</h1><p class="text-secondary">@Model.Total account(s) match your filters. Times shown in @UserTime.Id.</p></div></div>
+    <div class="page-heading"><div><h1>Manage users</h1><p class="text-secondary">Review registered accounts and their access. Times shown in @UserTime.Id.</p></div></div>
     <form asp-action="Users" method="get" class="filter-bar">
         <div class="filter-search"><label for="search" class="form-label">Search users</label><input id="search" name="search" value="@Model.Search" class="form-control" placeholder="Name or email" maxlength="256" /></div>
         <div><label for="role" class="form-label">Role</label><select id="role" name="role" class="form-select"><option value="">All roles</option>@foreach (var role in AccountRoles.All) { <option value="@role" selected="@(Model.Role == role)">@role</option> }</select></div>
         <div><label for="status" class="form-label">Status</label><select id="status" name="status" class="form-select"><option value="">All statuses</option><option value="active" selected="@(Model.Status == "active")">Active</option><option value="disabled" selected="@(Model.Status == "disabled")">Disabled</option></select></div>
         <button class="btn btn-primary" type="submit">Apply filters</button><a asp-action="Users" class="btn btn-outline-secondary">Clear</a>
     </form>
+<p class="text-secondary small list-results">@ListPresentation.Summary(Model.Total, "user", !string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrEmpty(Model.Role) || !string.IsNullOrEmpty(Model.Status))</p>
     @if (Model.Users.Count == 0) { <div class="empty-state"><h2 class="h5">No users found</h2><p>Try another name, email or filter.</p><a asp-action="Users">Clear filters</a></div> }
     else {
         <div class="table-responsive"><table class="table align-middle module-table"><caption class="visually-hidden">Registered accounts and their access status</caption>
@@ -15,5 +16,5 @@
             <tbody>@foreach (var account in Model.Users) { <tr><td><span class="fw-semibold">@account.DisplayName</span><span class="record-secondary">@account.Email</span>@if (!account.EmailConfirmed) { <span class="record-secondary">Email not verified</span> }</td><td><span class="role-badge" data-role="@account.Role">@account.Role</span></td><td><span class="status-label @(account.IsDisabled ? "status-disabled" : "status-active")">@(account.IsDisabled ? "Disabled" : "Active")</span></td><td class="text-nowrap">@UserTime.Format(account.JoinedDate, "dd MMM yyyy")</td><td class="text-nowrap">@if (account.LastLoginUtc is { } login) { <time datetime="@(DateTime.SpecifyKind(login, DateTimeKind.Utc).ToString("O"))">@UserTime.Format(login, "dd MMM yyyy")<span class="record-secondary">@UserTime.Format(login, "HH:mm:ss")</span></time> } else { <span>No record</span> }</td><td><div class="table-actions"><a asp-action="UserDetails" asp-route-id="@account.Id" aria-label="View @account.Email">View details</a></div></td></tr> }</tbody>
         </table></div>
     }
-    <partial name="_Pagination" model='new PaginationModel(Model.Page, Model.PageCount, $"{Model.Total} user(s)")' />
+    <partial name="_Pagination" model='new PaginationModel(Model.Page, Model.PageCount, ListPresentation.Count(Model.Total, "user"))' />
 </div>

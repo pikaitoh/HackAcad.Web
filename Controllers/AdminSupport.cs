@@ -57,7 +57,7 @@ public partial class AdminController
         var before = ticket.Status;
         db.SupportMessages.Add(new SupportMessage { TicketId = id, AuthorId = actorId, AuthorName = actor.DisplayName, ByAdmin = true,
             Internal = input.Internal, Body = input.Body.Trim(), CreatedUtc = now });
-        ticket.Status = input.Status!; ticket.UpdatedUtc = now; ticket.AdminReadUtc = now; ticket.Version = Guid.NewGuid().ToString("N");
+        ticket.Status = input.Internal ? before : input.Status!; ticket.UpdatedUtc = now; ticket.AdminReadUtc = now; ticket.Version = Guid.NewGuid().ToString("N");
         if (!input.Internal) {
             ticket.UserReadUtc = null;
             db.UserNotifications.Add(new UserNotification { UserId = ticket.UserId, EventKey = "support-reply:" + Guid.NewGuid().ToString("N"),

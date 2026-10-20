@@ -92,7 +92,8 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     public IActionResult Login(string? returnUrl = null, string? googleError = null, string? externalError = null)
     {
         if (User.Identity?.IsAuthenticated == true) return RedirectToAction(nameof(Dashboard));
-        if (googleError is not null || externalError is not null) ModelState.AddModelError("", "External sign-in could not be completed. Try again with a verified email address or use another sign-in method.");
+        if (TempData["ExternalAccountDisabled"] as bool? == true) ViewData["AccountDisabled"] = true;
+        else if (googleError is not null || externalError is not null) ModelState.AddModelError("", "External sign-in could not be completed. Try again with a verified email address or use another sign-in method.");
         return View(new LoginModel { ReturnUrl = returnUrl });
     }
 
@@ -105,7 +106,6 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         if (user?.IsDisabled == true) {
             await records.LoginAttemptAsync(user.Id, input.Email, "Disabled account sign-in attempt");
             if (await users.CheckPasswordAsync(user, input.Password)) {
-                ModelState.AddModelError("", "This account has been disabled. Contact support to request a review.");
                 ViewData["AccountDisabled"] = true;
                 return View(input);
             }

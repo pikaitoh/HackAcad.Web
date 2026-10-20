@@ -140,7 +140,7 @@ public partial class AdminController
     public async Task<IActionResult> AuditLog(string? search, bool mine = false, int page = 1, string? kind = null)
     {
         var query = db.AdminActivities.AsNoTracking(); search = search?.Trim();
-        kind = string.IsNullOrEmpty(kind) ? "admin" : kind;
+        kind = string.IsNullOrEmpty(kind) ? "all" : kind;
         if (kind == "admin") query = query.Where(a => a.TargetType != "Account security");
         else if (kind == "account") query = query.Where(a => a.TargetType == "Account security");
         else if (kind != "all") return BadRequest();

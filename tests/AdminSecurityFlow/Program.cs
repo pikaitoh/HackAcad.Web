@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using HackAcad.Web.Controllers;
 using HackAcad.Web.Data;
 using HackAcad.Web.Models.Entities;
+using HackAcad.Web.Models.ViewModels;
 using HackAcad.Web.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -93,6 +94,8 @@ try {
  using var admin=Client();Check((await Login(admin,administrator)).Path=="/Admin","MFA login marks the new admin session");
  using var regular=Client();await Login(regular,other);Check((await regular.GetAsync("/Admin/Security")).StatusCode==HttpStatusCode.Redirect,"student cannot enter administration");
  Check((await admin.GetAsync("/Admin/Security")).IsSuccessStatusCode,"verified administrator can inspect security overview");
+ Check(!(await Html(admin,"/Admin")).Contains(">Contact support</a>"),"signed-in Admin menu hides Contact support");
+ Check((await Html(regular,account+"Settings")).Contains(">Contact support</a>"),"Student account retains the Contact support entry");
  var target="/Admin/UserDetails/"+other.Id;
  Check((await admin.PostAsync("/Admin/AccountStatus/"+other.Id,new FormUrlEncodedContent(new Dictionary<string,string>()))).StatusCode==HttpStatusCode.BadRequest,"admin mutations require CSRF before step-up");
  var denied=await Post(admin,"/Admin/AccountStatus/"+other.Id,new(){{"Disable","true"},{"Reason","A controlled security test."}},target);
@@ -148,14 +151,37 @@ try {
  db.AdminActivities.AddRange(new AdminActivity{ActorUserId=administrator.Id,TargetId=modalUser.Id,TargetType="User",TargetName=prefix+" legacy",Action="Legacy management fixture",Details="Legacy event with missing context.",Before="{\"IsDisabled\":false,\"Note\":\"<script>unsafe</script>\"}",After="{\"IsDisabled\":true}"},
  new AdminActivity{ActorUserId=administrator.Id,TargetId=modalUser.Id,TargetType="Account security",TargetName=prefix+" account",Action="Account security fixture",Details="Account-specific fixture."});await db.SaveChangesAsync();}
  var auditPage=await Html(admin,"/Admin/AuditLog?search="+prefix);
- Check(auditPage.Contains("Legacy management fixture") && !auditPage.Contains("Account security fixture"),"audit defaults to management actions");
+ Check(auditPage.Contains("Legacy management fixture") && auditPage.Contains("Account security fixture"),"audit defaults to all events");
  Check(auditPage.Contains("Not recorded") && auditPage.Contains("Is Disabled") && auditPage.Contains("&lt;script&gt;unsafe&lt;/script&gt;") && !auditPage.Contains("<script>unsafe"),"audit renders readable values, escapes untrusted text and labels missing metadata");
  Check(auditPage.Contains("aria-expanded=\"false\"") && !Regex.Replace(auditPage,"<tr id=\"audit-event-.*?</dl>\\s*</div>\\s*</td></tr>","",RegexOptions.Singleline).Contains(modalUser.Id),"technical identifiers stay within collapsed audit details");
  Check((await Html(admin,"/Admin/AuditLog?kind=account&search="+prefix)).Contains("Account security fixture"),"account security events remain available through the explicit filter");
+ var managementPage=await Html(admin,"/Admin/AuditLog?kind=admin&search="+prefix);
+ Check(managementPage.Contains("Legacy management fixture") && !managementPage.Contains("Account security fixture"),"explicit management filter excludes account security events");
+ Check(ListPresentation.Summary(1,"event",true)=="1 event matches your filters." && ListPresentation.Summary(2,"event",true)=="2 events match your filters." && ListPresentation.Summary(0,"event",true)=="No events match your filters." && ListPresentation.Summary(2,"event",false)=="2 events","list counts handle zero, singular, plural and unfiltered results");
+ var reviewRecord=new AdminActivity { Action="Reviewed Instructor application", Details="Rejected; revision 2. A long reason remains available in full details." };
+ Check(AuditPresentation.Summary(reviewRecord)=="Rejected · Revision 2" && reviewRecord.Details.Contains("A long reason"),"review summary separates result and revision without changing stored reason");
+ Check(AuditPresentation.Summary(new AdminActivity { Action="Reviewed Instructor application", Details="Historical reason only" })=="Historical reason only","legacy review text without metadata remains readable");
+ foreach(var route in new[]{"Users","Courses","Applications","LoginLogs","AuditLog","SupportRequests","Security"})
+     Check((await Html(admin,"/Admin/"+route)).Contains("list-results"),"result summary appears above the "+route+" list");
+ var sessionsPage=await Html(admin,account+"Sessions");
+ Check(sessionsPage.Contains("Manage where you're signed in. Times shown in ") && !sessionsPage.Contains("<p class=\"form-text\">Times shown in"),"session timezone is part of the subtitle");
+ using(var scope=factory.Services.CreateScope()) {var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+ for(var i=0;i<22;i++)db.SecurityAlerts.Add(new SecurityAlert { UserId=other.Id,EventKey=prefix+".search."+i,Title=prefix+" search fixture",IpAddress="2001:db8::42",Explanation="Disposable filter fixture",Status="Investigating" });
+ db.SecurityAlerts.Add(new SecurityAlert { UserId=other.Id,EventKey=prefix+".other",Title=prefix+" other fixture",IpAddress="192.0.2.42",Explanation="Disposable filter fixture",Status="Resolved" });await db.SaveChangesAsync();}
+ var filteredAlerts=await Html(admin,"/Admin/Security?search=2001%3Adb8&status=Investigating");
+ Check(filteredAlerts.Contains("22 alerts match your filters.") && !filteredAlerts.Contains(prefix+" other fixture"),"partial IPv6 search combines with investigation status");
+ Check(filteredAlerts.Contains("search=2001%3Adb8") && filteredAlerts.Contains("status=Investigating") && filteredAlerts.Contains("page=2"),"alert pagination preserves both filters");
+ var secondAlerts=await Html(admin,"/Admin/Security?search=2001%3Adb8&status=Investigating&page=2");
+ Check(secondAlerts.Contains("Page 2 of 2") && secondAlerts.Contains(prefix+" search fixture"),"alert second page retains matching results");
+ Check((await Html(admin,"/Admin/Security?search="+prefix+"%20other")).Contains("1 alert matches your filters."),"alert names are searchable with singular result wording");
+ Check((await Html(admin,"/Admin/Security?search=192.0.2.42")).Contains("1 alert matches your filters."),"IPv4 address search finds its alert");
+ Check((await Html(admin,"/Admin/Security?search=%27%20OR%201%3D1%20--")).Contains("No alerts match your filters."),"search treats SQL-like input as a literal value");
+ Check((await admin.GetAsync("/Admin/Security?status=Injected")).StatusCode==HttpStatusCode.BadRequest,"unknown alert status is rejected with search enabled");
+
  using var activeSupport=Client();await Login(activeSupport,modalUser);var mailCount=Mails().Count();var activeOpened=await Follow(activeSupport,await activeSupport.GetAsync("/Support"));
  Check(activeOpened.Path=="/Support/Requests" && Mails().Count()==mailCount,"active signed-in users enter their own support area without a mailbox link");
  Check(!activeOpened.Body.Contains("pagination-bar") && !activeOpened.Body.Contains("<table"),"empty personal request list uses an empty state without a pager");
- var createHtml=await Html(activeSupport,"/Support/Create");Check(!createHtml.Contains("<option>"+SupportCategory.Appeal),"active users do not see the suspension appeal option");
+ var createHtml=await Html(activeSupport,"/Support/Create");Check(createHtml.Contains("<option selected=\"selected\">Sign-in issue</option>"),"active support request defaults to sign-in issue");Check(!createHtml.Contains("<option>"+SupportCategory.Appeal),"active users do not see the suspension appeal option");
  var appeal=await Post(activeSupport,"/Support/Create",new(){{"Category",SupportCategory.Appeal},{"Subject","Forged suspension appeal"},{"Body","I am attempting a suspension appeal while active."}});
  Check(appeal.StatusCode==HttpStatusCode.OK && (await appeal.Content.ReadAsStringAsync()).Contains("Only a currently disabled"),"server rejects a forged suspension appeal from an active user");
  Check((await Post(activeSupport,"/Support/Create",new(){{"Category","Injected category"},{"Subject","Invalid request category"},{"Body","An unsupported category must not be accepted."}})).StatusCode==HttpStatusCode.OK,"unknown support types are rejected");
@@ -174,11 +200,15 @@ try {
  Check(opened.Path=="/Support/Requests" && !opened.Body.Contains("Manage account"),"mailbox-verified disabled user receives only the support interface");
  Check((await support.GetAsync(account+"Settings")).StatusCode==HttpStatusCode.Redirect && (await support.GetAsync("/Admin/Security")).StatusCode==HttpStatusCode.Redirect,"support cookie grants neither application nor admin access");
  using var replay=Client();var reused=await Follow(replay,await Post(replay,"/Support/Verify",new(){{"code",validCode},{"confirm","true"}},"/Support/Verify?code="+validCode));Check(reused.Body.Contains("already been used"),"support links are single-use");
+ Check((await Html(support,"/Support/Create")).Contains("<option selected=\"selected\">Sign-in issue</option>"),"disabled support request also defaults to sign-in issue");
  var blank=await Post(support,"/Support/Create",new(){{"Subject","     x     "},{"Body","                  "}});
  using(var s=factory.Services.CreateScope())Check(blank.StatusCode==HttpStatusCode.OK && !await s.ServiceProvider.GetRequiredService<ApplicationDbContext>().SupportTickets.AnyAsync(t=>t.UserId==disabled.Id),"space-padded subject and empty message cannot create a request");
  var created=await Follow(support,await Post(support,"/Support/Create",new(){{"Category",SupportCategory.Appeal},{"Subject","Why was my account disabled?"},{"Body","Please review my account access. I think this may be a mistake."},{"Internal","true"},{"Status","Resolved"}}));
  var ticket=await Ticket(disabled);var thread="/Support/Thread/"+ticket.Id;var adminThread="/Admin/SupportThread/"+ticket.Id;
  Check(created.Path==thread && ticket.Status=="Awaiting admin" && ticket.Category==SupportCategory.Appeal,"forged user status and internal-note flags cannot close or hide a request");
+ var initialThread=await Html(support,thread);
+ Check(Regex.IsMatch(initialThread,"support-conversation-heading.*?Conversation.*?Awaiting admin",RegexOptions.Singleline) && !initialThread.Contains("Send reply") && initialThread.Contains("Please wait for an administrator"),"awaiting-admin badge belongs to the Conversation card and the composer is hidden");
+ Check((await Post(support,"/Support/Reply/"+ticket.Id,new(){{"Version",ticket.Version},{"Body","Forged follow-up before any administrator reply."},{"Status","Awaiting user"},{"Internal","false"}},thread)).StatusCode==HttpStatusCode.Conflict,"direct user posts cannot bypass the awaiting-admin reply restriction");
  var duplicate=await Follow(support,await Post(support,"/Support/Create",new(){{"Subject","Duplicate support request"},{"Body","Please see my existing conversation for details."}}));Check(duplicate.Path==thread && duplicate.Body.Contains("already have an open request"),"duplicate open requests return to the existing conversation");
  using var otherSupport=Client();await OpenSupport(otherSupport,other);
  Check((await otherSupport.GetAsync(thread)).StatusCode==HttpStatusCode.NotFound,"support users cannot read another user's ticket");
@@ -186,18 +216,26 @@ try {
  Check((await Html(admin,"/Admin/SupportRequests")).Contains("Why was my account disabled?"),"new requests appear in the admin support queue");
  Check((await Html(admin,adminThread)).Contains("Internal note only"),"admin conversation distinguishes internal notes from public replies");
 
- await Follow(admin,await Post(admin,"/Admin/SupportReply/"+ticket.Id,new(){{"Version",ticket.Version},{"Body","PRIVATE investigation note, do not expose to the user."},{"Internal","true"},{"Status","Awaiting admin"}},adminThread));
+ await Follow(admin,await Post(admin,"/Admin/SupportReply/"+ticket.Id,new(){{"Version",ticket.Version},{"Body","PRIVATE investigation note, do not expose to the user."},{"Internal","true"},{"Status","Awaiting user"}},adminThread));
  Check(!(await Html(support,thread)).Contains("PRIVATE investigation"),"administrator internal notes are excluded from the user response");
  Check(!Mails().Any(m=>(m.TextBody??"").Contains("PRIVATE investigation")),"internal notes are never emailed to the user");
+ Check((await Ticket(disabled)).Status=="Awaiting admin" && !(await Html(support,thread)).Contains("Send reply"),"internal notes cannot change status or unlock user replies");
+ var internalVersion=(await Ticket(disabled)).Version;
+ Check((await Post(support,"/Support/Reply/"+ticket.Id,new(){{"Version",internalVersion},{"Body","Trying to reply after a private internal note."}},thread)).StatusCode==HttpStatusCode.Conflict,"server requires a public administrator reply rather than an internal note");
  var stale=await Post(admin,"/Admin/SupportReply/"+ticket.Id,new(){{"Version",ticket.Version},{"Body","An outdated administrator reply must be rejected."},{"Status","Resolved"}},adminThread);
  Check(stale.StatusCode==HttpStatusCode.Conflict,"stale conversation versions cannot overwrite a newer reply");
  ticket=await Ticket(disabled);
  await Follow(admin,await Post(admin,"/Admin/SupportReply/"+ticket.Id,new(){{"Version",ticket.Version},{"Body","We reviewed the case. Please provide more details about your last successful sign-in."},{"Status","Awaiting user"}},adminThread));
- Check((await Html(support,thread)).Contains("Please provide more details"),"public admin reply appears in the disabled user's conversation");
+ Check((await Html(support,thread)).Contains("Send reply") && (await Html(support,thread)).Contains("Please provide more details"),"public admin reply appears in the disabled user's conversation");
  Check(Mails().Any(m=>m.Subject==$"HackAcad support: Reply to support request #{ticket.Id}" && m.To.Mailboxes.Any(a=>a.Address==disabled.Email)),"public reply produces an email notification to the account mailbox");
  using(var s=factory.Services.CreateScope()) {var db=s.ServiceProvider.GetRequiredService<ApplicationDbContext>();Check(await db.Users.AnyAsync(u=>u.Id==disabled.Id && u.IsDisabled),"replying does not automatically reactivate an account");Check(await db.UserNotifications.AnyAsync(n=>n.UserId==disabled.Id && n.Title.Contains("support request")),"public reply also records an in-app notification");}
- ticket=await Ticket(disabled);await Follow(support,await Post(support,"/Support/Reply/"+ticket.Id,new(){{"Version",ticket.Version},{"Body","Here are the details you requested for my review."},{"Status","Resolved"},{"Internal","true"}},thread));
- Check((await Ticket(disabled)).Status=="Awaiting admin" && (await Html(admin,adminThread)).Contains("Here are the details"),"user follow-up reopens the admin queue and cannot forge private notes");
+ ticket=await Ticket(disabled);
+ var followups=await Task.WhenAll(Post(support,"/Support/Reply/"+ticket.Id,new(){{"Version",ticket.Version},{"Body","Here are the details you requested for my review."},{"Status","Resolved"},{"Internal","true"}},thread),Post(support,"/Support/Reply/"+ticket.Id,new(){{"Version",ticket.Version},{"Body","Concurrent duplicate user follow-up must be blocked."}},thread));
+ Check(followups.Count(r=>r.StatusCode==HttpStatusCode.Redirect)==1 && followups.Count(r=>r.StatusCode==HttpStatusCode.Conflict)==1,"concurrent user replies accept only one message per administrator turn");
+ await Follow(support,followups.Single(r=>r.StatusCode==HttpStatusCode.Redirect));
+ Check((await Ticket(disabled)).Status=="Awaiting admin" && !(await Html(support,thread)).Contains("Send reply"),"one user reply returns the thread to awaiting admin and hides the composer");
+ ticket=await Ticket(disabled);
+ Check((await Post(support,"/Support/Reply/"+ticket.Id,new(){{"Version",ticket.Version},{"Body","A fresh version still cannot send a second consecutive reply."}},thread)).StatusCode==HttpStatusCode.Conflict,"even a fresh version cannot bypass turn-taking after a user reply");
  var config=factory.Services.GetRequiredService<IConfiguration>();var capture=config["Email:DevelopmentPickupDirectory"];
  try {config["Email:DevelopmentPickupDirectory"]=Path.Combine(factory.Services.GetRequiredService<IWebHostEnvironment>().ContentRootPath,"wwwroot");ticket=await Ticket(disabled);var failed=await Follow(admin,await Post(admin,"/Admin/SupportReply/"+ticket.Id,new(){{"Version",ticket.Version},{"Body","This public reply is retained even when email delivery fails."},{"Status","Resolved"}},adminThread));Check(failed.Body.Contains("email notification could not be sent") && (await Html(support,thread)).Contains("email delivery fails"),"failed notification reports truthfully without losing the saved reply");}finally{config["Email:DevelopmentPickupDirectory"]=capture;}
  var oldTicket=await Ticket(disabled);

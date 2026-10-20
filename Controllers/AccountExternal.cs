@@ -162,7 +162,12 @@ public partial class AccountController
     private async Task<IActionResult> CompleteExternalLogin(ApplicationUser user, string provider, string? returnUrl)
     {
         await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
-        if (user.IsDisabled || await users.IsLockedOutAsync(user))
+        if (user.IsDisabled) {
+            await records.LoginAttemptAsync(user.Id, user.Id, "Disabled account sign-in attempt");
+            TempData["ExternalAccountDisabled"] = true;
+            return RedirectToAction(nameof(Login));
+        }
+        if (await users.IsLockedOutAsync(user))
         {
             await records.LoginAsync(user.Id, "Failed");
             return RedirectToAction(nameof(Login), new { externalError = provider });

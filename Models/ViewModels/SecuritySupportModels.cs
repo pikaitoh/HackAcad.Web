@@ -10,6 +10,7 @@ public class AdminVerifyInput
 }
 public class SecurityOverviewModel
 {
+    public string? Search { get; set; }
     public int FailedLogins { get; set; }
     public int LockedAccounts { get; set; }
     public int OpenAlerts { get; set; }
@@ -62,6 +63,7 @@ public class SupportListModel
 }
 public class SupportThreadModel
 {
+    public bool CanReply => Ticket.CanUserReply(Messages.LastOrDefault(m => !m.Internal)?.ByAdmin == true);
     public SupportTicket Ticket { get; set; } = null!;
     public List<SupportMessage> Messages { get; set; } = [];
     public string DisplayName { get; set; } = "";

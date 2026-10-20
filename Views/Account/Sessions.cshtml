@@ -1,8 +1,8 @@
 @model SessionsModel
 @{ ViewData["Title"] = "Devices & sessions"; Layout = "_ManageAccountLayout"; }
-<div class="account-panel">
-    <div class="page-heading"><div><h1>Devices &amp; sessions</h1><p class="text-secondary">Manage where you're signed in.</p></div></div>
-    <p class="security-explanation">Review your signed-in browsers and devices. Device names are estimates; a listed device may be offline.</p><p class="form-text">Times shown in @UserTime.Id.</p>
+<div class="account-panel account-sessions">
+    <div class="page-heading"><div><h1>Devices &amp; sessions</h1><p class="text-secondary">Manage where you're signed in. Times shown in @UserTime.Id.</p></div></div>
+    <p class="security-explanation">Review your signed-in browsers and devices. Device names are estimates; a listed device may be offline.</p>
     <form asp-action="Sessions" method="post" data-validated-form class="session-form">
         <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
         @if (Model.Sessions.Any(s => s.Id != Model.CurrentSessionId)) { <div class="session-password"><label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" aria-invalid="@(ViewData.ModelState["CurrentPassword"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="current-password" required aria-describedby="session-password-help CurrentPassword-error" /><p id="session-password-help" class="form-text">Confirm your password before signing out another device. This device stays signed in.</p><span id="CurrentPassword-error" asp-validation-for="CurrentPassword" class="field-error" aria-live="polite"></span></div> }

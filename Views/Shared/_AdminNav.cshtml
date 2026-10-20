@@ -15,5 +15,5 @@ var waiting = auditor ? 0 : await NavigationDb.SupportTickets.CountAsync(t => t.
     }
     <a asp-controller="Admin" asp-action="Security" aria-current="@(action is "Security" or "Alert" or "Verify" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4v5c0 5-8 9-8 9s-8-4-8-9V7Z"/><path d="M12 8v5m0 3h.01"/></svg>Security @if (alerts > 0) { <span class="nav-count">@alerts</span> }</a>
     <a asp-controller="Admin" asp-action="LoginLogs" aria-current="@(action == "LoginLogs" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6M3 3v6h6m3-2v6l4 2"/></svg>Login logs</a>
-    <a asp-controller="Admin" asp-action="AuditLog" aria-current="@(action is "AuditLog" or "Activity" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H5v17h14V4h-4M9 3h6v4H9zm-1 9h8m-8 4h8"/></svg>Audit log</a>
+    <a asp-controller="Admin" asp-action="AuditLog" aria-current="@(action is "AuditLog" or "Activity" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4H5v17h14V4h-4M9 3h6v4H9zm-1 9h8m-8 4h8"/></svg>Audit logs</a>
 </nav>

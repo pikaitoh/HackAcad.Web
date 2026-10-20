@@ -1,13 +1,14 @@
 @model AuditLogModel
-@{ ViewData["Title"] = "Audit log"; }
+@{ ViewData["Title"] = "Audit logs"; }
 <div class="admin-content">
-    <div class="page-heading"><div><h1>Audit log</h1><p class="text-secondary">Review management actions or account security changes. Times shown in @UserTime.Id.</p></div></div>
+    <div class="page-heading"><div><h1>Audit logs</h1><p class="text-secondary">Review management actions or account security changes. Times shown in @UserTime.Id.</p></div></div>
     <form method="get" class="filter-bar audit-filters">
         <div class="filter-search"><label for="search" class="form-label">Search actions, targets or reasons</label><input id="search" name="search" value="@Model.Search" maxlength="200" class="form-control" /></div>
-        <div><label for="kind" class="form-label">Event category</label><select id="kind" name="kind" class="form-select"><option value="admin" selected="@(Model.Kind == "admin")">Management actions</option><option value="account" selected="@(Model.Kind == "account")">Account security</option><option value="all" selected="@(Model.Kind == "all")">All events</option></select></div>
+        <div><label for="kind" class="form-label">Event category</label><select id="kind" name="kind" class="form-select"><option value="all" selected="@(Model.Kind == "all")">All events</option><option value="admin" selected="@(Model.Kind == "admin")">Management actions</option><option value="account" selected="@(Model.Kind == "account")">Account security</option></select></div>
         <div class="form-check mb-2"><input id="mine" name="mine" type="checkbox" value="true" checked="@Model.Mine" class="form-check-input" /><label for="mine" class="form-check-label">Only my actions</label></div>
         <button type="submit" class="btn btn-primary">Apply filters</button><a asp-action="AuditLog" class="btn btn-outline-secondary">Clear</a>
     </form>
+<p class="text-secondary small list-results">@ListPresentation.Summary(Model.Total, "event", !string.IsNullOrWhiteSpace(Model.Search) || Model.Mine || Model.Kind != "all")</p>
     @if (Model.Records.Count == 0) {
         <div class="empty-state"><h2 class="h5">No matching actions</h2><p>Try another event category or clear your filters.</p></div>
     } else {
@@ -21,7 +22,7 @@
                     <td>@(record.ActorUserId is { } actor && Model.Actors.TryGetValue(actor, out var name) ? name : "Former user")</td>
                     <td>@record.Action</td>
                     <td>@AuditPresentation.Recorded(record.TargetName)<span class="record-secondary">@AuditPresentation.Recorded(record.TargetType)</span></td>
-                    <td><p class="audit-summary">@AuditPresentation.Summary(record.Details)</p>
+                    <td><p class="audit-summary">@AuditPresentation.Summary(record)</p>
                         <button type="button" class="audit-toggle" data-audit-toggle aria-expanded="false" aria-controls="audit-event-@record.Id">View details<span class="visually-hidden"> for event @record.Id</span></button>
                     </td>
                 </tr>
@@ -42,5 +43,5 @@
             }</tbody>
         </table></div>
     }
-    <partial name="_Pagination" model='new PaginationModel(Model.Page, Model.PageCount, $"{Model.Total} events")' />
+    <partial name="_Pagination" model='new PaginationModel(Model.Page, Model.PageCount, ListPresentation.Count(Model.Total, "event"))' />
 </div>

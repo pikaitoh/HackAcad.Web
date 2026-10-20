@@ -171,7 +171,12 @@ try
         var users=scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();var user=(await users.FindByIdAsync(newId))!;
         user.IsDisabled=true;await users.UpdateAsync(user);
     }
-    Check((await Google(Client(),email,subject)).Path.StartsWith("/Identity/Account/Login"),"disabled account cannot sign in with Google");
+    using var blockedGoogle=Client();var disabledGoogle=await Google(blockedGoogle,email,subject);
+    Check(disabledGoogle.Path.StartsWith("/Identity/Account/Login") && disabledGoogle.Body.Contains("Your HackAcad account has been disabled.") && disabledGoogle.Body.Contains("request a review"),"linked Google owner receives an explicit disabled notice and review guidance");
+    Check((await blockedGoogle.GetAsync("/Identity/Account/Profile")).StatusCode==HttpStatusCode.Redirect,"disabled Google identity receives no application session");
+    Check(!(await Google(Client(),email,subject,verified:false)).Body.Contains("Your HackAcad account has been disabled."),"unverified Google identity cannot discover disabled status");
+    Check(!(await Google(Client(),email,"unlinked-disabled-"+suffix)).Body.Contains("Your HackAcad account has been disabled."),"matching Google email without the linked subject does not disclose disabled status");
+    Check(!(await Client().GetStringAsync("/Identity/Account/Login?accountDisabled=true&externalError=Google")).Contains("Your HackAcad account has been disabled."),"forged login query cannot create a disabled-account notice");
     var mailbox=Client();var thirdEmail=prefix+".external@example.org";
     var third=await Google(mailbox,thirdEmail,"third-"+suffix);
     var thirdResult=await Follow(mailbox,await Post(mailbox,"/Identity/Account/GoogleRegister",new(){{"DisplayName","External mailbox"}},third.Path));

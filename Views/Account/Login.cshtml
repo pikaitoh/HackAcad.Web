@@ -3,7 +3,9 @@
 <h1 id="auth-title">Welcome back</h1>
 <p class="text-secondary mb-4">Log in to your HackAcad account.</p>
 @if (TempData["ExternalNotice"] is string notice) { <p class="google-notice" role="status">@notice</p> }
-@if (ViewData["AccountDisabled"] as bool? == true) { <p><a asp-controller="Support" asp-action="Index" class="btn btn-outline-secondary">Contact support</a></p> }
+@if (ViewData["AccountDisabled"] as bool? == true) {
+    <div class="alert alert-danger" role="alert"><p>Your HackAcad account has been disabled. Contact support to ask about the reason or request a review.</p><a asp-controller="Support" asp-action="Index" class="btn btn-outline-secondary">Contact support</a></div>
+}
 <partial name="_ExternalLogin" model="@(Model.ReturnUrl ?? string.Empty)" />
 <form asp-action="Login" method="post" data-account-form>
     <input asp-for="ReturnUrl" type="hidden" />

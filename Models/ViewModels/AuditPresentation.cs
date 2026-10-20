@@ -5,6 +5,14 @@ namespace HackAcad.Web.Models.ViewModels;
 
 public static class AuditPresentation
 {
+    public static string Summary(HackAcad.Web.Models.Entities.AdminActivity record)
+    {
+        if (record.Action == "Reviewed Instructor application") {
+            var review = Regex.Match(record.Details ?? "", @"^(.+?); revision (\d+)\.");
+            if (review.Success) return $"{review.Groups[1].Value} · Revision {review.Groups[2].Value}";
+        }
+        return Summary(record.Details);
+    }
     public static string Recorded(string? value) => string.IsNullOrWhiteSpace(value) ? "Not recorded" : value;
     public static string Summary(string? value) => string.IsNullOrWhiteSpace(value) ? "Not recorded" : value.Length > 120 ? value[..120] + "…" : value;
     public static IEnumerable<(string Field, string Before, string After)> Changes(string? before, string? after)

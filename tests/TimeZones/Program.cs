@@ -54,12 +54,25 @@ async Task<(string Id,string Email)> Fixture(string label, string role)
         EmailConfirmed = true, JoinedDate = Utc(2026,1,1,1,30), LastPasswordChangedUtc = Utc(2026,1,1,1,30) };
     var result = await scope.ServiceProvider.GetRequiredService<UserAccounts>().CreateAsync(user,password,role);
     if (!result.Succeeded) throw new Exception("Fixture creation failed");
+    if (role == AccountRoles.Admin) {
+        var manager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        await manager.ResetAuthenticatorKeyAsync(user);
+        await manager.SetTwoFactorEnabledAsync(user, true);
+    }
     return (user.Id,email);
 }
 async Task Login(HttpClient client, string email)
 {
     var response = await Post(client,account+"Login",new() {{"Email",email},{"Password",password}});
     Check(response.StatusCode == HttpStatusCode.Redirect,"fixture signs in");
+    if (response.Headers.Location?.ToString().Contains("LoginTwoFactor") == true) {
+        using var scope = factory.Services.CreateScope();
+        var manager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = (await manager.FindByEmailAsync(email))!;
+        var code = (await manager.GenerateNewTwoFactorRecoveryCodesAsync(user, 1))!.Single();
+        var verified = await Post(client, account+"LoginRecoveryCode", new() {{"Code",code}});
+        Check(verified.StatusCode == HttpStatusCode.Redirect, "Admin fixture completes mandatory MFA");
+    }
 }
 try
 {
@@ -105,7 +118,8 @@ try
         var logs=await Body(client,$"/Admin/LoginLogs?search={other.Email}&from=2026-03-08&to=2026-03-08");
         Check(logs.Contains("boundary-start")&&logs.Contains("boundary-end")&&!logs.Contains("boundary-before")&&!logs.Contains("boundary-after"),"Admin date filters include exactly the selected local DST day");
         Check(logs.Contains("08 Mar 2026")&&logs.Contains("23:59:59")&&logs.Contains("America/New_York"),"Admin logs format the same local day used for filtering");
-        Check((await Body(client,"/Admin/AuditLog?mine=true&search=Timezone%20test")).Contains("31 Dec 2025, 20:30:00"),"Admin activity uses viewer time");
+        var activity = await Body(client,"/Admin/AuditLog?mine=true&search=Timezone%20test");
+        Check(activity.Contains("31 Dec 2025") && activity.Contains("20:30:00"),"Admin activity uses viewer time");
         Check((await Body(client,"/Admin/Users?search="+other.Email)).Contains("31 Dec 2025"),"Admin user list uses Admin preference for another user's Joined date");
         var edit=await Body(client,"/Admin/UserDetails/"+other.Id);
         Check(edit.Contains("31 Dec 2025, 20:30:00")&&edit.Contains("America/New_York"),"Admin read-only details page uses Admin preference, not target user's zone");

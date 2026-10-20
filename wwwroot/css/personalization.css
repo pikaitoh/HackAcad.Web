@@ -156,7 +156,7 @@ html[data-theme="dark"] .table-light { --bs-table-bg: var(--ha-tint); --bs-table
 
 /* Focused tasks share a centered content measure; workspaces retain their full navigation. */
 .status-message { margin-bottom: 1.5rem; }
-.account-workspace { max-width: 1600px; width: calc(100% - 4rem); grid-template-columns: 220px minmax(0,1fr); gap: 2rem; }
+.account-workspace { max-width: 1360px; width: calc(100% - 4rem); grid-template-columns: 220px minmax(0,1fr); gap: 2rem; }
 .account-content { width: 100%; }
 .account-content .account-panel .form-measure { max-width: none; }
 .profile-layout { align-items: stretch; }
@@ -268,3 +268,5 @@ html[data-theme="dark"] .support-status[data-status="Resolved"] { background:#24
 
 .audit-filters .form-select { min-width: 12rem; }
 .support-filters #Category { min-width: 14rem; }
+
+.account-sessions .security-explanation, .account-sessions .page-heading p { max-width:none; }

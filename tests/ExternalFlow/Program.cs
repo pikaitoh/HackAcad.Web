@@ -133,17 +133,22 @@ try
             var users=scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();var user=(await users.FindByIdAsync(userId))!;
             await users.SetTwoFactorEnabledAsync(user,false);user.IsDisabled=true;await users.UpdateAsync(user);
         }
-        Check((await External(Client(),provider,email,id)).Path.Contains("Login"),provider+" cannot log in to a disabled account");
+        using var blocked=Client();var blockedResult=await External(blocked,provider,email,id);
+        Check(blockedResult.Path.Contains("Login") && blockedResult.Body.Contains("Your HackAcad account has been disabled.") && blockedResult.Body.Contains("Contact support"),provider+" disabled owner sees clear support guidance");
+        Check((await blocked.GetAsync("/Identity/Account/Profile")).StatusCode==HttpStatusCode.Redirect,provider+" disabled owner receives no application session");
+        Check(!(await External(Client(),provider,email,id,verified:false)).Body.Contains("Your HackAcad account has been disabled."),provider+" invalid verification cannot reveal disabled status");
 
-        var adminEmail=prefix+".admin."+provider.ToLowerInvariant()+"@example.edu";var adminSub=(subject++).ToString();
+        var adminEmail=prefix+".admin."+provider.ToLowerInvariant()+"@example.edu";var adminSub=(subject++).ToString();var adminRecovery=new Queue<string>();
         using(var scope=factory.Services.CreateScope())
         {
             var user=new ApplicationUser{Email=adminEmail,UserName=adminEmail,DisplayName="External Admin",EmailConfirmed=true};
             Check((await scope.ServiceProvider.GetRequiredService<UserAccounts>().CreateAsync(user,"HackAcad@123!",AccountRoles.Admin)).Succeeded,"existing Admin fixture created");
+            var manager=scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();await manager.ResetAuthenticatorKeyAsync(user);await manager.SetTwoFactorEnabledAsync(user,true);adminRecovery=new Queue<string>((await manager.GenerateNewTwoFactorRecoveryCodesAsync(user,10))!);
         }
         var duplicate=await External(Client(),provider,adminEmail,adminSub);
         Check(duplicate.Path.Contains("Login")&&duplicate.Body.Contains("connect "+provider+" in Manage account"),provider+" matching email never silently links an existing Admin");
         using var admin=Client();await Follow(admin,await Post(admin,"/Identity/Account/Login",new(){{"Email",adminEmail},{"Password","HackAcad@123!"}}));
+        await Follow(admin,await Post(admin,"/Identity/Account/LoginRecoveryCode",new(){{"Code",adminRecovery.Dequeue()}},"/Identity/Account/LoginRecoveryCode"));
         var linked=await External(admin,provider,adminEmail,adminSub,connect:true);
         Check(linked.Path.EndsWith("Settings")&&linked.Body.Contains("Connected"),provider+" is explicitly linked by the authenticated owner");
         using(var scope=factory.Services.CreateScope())
@@ -153,7 +158,9 @@ try
             Check(linked.Body.Contains(adminEmail)&&linked.Body.Contains("GitHubLearner"),provider+" displays the provider email and username snapshot");
         }
         Check(Directory.GetFiles(Environment.GetEnvironmentVariable("Email__DevelopmentPickupDirectory")!,"*.eml").Select(p=>MimeKit.MimeMessage.Load(p)).Any(m=>m.Subject=="HackAcad security: "+provider+" connected"&&m.To.Mailboxes.Any(a=>a.Address==adminEmail)),provider+" connection sends a captured security notice");
-        Check((await External(Client(),provider,adminEmail,adminSub)).Path=="/Admin",provider+" linked login preserves Admin role");
+        using var returningAdmin=Client();var pendingAdmin=await External(returningAdmin,provider,adminEmail,adminSub);
+        Check(pendingAdmin.Path.Contains("LoginTwoFactor"),provider+" linked Admin login retains the mandatory MFA gate");
+        Check((await Follow(returningAdmin,await Post(returningAdmin,"/Identity/Account/LoginRecoveryCode",new(){{"Code",adminRecovery.Dequeue()}},"/Identity/Account/LoginRecoveryCode"))).Path=="/Admin",provider+" linked login preserves Admin role after MFA");
         var different=await External(admin,provider,prefix+".other@example.edu",(subject++).ToString(),connect:true);
         Check(different.Path.EndsWith("Settings")&&different.Body.Contains("account not connected. You selected "+prefix+".other@example.edu")&&different.Body.Contains("but your verified HackAcad email is "+adminEmail)&&different.Body.Contains("change and verify your HackAcad email before connecting"),provider+" explains the selected email mismatch and both recovery options");
     }

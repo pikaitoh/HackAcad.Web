@@ -105,8 +105,13 @@
 .support-status[data-status="Investigating"],.support-status[data-status="Awaiting user"] { color:#285d89; background:#e6f1fc; }
 .support-status[data-status="Resolved"] { color:#326a4d; background:#e4f2e8; }
 .security-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.5rem; margin-bottom:2.5rem; }
-.security-stats > div { border-block:1px solid var(--ha-line); padding-block:1.25rem; }
+.security-stats > div { border:1px solid var(--ha-line); border-radius:var(--ha-radius); background:var(--ha-surface); padding:1.25rem 1.5rem; }
 .security-stats dt { color:var(--ha-muted); font-size:.875rem; font-weight:500; }
 .security-stats dd { font-size:2.5rem; font-weight:650; margin:.25rem 0 0; font-variant-numeric:tabular-nums; }
 .nav-count { margin-inline-start:auto; font-size:.75rem; font-variant-numeric:tabular-nums; }
 .access-history { margin-block:1rem 0; padding-inline-start:1.5rem; }
+
+.security-alert-help { margin-bottom:1.5rem; max-width:none; }
+.support-conversation-heading { display:flex; align-items:center; justify-content:space-between; gap:1.5rem; margin-bottom:.5rem; }
+.support-conversation-heading h2 { margin:0; }
+.support-waiting { margin:0; padding-top:1.5rem; color:var(--ha-muted); border-top:1px solid var(--ha-line); }

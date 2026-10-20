@@ -71,7 +71,7 @@ public class SupportController(ApplicationDbContext db, SupportAccessService acc
     public async Task<IActionResult> Create()
     {
         ViewData["CanAppeal"] = await db.Users.AnyAsync(u => u.Id == User.FindFirstValue(ClaimTypes.NameIdentifier) && u.IsDisabled);
-        return View(new SupportMessageInput { Category = ViewData["CanAppeal"] as bool? == true ? SupportCategory.Appeal : SupportCategory.SignIn });
+        return View(new SupportMessageInput { Category = SupportCategory.SignIn });
     }
 
     [Authorize(AuthenticationSchemes = SupportAccessService.Scheme), HttpPost, EnableRateLimiting("support-message")]
@@ -136,6 +136,9 @@ public class SupportController(ApplicationDbContext db, SupportAccessService acc
             }
         }
         if (input.Version != ticket.Version) return Conflict("This conversation changed. Reload before replying.");
+        var lastPublicByAdmin = await db.SupportMessages.AsNoTracking().Where(m => m.TicketId == id && !m.Internal)
+            .OrderByDescending(m => m.Id).Select(m => m.ByAdmin).FirstOrDefaultAsync();
+        if (!ticket.CanUserReply(lastPublicByAdmin)) return Conflict("Please wait for an administrator's public reply before sending another message.");
         if (await db.SupportMessages.CountAsync(m => m.AuthorId == userId && !m.ByAdmin && m.CreatedUtc >= now.AddMinutes(-1)) >= 2)
             ModelState.AddModelError("Body", "Please wait a minute before sending another message.");
         if (!ModelState.IsValid) {
