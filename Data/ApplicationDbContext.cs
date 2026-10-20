@@ -35,9 +35,27 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<UserNotification> UserNotifications => Set<UserNotification>();
     public DbSet<BannerReward> BannerRewards => Set<BannerReward>();
 
+    public DbSet<SecurityEvent> SecurityEvents => Set<SecurityEvent>();
+    public DbSet<SecurityAlert> SecurityAlerts => Set<SecurityAlert>();
+    public DbSet<SupportAccess> SupportAccesses => Set<SupportAccess>();
+    public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
+    public DbSet<SupportMessage> SupportMessages => Set<SupportMessage>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        builder.Entity<AdminActivity>().Property(a => a.Before).HasColumnType("text");
+        builder.Entity<AdminActivity>().Property(a => a.After).HasColumnType("text");
+        builder.Entity<SecurityEvent>().HasIndex(e => new { e.IpAddress, e.OccurredUtc });
+        builder.Entity<SecurityEvent>().HasIndex(e => new { e.SubjectHash, e.OccurredUtc });
+        builder.Entity<SecurityAlert>().HasIndex(e => e.EventKey).IsUnique();
+        builder.Entity<SecurityAlert>().HasIndex(e => new { e.Status, e.CreatedUtc });
+        builder.Entity<SupportAccess>().HasIndex(e => e.TokenHash).IsUnique();
+        builder.Entity<SupportAccess>().HasIndex(e => new { e.UserId, e.CreatedUtc });
+        builder.Entity<SupportAccess>().HasOne<ApplicationUser>().WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.Entity<SupportTicket>().HasIndex(e => new { e.UserId, e.UpdatedUtc });
+        builder.Entity<SupportTicket>().HasOne<ApplicationUser>().WithMany().HasForeignKey(e => e.UserId).OnDelete(DeleteBehavior.Restrict);
+        builder.Entity<SupportMessage>().HasOne<SupportTicket>().WithMany().HasForeignKey(e => e.TicketId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<UserNotification>().HasIndex(n => new { n.UserId, n.EventKey }).IsUnique();
         builder.Entity<UserNotification>().HasIndex(n => new { n.UserId, n.ReadUtc, n.CreatedUtc });
         builder.Entity<UserNotification>().HasOne<ApplicationUser>().WithMany().HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Cascade);

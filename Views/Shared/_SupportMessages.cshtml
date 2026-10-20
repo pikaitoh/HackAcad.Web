@@ -1,0 +1,8 @@
+@model List<SupportMessage>
+<ol class="support-messages">
+@foreach (var message in Model) {
+<li class="support-message @(message.Internal ? "support-internal" : "")"><div class="support-message-heading"><strong>@(message.ByAdmin ? "Administrator" : ViewData["SupportAdmin"] as bool? == true ? "User" : "You")@if (ViewData["SupportAdmin"] as bool? == true) { <text> · @message.AuthorName</text> }</strong><span class="text-secondary">@UserTime.Format(message.CreatedUtc,"dd MMM yyyy, HH:mm:ss")</span></div>
+@if (message.Internal) { <p class="support-internal-label">Internal note · visible only to administrators</p> }
+<p class="support-message-body">@message.Body</p></li>
+}
+</ol>

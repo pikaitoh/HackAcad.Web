@@ -64,6 +64,7 @@ public partial class AccountController
                 await users.ResetAccessFailedCountAsync(user);
                 await transaction.CommitAsync();
                 await signIn.RefreshSignInAsync(user);
+                await adminSecurity.MarkMfaAsync(HttpContext, user);
                 return View("RecoveryCodes", codes);
             }
             await users.AccessFailedAsync(user);
@@ -143,6 +144,7 @@ public partial class AccountController
                 await HttpContext.SignOutAsync(IdentityConstants.TwoFactorUserIdScheme);
                 await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
                 await signIn.SignInWithClaimsAsync(user, input.RememberMe, [new Claim(ClaimTypes.AuthenticationMethod, "SMS")]);
+                await adminSecurity.MarkMfaAsync(HttpContext, user);
                 await records.LoginAsync(user.Id, "Signed in with 2FA");
                 return Url.IsLocalUrl(input.ReturnUrl) ? LocalRedirect(input.ReturnUrl!) : RedirectToAction(nameof(Dashboard));
             }

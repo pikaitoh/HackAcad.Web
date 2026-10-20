@@ -22,6 +22,7 @@ public class UserAccounts(ApplicationDbContext db, UserManager<ApplicationUser> 
     public IQueryable<UserRow> Query() => db.Users.AsNoTracking().Select(u => new UserRow
     {
         Id = u.Id, DisplayName = u.DisplayName, FullName = u.FullName, Email = u.Email ?? "",
+        IsReadOnlyAdmin = db.Admins.Any(a => a.UserId == u.Id && a.IsReadOnly),
         IsDisabled = u.IsDisabled, EmailConfirmed = u.EmailConfirmed, JoinedDate = u.JoinedDate,
         LastPasswordChangedUtc = u.LastPasswordChangedUtc,
         LastLoginUtc = db.LoginRecords.Where(r => r.UserId == u.Id && r.Outcome.StartsWith("Signed in"))

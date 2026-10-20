@@ -157,6 +157,7 @@ public partial class AccountController
         await transaction.CommitAsync();
         securityCache.Remove("totp-setup:" + user.Id);
         await signIn.RefreshSignInAsync(user);
+        await adminSecurity.MarkMfaAsync(HttpContext, user);
         Response.Headers["Referrer-Policy"] = "no-referrer";
         return View("RecoveryCodes", codes);
     }
@@ -168,6 +169,10 @@ public partial class AccountController
         if (user is null) return Challenge();
         if (!user.TwoFactorEnabled) return Forbid();
         if (operation != "disable" && operation != "regenerate") return BadRequest();
+        if (operation == "disable" && User.IsInRole(AccountRoles.Admin)) {
+            ModelState.AddModelError("", "Administrators must keep two-factor authentication enabled.");
+            return View("TwoFactor", await TwoFactorData(user));
+        }
         if (ModelState.IsValid && await ConfirmCurrentPassword(user, input.CurrentPassword))
         {
             var code = (input.Code ?? "").Replace(" ", "").Replace("-", "");
@@ -252,6 +257,7 @@ public partial class AccountController
                 : await signIn.TwoFactorAuthenticatorSignInAsync(code.Replace("-", ""), input.RememberMe, rememberClient: false);
             if (result.Succeeded)
             {
+                await adminSecurity.MarkMfaAsync(HttpContext, user);
                 await records.LoginAsync(user.Id, recovery ? "Signed in with recovery code" : "Signed in with 2FA");
                 return Url.IsLocalUrl(input.ReturnUrl) ? LocalRedirect(input.ReturnUrl!) : RedirectToAction(nameof(Dashboard));
             }

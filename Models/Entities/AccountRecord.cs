@@ -14,6 +14,12 @@ public class LoginRecord
 
 public class AdminActivity
 {
+    [MaxLength(45)] public string IpAddress { get; set; } = "";
+    [MaxLength(80)] public string Device { get; set; } = "";
+    [MaxLength(100)] public string CorrelationId { get; set; } = "";
+    [MaxLength(12000)] public string? Before { get; set; }
+    [MaxLength(12000)] public string? After { get; set; }
+    [MaxLength(30)] public string Result { get; set; } = "Succeeded";
     public long Id { get; set; }
     [MaxLength(255)] public string? ActorUserId { get; set; }
     public DateTime OccurredUtc { get; set; } = DateTime.UtcNow;
@@ -35,4 +41,5 @@ public class AccountSession
     public DateTime LastSeenUtc { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresUtc { get; set; }
     public DateTime? RevokedUtc { get; set; }
+    public DateTime? MfaVerifiedUtc { get; set; }
 }

@@ -1,0 +1,11 @@
+@{ Layout = "_Layout"; ViewData["SupportArea"] = true; ViewData["StatusMessageHandled"] = true; }
+<div class="container support-measure">
+    <div class="support-heading"><span class="eyebrow">Account support</span>
+    @if (User.Identity?.AuthenticationType == SupportAccessService.Scheme) {
+        <div class="form-actions"><a asp-controller="Support" asp-action="Requests" class="btn btn-outline-secondary btn-sm">Your requests</a><form asp-controller="Support" asp-action="Exit" method="post"><button class="btn btn-outline-secondary btn-sm">End support session</button></form></div>
+    }</div>
+    <partial name="_StatusMessage" />
+    @if (TempData["SupportNotice"] is string notice) { <p class="alert alert-info" role="status">@notice</p> }
+    @RenderBody()
+</div>
+@section Scripts { @await RenderSectionAsync("Scripts", required: false) }

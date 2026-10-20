@@ -9,5 +9,7 @@ public class Admin
     [Key, ForeignKey(nameof(User))]
     public string UserId { get; set; } = string.Empty;
 
+    public bool IsReadOnly { get; set; }
+
     public ApplicationUser? User { get; set; }
 }

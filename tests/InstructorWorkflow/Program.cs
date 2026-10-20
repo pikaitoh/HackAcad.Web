@@ -19,6 +19,8 @@ Check(InstructorApplications.TeachingDays([new(){StartDate=today.AddYears(-3)},n
 Check(InstructorApplications.TeachingDays([new(){StartDate=today.AddYears(-5)}],today)>=InstructorApplications.MinimumDays(today),"exact five-year ongoing history meets the date threshold");
 await using var factory=new WebApplicationFactory<AccountController>();
 var prefix="instructorflow."+Guid.NewGuid().ToString("N")[..8];const string password="HackAcad@123!";
+var adminCodes = new Dictionary<string,Queue<string>>();
+var signedInAdmins = new Dictionary<HttpClient,string>();
 HttpClient Client()=>factory.CreateClient(new WebApplicationFactoryClientOptions{AllowAutoRedirect=false,BaseAddress=new Uri("https://localhost")});
 Dictionary<string,string> Fields(params string[] pairs)=>Enumerable.Range(0,pairs.Length/2).ToDictionary(i=>pairs[i*2],i=>pairs[i*2+1]);
 async Task<string> Token(HttpClient c,string path="/Identity/Account/Profile")
@@ -27,13 +29,24 @@ async Task<string> Token(HttpClient c,string path="/Identity/Account/Profile")
  if(token.Length==0)throw new Exception("No CSRF token: "+path);return WebUtility.HtmlDecode(token);
 }
 async Task<HttpResponseMessage> Post(HttpClient c,string path,Dictionary<string,string> fields,string tokenPage="/Identity/Account/Profile")
-{fields["__RequestVerificationToken"]=await Token(c,tokenPage);return await c.PostAsync(path,new FormUrlEncodedContent(fields));}
+{fields["__RequestVerificationToken"]=await Token(c,tokenPage);var response=await c.PostAsync(path,new FormUrlEncodedContent(fields));
+ if(response.Headers.Location?.ToString().StartsWith("/Admin/Verify?ticket=")==true && signedInAdmins.TryGetValue(c,out var email)) {
+  var location=response.Headers.Location.ToString();var html=await c.GetStringAsync(location);
+  var ticket=WebUtility.HtmlDecode(Regex.Match(html,"name=\"Ticket\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
+  var verify=await Post(c,"/Admin/Verify",Fields("Ticket",ticket,"CurrentPassword",password,"Code",adminCodes[email].Dequeue()),location);
+  if(verify.StatusCode!=HttpStatusCode.Redirect)throw new Exception("Admin step-up failed");
+  fields["__RequestVerificationToken"]=await Token(c,tokenPage);response=await c.PostAsync(path,new FormUrlEncodedContent(fields));
+ }return response;}
 async Task<(string Id,string Email)> Fixture(string label,string role)
 {
  using var scope=factory.Services.CreateScope();var user=new ApplicationUser{Email=prefix+"."+label+"@hackacad.local",UserName=prefix+"."+label+"@hackacad.local",DisplayName="Workflow "+label,EmailConfirmed=true};
- if(!(await scope.ServiceProvider.GetRequiredService<UserAccounts>().CreateAsync(user,password,role)).Succeeded)throw new Exception("Fixture failed");return(user.Id,user.Email);
+ if(!(await scope.ServiceProvider.GetRequiredService<UserAccounts>().CreateAsync(user,password,role)).Succeeded)throw new Exception("Fixture failed");
+ if(role==AccountRoles.Admin) { var manager=scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();await manager.ResetAuthenticatorKeyAsync(user);await manager.SetTwoFactorEnabledAsync(user,true);adminCodes[user.Email!]=new Queue<string>((await manager.GenerateNewTwoFactorRecoveryCodesAsync(user,50))!); }
+return(user.Id,user.Email);
 }
-async Task Login(HttpClient c,string email){var response=await Post(c,"/Identity/Account/Login",Fields("Email",email,"Password",password),"/Identity/Account/Login");Check(response.StatusCode==HttpStatusCode.Redirect,"account signs in normally");}
+async Task Login(HttpClient c,string email){var response=await Post(c,"/Identity/Account/Login",Fields("Email",email,"Password",password),"/Identity/Account/Login");Check(response.StatusCode==HttpStatusCode.Redirect,"account signs in normally");
+ if(adminCodes.TryGetValue(email,out var recovery)) { signedInAdmins[c]=email;var complete=await Post(c,"/Identity/Account/LoginRecoveryCode",Fields("Code",recovery.Dequeue()),"/Identity/Account/LoginRecoveryCode");Check(complete.StatusCode==HttpStatusCode.Redirect,"Admin fixture completes mandatory MFA"); }
+}
 async Task<HttpResponseMessage> Submit(HttpClient c,int years=6,bool invalidPdf=false,string note="")
 {
  using var form=new MultipartFormDataContent();
@@ -102,7 +115,7 @@ try
  Check((await s.GetAsync("/Identity/Account/Profile")).StatusCode==HttpStatusCode.Redirect,"approval invalidates the old Student session");
  await Login(s,applicant.Email);
  Check((await s.GetAsync("/InstructorCourses")).StatusCode==HttpStatusCode.OK,"approved applicant receives Instructor Studio access");
- Check((await s.PostAsync("/Courses/Enroll",new FormUrlEncodedContent(Fields("id","1")))).Headers.Location!.OriginalString.Contains("AccessDenied"),"Instructor approval does not grant Student enrollment access");
+ Check((await s.PostAsync("/Courses/Enroll",new FormUrlEncodedContent(Fields("id","1")))).StatusCode==HttpStatusCode.BadRequest,"Instructor learner actions still require CSRF after approval");
  using(var scope=factory.Services.CreateScope())
  {
   var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();

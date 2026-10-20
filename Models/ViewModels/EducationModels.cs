@@ -80,6 +80,7 @@ public class AccountStatusInput
 
 public class AuditLogModel
 {
+    public string? Kind { get; set; }
     public string? Search { get; set; }
     public bool Mine { get; set; }
     public int Page { get; set; } = 1;

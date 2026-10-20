@@ -3,7 +3,7 @@
    var original = (Course)ViewData["OriginalCourse"]!;
    var originalValues = System.Text.Json.JsonSerializer.Serialize(new { original.Title, original.Category, original.Description, original.IsPublished }); }
 <div class="admin-content admin-form-page"><div class="page-heading"><div><h1>Review course</h1><p class="text-secondary">Owned by @Model.Instructor. Update its catalogue details and publication status.</p></div></div>
-    <form asp-action="EditCourse" asp-route-id="@Model.CourseId" method="post" data-validated-form data-original-values="@originalValues" class="form-measure">
+    <partial name="_AdminVerification" model='@(("EditCourse", Model.CourseId.ToString(), "saving course changes"))' /><form asp-action="EditCourse" asp-route-id="@Model.CourseId" method="post" data-validated-form data-original-values="@originalValues" class="form-measure">
         @if (ViewData["NoChanges"] is string noChanges) { <p class="text-secondary" role="status">@noChanges</p> }
         <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
         <div class="mb-3"><label asp-for="Title" class="form-label"></label><input asp-for="Title" data-trim aria-invalid="@(ViewData.ModelState["Title"]?.Errors.Count > 0 ? "true" : null)" class="form-control" maxlength="150" required aria-describedby="Title-help Title-error" /><p id="Title-help" class="form-text">Required. Up to 150 characters.</p><span id="Title-error" asp-validation-for="Title" class="field-error" aria-live="polite"></span></div>

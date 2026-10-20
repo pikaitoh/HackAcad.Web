@@ -86,3 +86,30 @@
 .page-navigation .page-number { min-width: 2.25rem; padding-inline: .75rem; }
 .page-navigation [aria-disabled="true"] { opacity: .5; cursor: default; }
 .page-ellipsis { padding-inline: .25rem; }
+
+/* Account support and security follow the existing workspace measure and tokens. */
+.support-measure { max-width: 980px; padding-block: 2.5rem 4rem; }
+.support-heading,.support-message-heading { display:flex; justify-content:space-between; align-items:center; gap:1rem; margin-bottom:1.5rem; }
+.support-heading .eyebrow { font-weight:650; color:var(--ha-muted); }
+.support-thread { max-width:1100px; margin-inline:auto; }
+.security-measure { max-width:900px; margin-inline:auto; }
+.support-messages,.security-actions { margin:0; padding:0; list-style:none; }
+.support-message,.security-actions li { padding-block:1.5rem; border-bottom:1px solid var(--ha-line); }
+.support-message:last-child,.security-actions li:last-child { border-bottom:0; padding-bottom:0; }
+.support-message-heading { margin-bottom:.75rem; font-size:.875rem; }
+.support-message-body { white-space:pre-wrap; overflow-wrap:anywhere; margin-bottom:0; }
+.support-internal { border-inline-start:3px solid var(--ha-primary); padding-inline-start:1.25rem; }
+.support-internal-label { color:var(--ha-muted); font-size:.8125rem; font-weight:650; }
+.support-status { display:inline-flex; align-items:center; padding:.35rem .75rem; border-radius:999px; font-size:.8125rem; font-weight:650; white-space:nowrap; color:var(--ha-ink); background:var(--ha-tint); }
+.support-status[data-status="New"],.support-status[data-status="Awaiting admin"] { color:#785018; background:#fcf0d6; }
+.support-status[data-status="Investigating"],.support-status[data-status="Awaiting user"] { color:#285d89; background:#e6f1fc; }
+.support-status[data-status="Resolved"] { color:#326a4d; background:#e4f2e8; }
+.security-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1.5rem; margin-bottom:2.5rem; }
+.security-stats > div { border-block:1px solid var(--ha-line); padding-block:1.25rem; }
+.security-stats dt { color:var(--ha-muted); font-size:.875rem; font-weight:500; }
+.security-stats dd { font-size:2.5rem; font-weight:650; margin:.25rem 0 0; font-variant-numeric:tabular-nums; }
+.nav-count { margin-inline-start:auto; font-size:.75rem; font-variant-numeric:tabular-nums; }
+.access-history { margin-block:1rem 0; padding-inline-start:1.5rem; }
+
+.admin-verification-notice { padding:1rem 0; margin-bottom:1rem; border-block:1px solid var(--ha-line); }
+.admin-verification-notice p { color:var(--ha-muted); font-size:.875rem; margin-bottom:.75rem; }

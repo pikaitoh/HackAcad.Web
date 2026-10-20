@@ -2,3 +2,5 @@
 {
     <div class="alert alert-success status-message" role="status">@message</div>
 }
+
+@if (TempData["Error"] is string error) { <div class="alert alert-danger" role="alert">@error</div> }

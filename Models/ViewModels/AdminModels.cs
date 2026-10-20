@@ -10,6 +10,7 @@ public class UserRow
     public string Email { get; set; } = "";
     public string Role { get; set; } = "";
     public bool IsDisabled { get; set; }
+    public bool IsReadOnlyAdmin { get; set; }
     public bool EmailConfirmed { get; set; }
     public DateTime JoinedDate { get; set; }
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]

@@ -61,6 +61,22 @@ builder.Services.AddScoped<UserTimeZone>();
 builder.Services.AddScoped<EmailVerification>();
 builder.Services.AddHttpClient<GmailEmail>(client => client.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddScoped<AccountRecords>();
+builder.Services.AddScoped<SecurityMonitor>();
+builder.Services.AddScoped<AdminSecurity>();
+builder.Services.AddScoped<AdminSecurityFilter>();
+builder.Services.AddScoped<SupportAccessService>();
+builder.Services.AddAuthentication().AddCookie(SupportAccessService.Scheme, options => {
+    options.Cookie.Name = "HackAcad.Support";
+    options.Cookie.Path = "/Support";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+    options.SlidingExpiration = false;
+    options.LoginPath = "/Support";
+    options.AccessDeniedPath = "/Support";
+    options.Events.OnValidatePrincipal = context => context.HttpContext.RequestServices.GetRequiredService<SupportAccessService>().ValidateAsync(context);
+});
 builder.Services.AddScoped<AccountConnections>();
 builder.Services.AddScoped<AccountSessions>();
 builder.Services.AddScoped<BadgeService>();
@@ -68,11 +84,22 @@ builder.Services.AddScoped<InstructorApplications>();
  builder.Services.AddScoped<Personalization>();
 builder.Services.AddSingleton<PhoneVerification>();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(SupportAccessService.Scheme)
+    .Configure<TimeProvider>((options, clock) => options.TimeProvider = clock);
 builder.Services.AddHttpClient("twilio-verify", client => client.Timeout = TimeSpan.FromSeconds(20));
 builder.Services.AddMemoryCache();
 builder.Services.Configure<DataProtectionTokenProviderOptions>(options => options.TokenLifespan = TimeSpan.FromMinutes(10));
 builder.Services.AddRateLimiter(options =>
 {
+    options.AddPolicy("password-login", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+        { PermitLimit = 30, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
+    options.AddPolicy("support-access", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+        { PermitLimit = 10, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
+    options.AddPolicy("support-message", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
+        { PermitLimit = 20, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
     options.AddPolicy("verification-email", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown", _ => new FixedWindowRateLimiterOptions
         { PermitLimit = 30, Window = TimeSpan.FromMinutes(10), QueueLimit = 0 }));
@@ -120,7 +147,10 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Events.OnSigningIn = context => context.HttpContext.RequestServices.GetRequiredService<AccountSessions>().SigningInAsync(context);
     options.Events.OnValidatePrincipal = context => context.HttpContext.RequestServices.GetRequiredService<AccountSessions>().ValidateAsync(context);
 });
-builder.Services.AddControllersWithViews(options => options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
+builder.Services.AddControllersWithViews(options => {
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+    options.Filters.AddService<AdminSecurityFilter>();
+});
 builder.Services.AddRazorPages();
 
 var app = builder.Build();

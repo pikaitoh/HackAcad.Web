@@ -3,7 +3,7 @@ using HackAcad.Web.Models.Entities;
 
 namespace HackAcad.Web.Services;
 
-public class AccountRecords(ApplicationDbContext db, IHttpContextAccessor accessor)
+public class AccountRecords(ApplicationDbContext db, IHttpContextAccessor accessor, SecurityMonitor monitor)
 {
     public static string Device(HttpContext context)
     {
@@ -22,7 +22,10 @@ public class AccountRecords(ApplicationDbContext db, IHttpContextAccessor access
         db.LoginRecords.Add(new LoginRecord { UserId = userId, Outcome = outcome,
             Device = Device(context), IpAddress = context.Connection.RemoteIpAddress?.ToString() ?? "Unknown" });
         await db.SaveChangesAsync();
+        await monitor.LoginAsync(userId, userId, outcome, context);
     }
+
+    public Task LoginAttemptAsync(string? userId, string identifier, string outcome) => monitor.LoginAsync(userId, identifier, outcome, accessor.HttpContext!);
 
     public void AddSecurityActivity(ApplicationUser user, string action, string details)
     {
@@ -32,7 +35,11 @@ public class AccountRecords(ApplicationDbContext db, IHttpContextAccessor access
     }
 
     // Add before the caller's SaveChanges/commit so the action and audit record are atomic.
-    public void AddActivity(string actorId, string action, string targetType, string targetId, string targetName, string details = "") =>
+    public void AddActivity(string actorId, string action, string targetType, string targetId, string targetName, string details = "", string? before = null, string? after = null) =>
         db.AdminActivities.Add(new AdminActivity { ActorUserId = actorId, Action = action,
-            TargetType = targetType, TargetId = targetId, TargetName = targetName.Length > 150 ? targetName[..150] : targetName, Details = details });
+            TargetType = targetType, TargetId = targetId, TargetName = targetName.Length > 150 ? targetName[..150] : targetName, Details = details,
+            IpAddress = accessor.HttpContext?.Connection.RemoteIpAddress?.ToString() ?? "Unknown",
+            Device = accessor.HttpContext is { } context ? Device(context) : "System",
+            CorrelationId = accessor.HttpContext?.TraceIdentifier ?? Guid.NewGuid().ToString("N"),
+            Before = before, After = after });
 }

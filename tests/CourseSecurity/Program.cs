@@ -45,6 +45,8 @@ await using var factory=new WebApplicationFactory<AccountController>();
 const string password="HackAcad@123!",flag="flag{course_security_test}";
 var prefix="coursesecurity."+Guid.NewGuid().ToString("N")[..8];
 var uploadedPaths=new List<string>();
+var adminCodes = new Dictionary<string,Queue<string>>();
+var signedInAdmins = new Dictionary<HttpClient,string>();
 HttpClient Client()=>factory.CreateClient(new WebApplicationFactoryClientOptions{AllowAutoRedirect=false,BaseAddress=new Uri("https://localhost")});
 async Task<string> Token(HttpClient client,string source)
 {
@@ -64,12 +66,16 @@ async Task<(string Id,string Email)> Fixture(string label,string role)
     using var scope=factory.Services.CreateScope();var email=prefix+"."+label+"@hackacad.local";
     var user=new ApplicationUser{Email=email,UserName=email,DisplayName="Course test "+label,EmailConfirmed=true,TimeZoneId="America/New_York"};
     if(!(await scope.ServiceProvider.GetRequiredService<UserAccounts>().CreateAsync(user,password,role)).Succeeded)throw new Exception("Fixture failed");
+ if(role==AccountRoles.Admin) { var manager=scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();await manager.ResetAuthenticatorKeyAsync(user);await manager.SetTwoFactorEnabledAsync(user,true);adminCodes[user.Email!]=new Queue<string>((await manager.GenerateNewTwoFactorRecoveryCodesAsync(user,50))!); }
+
     return(user.Id,email);
 }
 async Task Login(HttpClient client,string email)
 {
     var response=await Post(client,"/Identity/Account/Login",Fields("Email",email,"Password",password),"/Identity/Account/Login");
     Check(response.StatusCode==HttpStatusCode.Redirect,"fixture signs in normally");
+ if(adminCodes.TryGetValue(email,out var recovery)) { signedInAdmins[client]=email;var complete=await Post(client,"/Identity/Account/LoginRecoveryCode",Fields("Code",recovery.Dequeue()),"/Identity/Account/LoginRecoveryCode");Check(complete.StatusCode==HttpStatusCode.Redirect,"Admin fixture completes mandatory MFA"); }
+
 }
 async Task Complete(HttpClient student,int course,int task,string[]? commands,bool expected)
 {

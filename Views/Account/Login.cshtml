@@ -3,6 +3,7 @@
 <h1 id="auth-title">Welcome back</h1>
 <p class="text-secondary mb-4">Log in to your HackAcad account.</p>
 @if (TempData["ExternalNotice"] is string notice) { <p class="google-notice" role="status">@notice</p> }
+@if (ViewData["AccountDisabled"] as bool? == true) { <p><a asp-controller="Support" asp-action="Index" class="btn btn-outline-secondary">Contact support</a></p> }
 <partial name="_ExternalLogin" model="@(Model.ReturnUrl ?? string.Empty)" />
 <form asp-action="Login" method="post" data-account-form>
     <input asp-for="ReturnUrl" type="hidden" />
@@ -26,3 +27,5 @@
 </form>
 <p class="mt-3 mb-0"><a asp-action="ForgotPassword">Forgot password?</a></p>
 <p class="mt-4 mb-0">New to HackAcad? <a asp-action="Register">Create an account</a></p>
+
+<p class="mt-3"><a asp-controller="Support" asp-action="Index">Cannot access your account? Contact support</a></p>

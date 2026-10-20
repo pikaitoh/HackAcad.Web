@@ -29,6 +29,16 @@ public partial class AdminController
         }
         if (user.IsDisabled == input.Disable) return RedirectToAction(nameof(UserDetails), new { id });
         await using var transaction = await db.Database.BeginTransactionAsync();
+        var administrators = await db.Admins.FromSqlRaw("SELECT * FROM Admins FOR UPDATE").ToListAsync();
+        var actorId = users.GetUserId(User)!;
+        var actorStamp = User.FindFirst("AspNet.Identity.SecurityStamp")?.Value;
+        if (!administrators.Any(a => a.UserId == actorId && !a.IsReadOnly)
+            || !await db.Users.AsNoTracking().AnyAsync(u => u.Id == actorId && !u.IsDisabled && u.EmailConfirmed && u.TwoFactorEnabled && u.SecurityStamp == actorStamp)) return Forbid();
+        await db.Entry(user).ReloadAsync();
+        if (user.IsDisabled == input.Disable) return RedirectToAction(nameof(UserDetails), new { id });
+        if (input.Disable && administrators.Any(a => a.UserId == id && !a.IsReadOnly)
+            && !await db.Admins.AnyAsync(a => a.UserId != id && !a.IsReadOnly && !a.User!.IsDisabled))
+            return Conflict("Keep at least one active administrator with management access.");
         user.IsDisabled = input.Disable;
         var result = await users.UpdateAsync(user);
         if (result.Succeeded) result = await users.UpdateSecurityStampAsync(user);
@@ -39,7 +49,7 @@ public partial class AdminController
         }
         await db.AccountSessions.Where(s => s.UserId == id && s.RevokedUtc == null)
             .ExecuteUpdateAsync(s => s.SetProperty(x => x.RevokedUtc, DateTime.UtcNow));
-        records.AddActivity(users.GetUserId(User)!, input.Disable ? "Disabled account" : "Reactivated account", "User", id, user.DisplayName, input.Reason.Trim());
+        records.AddActivity(users.GetUserId(User)!, input.Disable ? "Disabled account" : "Reactivated account", "User", id, user.DisplayName, input.Reason.Trim(), input.Disable ? "Active" : "Disabled", input.Disable ? "Disabled" : "Active");
         await db.SaveChangesAsync(); await transaction.CommitAsync();
         TempData["Success"] = input.Disable ? "Account disabled. Existing sessions have been revoked; records are preserved." : "Account reactivated. The user can log in again.";
         return RedirectToAction(nameof(UserDetails), new { id });
@@ -94,6 +104,7 @@ public partial class AdminController
         if (input.Decision == ApplicationStatus.Approved && (!await db.Students.AnyAsync(s => s.UserId == user.Id)
             || await db.Instructors.AnyAsync(s => s.UserId == user.Id) || await db.Admins.AnyAsync(s => s.UserId == user.Id)))
             return Conflict("Only a current Student can be promoted through this application.");
+        var previousStatus = application.Status;
         application.Status = input.Decision;
         db.InstructorReviews.Add(new InstructorReview { ApplicationId = id, ReviewerId = actorId, ReviewerName = await db.Users.Where(u => u.Id == actorId).Select(u => u.DisplayName).SingleAsync(),
             Decision = input.Decision, ReasonCategory = input.ReasonCategory, Reason = input.Reason.Trim(), VerificationNotes = input.VerificationNotes?.Trim() ?? "",
@@ -106,7 +117,7 @@ public partial class AdminController
         }
         var auditDetails = $"{input.Decision}; revision {application.Revision}. {input.Reason.Trim()}";
         records.AddActivity(actorId, "Reviewed Instructor application", "Application", id.ToString(), application.FullName,
-            auditDetails.Length > 512 ? auditDetails[..512] : auditDetails);
+            auditDetails.Length > 512 ? auditDetails[..512] : auditDetails, previousStatus, input.Decision);
         try
         {
             await db.SaveChangesAsync();
@@ -126,15 +137,18 @@ public partial class AdminController
     }
 
     [HttpGet]
-    public async Task<IActionResult> AuditLog(string? search, bool mine = false, int page = 1)
+    public async Task<IActionResult> AuditLog(string? search, bool mine = false, int page = 1, string? kind = null)
     {
         var query = db.AdminActivities.AsNoTracking(); search = search?.Trim();
+        if (kind == "admin") query = query.Where(a => a.TargetType != "Account security");
+        else if (kind == "account") query = query.Where(a => a.TargetType == "Account security");
+        else if (!string.IsNullOrEmpty(kind)) return BadRequest();
         if (mine) { var actor = users.GetUserId(User)!; query = query.Where(r => r.ActorUserId == actor); }
         if (!string.IsNullOrEmpty(search)) query = query.Where(r => r.Action.Contains(search) || r.TargetName.Contains(search) || r.Details.Contains(search));
         var total = await query.CountAsync(); page = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(total / 20d)));
         var rows = await query.OrderByDescending(r => r.OccurredUtc).ThenByDescending(r => r.Id).Skip((page - 1) * 20).Take(20).ToListAsync();
         var actors = rows.Select(r => r.ActorUserId).ToList();
-        return View(new AuditLogModel { Search = search, Mine = mine, Page = page, Total = total, Records = rows,
+        return View(new AuditLogModel { Kind = kind, Search = search, Mine = mine, Page = page, Total = total, Records = rows,
             Actors = await db.Users.Where(u => actors.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName) });
     }
 }

@@ -2,7 +2,7 @@
 @using Microsoft.EntityFrameworkCore
 @using System.Security.Claims
 @{ var savedAppearance = User.Identity?.IsAuthenticated == true ? await HeaderDb.Users.Where(u => u.Id == User.FindFirstValue(ClaimTypes.NameIdentifier)).Select(u => u.Appearance).FirstOrDefaultAsync() ?? "system" : "guest"; }
-@{ var signedIn = User.Identity?.IsAuthenticated == true; var isAdmin = User.IsInRole(AccountRoles.Admin); }
+@{ var signedIn = User.Identity?.IsAuthenticated == true && ViewData["SupportArea"] as bool? != true; var isAdmin = User.IsInRole(AccountRoles.Admin); }
 <!DOCTYPE html>
 <html lang="en" data-appearance="@savedAppearance">
 <head>
@@ -33,13 +33,13 @@
                 }
                 else
                 {
-                    <div class="d-flex flex-grow-1 justify-content-end" id="site-navigation"><div class="navbar-nav align-items-center site-account-nav"><partial name="_Appearance" model='@("guest")' /><partial name="_LoginPartial" /></div></div>
+                    <div class="d-flex flex-grow-1 justify-content-end" id="site-navigation"><div class="navbar-nav align-items-center site-account-nav"><partial name="_Appearance" model='@("guest")' />@if (ViewData["SupportArea"] as bool? == true) { <a asp-controller="Account" asp-action="Login" class="nav-link">Log in</a> } else { <partial name="_LoginPartial" /> }</div></div>
                 }
             </div>
         </nav>
     </header>
     <main id="main-content" tabindex="-1">
-        @if (ViewData["StatusMessageHandled"] as bool? != true && TempData.Peek("Success") is string)
+        @if (ViewData["StatusMessageHandled"] as bool? != true && (TempData.Peek("Success") is string || TempData.Peek("Error") is string))
         {
             <div class="container pt-3"><partial name="_StatusMessage" /></div>
         }

@@ -115,12 +115,13 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         }
         await using var transaction = await db.Database.BeginTransactionAsync();
         var publicationChanged = course.IsPublished != input.IsPublished;
+        var before = System.Text.Json.JsonSerializer.Serialize(new { course.Title, course.Description, course.Category, course.IsPublished });
         course.Title = input.Title.Trim();
         course.Description = input.Description?.Trim();
         course.Category = input.Category?.Trim();
         course.IsPublished = input.IsPublished;
         records.AddActivity(users.GetUserId(User)!, "Updated course", "Course", course.CourseId.ToString(), course.Title,
-            publicationChanged ? (course.IsPublished ? "Course published" : "Course unpublished") : "Course details changed");
+            publicationChanged ? (course.IsPublished ? "Course published" : "Course unpublished") : "Course details changed", before, System.Text.Json.JsonSerializer.Serialize(new { course.Title, course.Description, course.Category, course.IsPublished }));
         await db.SaveChangesAsync();
         if (publicationChanged && !course.IsPublished)
             await personalization.Notify(course.InstructorId, $"course-unpublished:{id}:{Guid.NewGuid():N}", "Course unpublished by Admin",
@@ -151,7 +152,7 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         {
             try
             {
-                records.AddActivity(users.GetUserId(User)!, "Deleted course", "Course", course.CourseId.ToString(), course.Title);
+                records.AddActivity(users.GetUserId(User)!, "Deleted course", "Course", course.CourseId.ToString(), course.Title, "Course permanently deleted.", System.Text.Json.JsonSerializer.Serialize(new { course.Title, course.Description, course.Category, course.IsPublished }), "Deleted");
                 db.Courses.Remove(course);
                 await db.SaveChangesAsync();
                 TempData["Success"] = "Course and its unused learning activities deleted.";

@@ -1,6 +1,7 @@
 @model TwoFactorModel
 @{ ViewData["Title"] = "Two-factor authentication"; Layout = "_ManageAccountLayout"; }
 <div class="account-panel"><div class="page-heading"><div><h1>Two-factor authentication</h1><p class="text-secondary">Add a second step when you log in.</p></div></div>
+@if (User.IsInRole(AccountRoles.Admin)) { <p class="google-notice" role="status">Administrators must keep two-factor authentication enabled. Complete setup here before accessing the website.</p> }
 <section class="form-measure">
 <div class="twofactor-heading"><h2>@(Model.Enabled ? Model.SmsEnabled ? "SMS verification" : "Authenticator app" : "Choose a verification method") </h2><span class="status-label @(Model.Enabled ? "status-active" : "status-disabled")">@(Model.Enabled ? "On" : "Off")</span></div>
 @if (Model.Enabled)
@@ -20,7 +21,7 @@ else
     <div class="mb-4"><label asp-for="Code" class="form-label">@(Model.SmsEnabled ? "SMS or recovery code" : "Authenticator or recovery code")</label><input asp-for="Code" aria-invalid="@(ViewData.ModelState["Code"]?.Errors.Count > 0 ? "true" : null)" class="form-control" autocomplete="one-time-code" maxlength="32" required aria-describedby="Code-error" /><span id="Code-error" asp-validation-for="Code" class="field-error" aria-live="polite"></span></div>
     @if (Model.SmsEnabled) { <p class="form-text">Request a code below, or enter an unused recovery code.</p><button type="submit" form="sms-manage-send" class="btn btn-outline-secondary mb-4">Send SMS code</button> }
     <p class="form-text">New recovery codes replace all previous codes. Turn off 2FA before switching methods. Both actions sign out other devices.</p>
-    <div class="form-actions"><button type="submit" name="operation" value="regenerate" class="btn btn-outline-secondary">Get new recovery codes</button><button type="submit" name="operation" value="disable" class="btn btn-outline-danger">Turn off 2FA</button></div>
+    <div class="form-actions"><button type="submit" name="operation" value="regenerate" class="btn btn-outline-secondary">Get new recovery codes</button>@if (!User.IsInRole(AccountRoles.Admin)) { <button type="submit" name="operation" value="disable" class="btn btn-outline-danger">Turn off 2FA</button> }</div>
 }
 else
 {

@@ -1,0 +1,8 @@
+@model SupportStartInput
+@{ ViewData["Title"] = "Contact support"; }
+<div class="page-heading"><div><h1>Help with your account</h1><p class="text-secondary">Ask about a disabled account or request a review of an access decision.</p></div></div>
+<section class="surface-panel"><h2 class="h5">Verify your email to continue</h2><p>Enter your current HackAcad email address. We will send a private link to your support conversations, even if your account is disabled.</p>
+<form method="post" data-validated-form novalidate><div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+<div class="mb-3"><label asp-for="Email" class="form-label">HackAcad email address</label><input asp-for="Email" class="form-control" type="email" autocomplete="email" required aria-describedby="Email-error" /><span asp-validation-for="Email" id="Email-error" class="field-error"></span></div>
+<p class="form-text">The link expires after 10 minutes. Support access does not restore your account or sign you in to HackAcad.</p>
+<div class="form-actions"><button class="btn btn-primary">Send support link</button><a asp-controller="Account" asp-action="Login" class="btn btn-outline-secondary">Back to log in</a></div></form></section>

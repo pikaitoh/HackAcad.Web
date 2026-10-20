@@ -1,0 +1,7 @@
+@model SupportListModel
+@{ var admin = ViewData["SupportAdmin"] as bool? == true; }
+<div class="table-responsive surface-table"><table class="table module-table"><caption class="visually-hidden">Account support requests. Times shown in @UserTime.Id.</caption><thead><tr><th scope="col">Request</th>@if (admin) { <th scope="col">User</th> }<th scope="col">Status</th><th scope="col">Updated</th></tr></thead><tbody>
+@foreach (var item in Model.Tickets) { <tr><td><a asp-controller="@(admin ? "Admin" : "Support")" asp-action="@(admin ? "SupportThread" : "Thread")" asp-route-id="@item.Id">#@item.Id · @item.Subject</a>@if (admin ? item.AdminReadUtc is null : item.UserReadUtc is null) { <span class="record-secondary">Unread update</span> }</td>@if (admin) { <td>@Model.Users.GetValueOrDefault(item.UserId, "Account")</td> }<td><span class="support-status" data-status="@item.Status">@item.Status</span></td><td>@UserTime.Format(item.UpdatedUtc,"dd MMM yyyy, HH:mm")</td></tr> }
+@if (Model.Tickets.Count == 0) { <tr><td colspan="@(admin ? 4 : 3)">No support requests match this view.</td></tr> }
+</tbody></table></div>
+<partial name="_Pagination" model='new PaginationModel(Model.Page, Model.PageCount, $"{Model.Total} requests")' />

@@ -67,6 +67,7 @@ var email=prefix+"@gmail.com";
 var adminEmail=prefix+".admin@gmail.com";
 var subject="new-"+suffix;
 string? newId=null;
+var adminCodes=new Queue<string>();
 try
 {
     var anon=Client();
@@ -91,6 +92,7 @@ try
         Check(await db.LoginRecords.AnyAsync(r=>r.UserId==user.Id&&r.Outcome=="Signed in with Google") && await db.AccountSessions.AnyAsync(r=>r.UserId==user.Id),"Google login creates the normal session and login record");
         var existing=new ApplicationUser{UserName=adminEmail,Email=adminEmail,DisplayName="Google test admin",EmailConfirmed=true};
         Check((await scope.ServiceProvider.GetRequiredService<UserAccounts>().CreateAsync(existing,"HackAcad@123!","Admin")).Succeeded,"existing-account fixture is created");
+        await users.ResetAuthenticatorKeyAsync(existing);await users.SetTwoFactorEnabledAsync(existing,true);adminCodes=new Queue<string>((await users.GenerateNewTwoFactorRecoveryCodesAsync(existing,10))!);
     }
     using(var scope=factory.Services.CreateScope())
     {
@@ -121,9 +123,12 @@ try
     var duplicate=await Google(Client(),adminEmail,"admin-"+suffix);
     Check(duplicate.Path.StartsWith("/Identity/Account/Login") && duplicate.Body.Contains("connect Google in Manage account"),"same email never silently links an existing Admin account");
     var admin=Client();await Follow(admin,await Post(admin,"/Identity/Account/Login",new(){{"Email",adminEmail},{"Password","HackAcad@123!"}}));
+    await Follow(admin,await Post(admin,"/Identity/Account/LoginRecoveryCode",new(){{"Code",adminCodes.Dequeue()}},"/Identity/Account/LoginRecoveryCode"));
     var connected=await Google(admin,adminEmail,"admin-"+suffix,connect:true);
     Check(connected.Path=="/Identity/Account/Settings" && connected.Body.Contains("Connected"),"signed-in account can explicitly connect matching Google email");
-    var adminGoogle=await Google(Client(),adminEmail,"admin-"+suffix);
+    var adminGoogleClient=Client();var adminGoogle=await Google(adminGoogleClient,adminEmail,"admin-"+suffix);
+    Check(adminGoogle.Path.Contains("LoginTwoFactor"),"linked Admin Google sign-in requires MFA");
+    adminGoogle=await Follow(adminGoogleClient,await Post(adminGoogleClient,"/Identity/Account/LoginRecoveryCode",new(){{"Code",adminCodes.Dequeue()}},"/Identity/Account/LoginRecoveryCode"));
     Check(adminGoogle.Path=="/Admin","linked Google login preserves the existing Admin role");
     using(var scope=factory.Services.CreateScope())
     {

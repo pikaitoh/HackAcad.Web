@@ -1,0 +1,8 @@
+@model string
+@{ ViewData["Title"] = "Open account support"; }
+<section class="surface-panel"><h1>Open your support conversations</h1><div asp-validation-summary="All" class="validation-summary" role="alert"></div>
+@if (!string.IsNullOrEmpty(Model)) {
+<p>Continue to read your requests and contact an administrator. Your support session lasts 30 minutes.</p><p class="text-secondary">This will not sign you in to HackAcad or reactivate a disabled account.</p>
+<form method="post"><input type="hidden" name="code" value="@Model" /><input type="hidden" name="confirm" value="true" /><button class="btn btn-primary">Continue to support</button></form>
+} else { <a asp-action="Index" class="btn btn-outline-secondary">Request a new support link</a> }
+</section>

@@ -237,3 +237,11 @@ html[data-theme="dark"] .application-status[data-status="Rejected"] { background
 .security-activity-table th:first-child { width: 25%; }
 .security-activity-table th:nth-child(2) { width: 25%; }
 .security-activity-table td:last-child { white-space: normal; overflow-wrap: anywhere; }
+
+html[data-theme="dark"] .support-status[data-status="New"],html[data-theme="dark"] .support-status[data-status="Awaiting admin"] { background:#493f27; color:#f3dfa2; }
+html[data-theme="dark"] .support-status[data-status="Investigating"],html[data-theme="dark"] .support-status[data-status="Awaiting user"] { background:#253e50; color:#bde1f5; }
+html[data-theme="dark"] .support-status[data-status="Resolved"] { background:#244a3d; color:#b1efcf; }
+.audit-change { margin-block:.75rem; }
+.audit-change summary { cursor:pointer; color:var(--ha-primary); }
+.audit-change dl { margin:.75rem 0; }
+.audit-change dd { white-space:pre-wrap; overflow-wrap:anywhere; }

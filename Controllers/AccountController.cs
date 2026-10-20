@@ -17,7 +17,7 @@ namespace HackAcad.Web.Controllers;
 [Route("Identity/Account/[action]")]
 public partial class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     UserAccounts accounts, ApplicationDbContext db, EmailVerification verification, PhoneVerification phones,
-    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, TimeProvider clock, BadgeService badges, Personalization personalization, AccountConnections connections) : Controller
+    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, TimeProvider clock, BadgeService badges, Personalization personalization, AccountConnections connections, AdminSecurity adminSecurity) : Controller
 {
     [AllowAnonymous, HttpGet]
     public IActionResult Register() => User.Identity?.IsAuthenticated == true ? RedirectToAction(nameof(Dashboard)) : View(new RegisterModel());
@@ -96,12 +96,21 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         return View(new LoginModel { ReturnUrl = returnUrl });
     }
 
-    [AllowAnonymous, HttpPost]
+    [AllowAnonymous, HttpPost, EnableRateLimiting("password-login")]
     public async Task<IActionResult> Login(LoginModel input)
     {
         if (!ModelState.IsValid) return View(input);
         var user = input.Email.StartsWith("+", StringComparison.Ordinal)
             ? await VerifiedPhoneUser(input.Email) : await users.FindByEmailAsync(input.Email.Trim());
+        if (user?.IsDisabled == true) {
+            await records.LoginAttemptAsync(user.Id, input.Email, "Disabled account sign-in attempt");
+            if (await users.CheckPasswordAsync(user, input.Password)) {
+                ModelState.AddModelError("", "This account has been disabled. Contact support to request a review.");
+                ViewData["AccountDisabled"] = true;
+                return View(input);
+            }
+        }
+        if (user is null) await records.LoginAttemptAsync(null, input.Email, "Failed");
         if (user is not null && !user.IsDisabled)
         {
             var result = await signIn.PasswordSignInAsync(user, input.Password, input.RememberMe, lockoutOnFailure: true);

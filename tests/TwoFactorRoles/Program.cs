@@ -54,7 +54,7 @@ try
             if(!result.Succeeded)throw new Exception("Fixture creation failed");
         }
         var owner=Client();await Login(owner,email);
-        Check((await owner.GetStringAsync(account+"Settings")).Contains(">Two-factor authentication</span>"),role+" sees the shared 2FA navigation");
+        Check((await owner.GetStringAsync(account+(role==AccountRoles.Admin?"TwoFactor":"Settings"))).Contains(">Two-factor authentication</span>"),role+" sees the shared 2FA navigation");
         Check((await owner.GetAsync(account+"TwoFactor")).StatusCode==HttpStatusCode.OK,role+" can open its own 2FA settings");
         Check((await Follow(owner,await owner.GetAsync(account+"EnableAuthenticator"))).Path.EndsWith("TwoFactor"),role+" cannot access a setup secret before password confirmation");
         var denied=await Post(owner,"BeginAuthenticator",new(){{"CurrentPassword","wrong"}});
@@ -77,8 +77,8 @@ try
         var reset=await Post(owner,"ManageTwoFactor",new(){{"CurrentPassword",password},{"Code",Totp(key)},{"operation","regenerate"}});var newCodes=Codes(reset.Body);
         Check(newCodes.Length==10 && !newCodes.Intersect(codes).Any(),role+" can replace recovery codes");
         var disabled=await Post(owner,"ManageTwoFactor",new(){{"CurrentPassword",password},{"Code",newCodes[0]},{"operation","disable"}});
-        Check(disabled.Body.Contains("Two-factor authentication has been turned off"),role+" can disable its own 2FA with password and second-factor proof");
-        Check(!(await Login(Client(),email)).Path.Contains("LoginTwoFactor"),role+" returns to normal login after turning off 2FA");
+        Check(disabled.Body.Contains(role==AccountRoles.Admin?"must keep two-factor authentication enabled":"Two-factor authentication has been turned off"),role+" enforces the role-specific MFA disable policy");
+        Check((await Login(Client(),email)).Path.Contains("LoginTwoFactor")== (role==AccountRoles.Admin),role+" retains mandatory Admin MFA and optional learner MFA");
     }
     Console.WriteLine($"All {checks} role-specific 2FA assertions passed. No real email or SMS sent.");
 }

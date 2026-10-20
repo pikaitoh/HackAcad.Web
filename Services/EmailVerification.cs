@@ -96,6 +96,28 @@ public class EmailVerification(UserManager<ApplicationUser> users, IConfiguratio
         }
     }
 
+    public string? SupportLink(string path)
+    {
+        if (!Uri.TryCreate(config["Email:PublicBaseUrl"], UriKind.Absolute, out var origin)
+            || origin.AbsolutePath != "/" || !string.IsNullOrEmpty(origin.Query) || !string.IsNullOrEmpty(origin.Fragment) || !string.IsNullOrEmpty(origin.UserInfo)
+            || origin.Scheme != "https" && !(environment.IsDevelopment() && origin.Scheme == "http" && origin.IsLoopback)) return null;
+        return new Uri(origin, path).AbsoluteUri;
+    }
+
+    public async Task<bool> SendSupportAsync(string recipient, string title, string detail)
+    {
+        try {
+            var pickup = environment.IsDevelopment() ? config["Email:DevelopmentPickupDirectory"] : null;
+            var address = config["Email:GmailAddress"];
+            if (!MailboxAddress.TryParse(recipient, out var to) || string.IsNullOrWhiteSpace(pickup) && (string.IsNullOrWhiteSpace(address) || !gmail.IsConfigured)) return false;
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("HackAcad support", string.IsNullOrWhiteSpace(pickup) ? address! : "preview@hackacad.local"));
+            message.To.Add(to); message.Subject = "HackAcad support: " + title;
+            message.Body = new TextPart("plain") { Text = detail };
+            await DeliverAsync(message); return true;
+        } catch (Exception error) { logger.LogWarning("Support email delivery failed ({ErrorType}).", error.GetType().Name); return false; }
+    }
+
     private async Task DeliverAsync(MimeMessage message)
     {
         var pickup = environment.IsDevelopment() ? config["Email:DevelopmentPickupDirectory"] : null;

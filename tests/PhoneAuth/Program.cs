@@ -85,7 +85,8 @@ try
     Check(!smsEntry.Contains("Add a verified phone number") && Regex.IsMatch(smsEntry, "<a[^>]+href=\"/Identity/Account/PhoneNumber\"[^>]*>Set up SMS</a>"), "without a verified phone, the single Set up SMS control navigates to Phone number without submitting a password");
     Check((await Follow(unverifiedOwner, await unverifiedOwner.GetAsync(account + "PhoneNumber"))).Body.Contains("Your phone number"), "the SMS setup entry opens the existing phone settings page");
     var disabled = await Fixture("disabled", disabled: true);
-    Check((await Login(Client(), disabled.Phone)).Body.Contains("Unable to sign in"), "a disabled account cannot log in by phone");
+    var disabledLogin = await Login(Client(), disabled.Phone);
+    Check(disabledLogin.Path.EndsWith("Login") && disabledLogin.Body.Contains("This account has been disabled"), "a disabled account cannot log in by phone and is directed to support");
     using (var scope = factory.Services.CreateScope())
     {
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
@@ -136,7 +137,7 @@ try
         var fallback = Client(); await Login(fallback, user.Email);
         Check(!(await Post(fallback, "LoginRecoveryCode", new() { { "Code", recovery[0] } }, "LoginSms")).Path.Contains("LoginRecoveryCode"), role + " can use a saved recovery code instead of SMS");
         var managed = await Post(browser, "ManageTwoFactor", new() { { "CurrentPassword", password }, { "Code", recovery[1] }, { "operation", "disable" } });
-        Check(managed.Body.Contains("Two-factor authentication has been turned off"), role + " can turn off SMS 2FA with password and recovery proof");
+        Check(managed.Body.Contains(role == AccountRoles.Admin ? "must keep two-factor authentication enabled" : "Two-factor authentication has been turned off"), role + " enforces the role-specific SMS MFA disable policy");
     }
 
     var reset = await Fixture("reset");

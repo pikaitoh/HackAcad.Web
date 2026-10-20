@@ -40,6 +40,7 @@ await using var factory = new WebApplicationFactory<AccountController>().WithWeb
 }));
 const string account = "/Identity/Account/", password = "HackAcad@123!";
 var prefix = "connections." + Guid.NewGuid().ToString("N")[..8];
+var adminKeys = new Dictionary<string,string>();
 int checks = 0, clientAddress = 0; long nextKey = DateTime.UtcNow.Ticks;
 void Check(bool ok, string message) { if (!ok) throw new Exception(message); checks++; Console.WriteLine("PASS " + message); }
 HttpClient Client()
@@ -63,7 +64,12 @@ async Task<HttpResponseMessage> RawPost(HttpClient c, string action, Dictionary<
     return await c.PostAsync(account + action, new FormUrlEncodedContent(data));
 }
 async Task<(string Path, string Body)> Post(HttpClient c, string action, Dictionary<string, string> data, string source = "Settings") => await Follow(c, await RawPost(c, action, data, source));
-Task<(string Path, string Body)> Login(HttpClient c, string email) => Post(c, "Login", new() { { "Email", email }, { "Password", password } }, "Login");
+async Task<(string Path, string Body)> Login(HttpClient c, string email) {
+    var result = await Post(c, "Login", new() { { "Email", email }, { "Password", password } }, "Login");
+    if (adminKeys.TryGetValue(email, out var key) && result.Path.Contains("LoginTwoFactor"))
+        result = await Post(c, "LoginTwoFactor", new() { { "Code", Totp(key) } }, "LoginTwoFactor");
+    return result;
+}
 async Task<(string Path, string Body)> OAuth(HttpClient c, string provider, string email, string key, string action, Dictionary<string, string>? fields = null)
 {
     var r = await RawPost(c, action, fields ?? new(), action.StartsWith("ConfirmDisconnect") ? "Disconnect?provider=GitHub" : "Login");
@@ -79,6 +85,7 @@ async Task<(string Id, string Email, string Google, string GitHub)> Fixture(stri
     var user = new ApplicationUser { Email = prefix + "." + label + "@example.edu", UserName = prefix + "." + label + "@example.edu", EmailConfirmed = true, DisplayName = "Connection " + label };
     var created = await scope.ServiceProvider.GetRequiredService<UserAccounts>().CreateAsync(user, password, role);
     if (!created.Succeeded) throw new Exception("Cannot create fixture");
+    if (role == AccountRoles.Admin) { await users.ResetAuthenticatorKeyAsync(user); adminKeys[user.Email!] = (await users.GetAuthenticatorKeyAsync(user))!; await users.SetTwoFactorEnabledAsync(user, true); }
     if (!localPassword) { user.PasswordHash = null; await users.UpdateAsync(user); }
     var google = (nextKey++).ToString(); var github = (nextKey++).ToString();
     await users.AddLoginAsync(user, new UserLoginInfo("Google", google, "Google"));
@@ -117,6 +124,7 @@ try
         var wrong = await Post(owner, "VerifyDisconnect?provider=GitHub", new() { { "CurrentPassword", "wrong" } });
         Check(wrong.Body.Contains("current password is incorrect"), role + " wrong password cannot create a grant");
         var verified = await Post(owner, "VerifyDisconnect?provider=GitHub", new() { { "CurrentPassword", password } });
+        if (role == AccountRoles.Admin) verified = await Post(owner, "VerifyDisconnect?provider=GitHub", new() { { "Code", Totp(adminKeys[f.Email]) } });
         Check(verified.Body.Contains("Verification complete. Finish disconnecting GitHub before") && Regex.IsMatch(verified.Body, @"<time datetime=""[^""]+"">[0-9]{2}:[0-9]{2}:[0-9]{2}</time>"), role + " sees the real verification deadline in their time zone");
         Check(verified.Body.Contains("Verified with Password"), role + " verifies a remaining local login");
         var noConfirm = await Post(owner, "Disconnect?provider=GitHub", new());

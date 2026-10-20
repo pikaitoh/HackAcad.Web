@@ -1,0 +1,4 @@
+@model SupportListModel
+@{ ViewData["Title"] = "Your support requests"; }
+<div class="page-heading"><div><h1>Your support requests</h1><p class="text-secondary">Read administrator replies and follow up on your account access.</p></div><a asp-action="Create" class="btn btn-primary">New request</a></div>
+<partial name="_SupportList" model="Model" />
