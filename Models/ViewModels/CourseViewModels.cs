@@ -195,7 +195,21 @@ public class StudentCourseActivityRow
     public string StudentEmail { get; set; } = string.Empty;
     public DateTime EnrolledDate { get; set; }
     public int ProgressPercent { get; set; }
+    public TimeSpan? ElapsedCourseTime { get; set; }
+    public DateTime? LatestActivityUtc { get; set; }
     public string Status { get; set; } = string.Empty;
+
+    public string ElapsedCourseTimeLabel
+    {
+        get
+        {
+            if (ElapsedCourseTime is null) return "No completed activity";
+            var totalMinutes = Math.Max(0, (int)ElapsedCourseTime.Value.TotalMinutes);
+            if (totalMinutes >= 1440) return $"{totalMinutes / 1440}d {(totalMinutes % 1440) / 60}h";
+            if (totalMinutes >= 60) return $"{totalMinutes / 60}h {totalMinutes % 60}m";
+            return $"{totalMinutes}m";
+        }
+    }
 }
 
 public class CourseCurriculumViewModel

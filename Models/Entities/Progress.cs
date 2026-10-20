@@ -22,5 +22,6 @@ public class Progress
     public int? SimulationTaskId { get; set; }
 
     public bool IsCompleted { get; set; }
+    // Stored in UTC and set by the activity completion handlers.
     public DateTime LastUpdatedDate { get; set; } = DateTime.UtcNow;
 }
