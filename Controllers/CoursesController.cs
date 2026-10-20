@@ -56,6 +56,9 @@ public class CoursesController(
             : [];
 
         var enrollmentMap = userEnrollments.ToDictionary(e => e.CourseId);
+        var savedCourseIds = currentUserId != null
+            ? (await db.SavedCourses.AsNoTracking().Where(s => s.UserId == currentUserId).Select(s => s.CourseId).ToListAsync()).ToHashSet()
+            : [];
 
         // Preload instructor display names
         var instructorIds = coursesList.Select(c => c.InstructorId).Distinct().ToList();
@@ -92,6 +95,7 @@ public class CoursesController(
                 ThumbnailUrl = c.ThumbnailUrl,
                 InstructorName = instructorName ?? "Instructor",
                 IsEnrolled = isEnrolled,
+                IsSaved = savedCourseIds.Contains(c.CourseId),
                 ProgressPercent = progressPercent,
                 LessonCount = lessonCount,
                 ChallengeCount = challengeCount,
@@ -135,6 +139,8 @@ public class CoursesController(
         var enrollment = User.IsInRole(AccountRoles.Student) && currentUserId != null
             ? await db.Enrollments.FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == id)
             : null;
+        var isSaved = User.IsInRole(AccountRoles.Student) && currentUserId != null
+            && await db.SavedCourses.AnyAsync(s => s.UserId == currentUserId && s.CourseId == id);
 
         var completedLessons = new HashSet<int>();
         var completedChallenges = new HashSet<int>();
@@ -163,6 +169,7 @@ public class CoursesController(
             Course = course,
             InstructorName = instructor?.DisplayName ?? "Instructor",
             IsEnrolled = enrollment != null,
+            IsSaved = isSaved,
             ProgressPercent = progressPercent,
             ResumeLessonId = enrollment?.LastLessonId ?? lessons.FirstOrDefault()?.LessonId,
             Lessons = lessons,
@@ -174,6 +181,75 @@ public class CoursesController(
         };
 
         return View(model);
+    }
+
+    [Authorize(Roles = AccountRoles.Student)]
+    [HttpGet]
+    public async Task<IActionResult> Saved()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var savedIds = await db.SavedCourses.AsNoTracking()
+            .Where(s => s.UserId == userId)
+            .OrderByDescending(s => s.SavedUtc)
+            .Select(s => s.CourseId)
+            .ToListAsync();
+
+        var courses = await db.Courses.AsNoTracking()
+            .Where(c => savedIds.Contains(c.CourseId) && c.IsPublished)
+            .ToListAsync();
+        var courseMap = courses.ToDictionary(c => c.CourseId);
+        var instructorIds = courses.Select(c => c.InstructorId).Distinct().ToList();
+        var instructorNames = await db.Users.AsNoTracking()
+            .Where(u => instructorIds.Contains(u.Id))
+            .ToDictionaryAsync(u => u.Id, u => u.DisplayName);
+
+        var cards = new List<CourseCardViewModel>();
+        foreach (var courseId in savedIds)
+        {
+            if (!courseMap.TryGetValue(courseId, out var course)) continue;
+            instructorNames.TryGetValue(course.InstructorId, out var instructorName);
+            cards.Add(new CourseCardViewModel
+            {
+                CourseId = course.CourseId,
+                Title = course.Title,
+                Description = course.Description,
+                Category = course.Category,
+                ThumbnailUrl = course.ThumbnailUrl,
+                InstructorName = instructorName ?? "Instructor",
+                IsSaved = true,
+                LessonCount = await db.Lessons.CountAsync(l => l.CourseId == course.CourseId),
+                ChallengeCount = await db.Challenges.CountAsync(c => c.CourseId == course.CourseId && c.IsPublished),
+                SimulationCount = await db.SimulationTasks.CountAsync(s => s.CourseId == course.CourseId && s.IsPublished)
+            });
+        }
+
+        return View(new SavedCoursesViewModel { Courses = cards });
+    }
+
+    [Authorize(Roles = AccountRoles.Student)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveCourse(int id, string? returnUrl)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FindAsync(id);
+        if (course is null || !course.IsPublished) return NotFound();
+
+        var savedCourse = await db.SavedCourses
+            .FirstOrDefaultAsync(s => s.UserId == userId && s.CourseId == id);
+        if (savedCourse is null)
+        {
+            db.SavedCourses.Add(new SavedCourse { UserId = userId, CourseId = id, SavedUtc = DateTime.UtcNow });
+            TempData["Success"] = $"{course.Title} was added to your saved courses.";
+        }
+        else
+        {
+            db.SavedCourses.Remove(savedCourse);
+            TempData["Success"] = $"{course.Title} was removed from your saved courses.";
+        }
+
+        await db.SaveChangesAsync();
+        return Url.IsLocalUrl(returnUrl) ? LocalRedirect(returnUrl!) : RedirectToAction(nameof(Details), new { id });
     }
 
     // ==========================================
@@ -252,7 +328,7 @@ public class CoursesController(
         var progressPercent = totalItems > 0
             ? Math.Clamp((int)Math.Round((double)completedItemCount / totalItems * 100), 0, 100)
             : 0;
-        var isCourseCompleted = totalItems > 0 && completedItemCount >= totalItems;
+        var isCourseCompleted = totalItems > 0 && completedItemCount >= totalItems && enrollment.FinishedUtc is null;
 
         // Determine current view item
         LearnContentType currentType;
@@ -375,6 +451,13 @@ public class CoursesController(
             return RedirectToAction(nameof(Learn), new { id = courseId });
         }
 
+        if (enrollment.FinishedUtc is not null)
+        {
+            return RedirectToAction("Dashboard", "Account");
+        }
+
+        enrollment.FinishedUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync();
         TempData["Success"] = $"Congratulations! You completed {course.Title}. Keep up the great work!";
         return RedirectToAction("Dashboard", "Account");
     }

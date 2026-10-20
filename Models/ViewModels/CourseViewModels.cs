@@ -14,6 +14,7 @@ public class CourseCardViewModel
     public string InstructorName { get; set; } = string.Empty;
     public bool IsEnrolled { get; set; }
     public bool IsCompleted { get; set; }
+    public bool IsSaved { get; set; }
     public int ProgressPercent { get; set; }
     public int LessonCount { get; set; }
     public int ChallengeCount { get; set; }
@@ -29,11 +30,17 @@ public class CourseIndexViewModel
     public List<string> Categories { get; set; } = [];
 }
 
+public class SavedCoursesViewModel
+{
+    public List<CourseCardViewModel> Courses { get; set; } = [];
+}
+
 public class CourseDetailsViewModel
 {
     public Course Course { get; set; } = null!;
     public string InstructorName { get; set; } = string.Empty;
     public bool IsEnrolled { get; set; }
+    public bool IsSaved { get; set; }
     public int ProgressPercent { get; set; }
     public int? ResumeLessonId { get; set; }
     public List<Lesson> Lessons { get; set; } = [];

@@ -1,6 +1,7 @@
 @model CourseIndexViewModel
 @{
     ViewData["Title"] = "Explore Courses";
+    var returnUrl = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
 }
 
 <div class="container module-shell">
@@ -104,14 +105,24 @@
                             </div>
                         }
 
-                        <div class="course-card-footer">
+                        <div class="course-card-footer course-card-actions">
                             @if (c.IsEnrolled)
                             {
-                                <a asp-action="Learn" asp-route-id="@c.CourseId" class="btn btn-sm btn-primary w-100">Continue Learning</a>
+                                <a asp-action="Learn" asp-route-id="@c.CourseId" class="btn btn-sm btn-primary">Continue Learning</a>
                             }
                             else
                             {
-                                <a asp-action="Details" asp-route-id="@c.CourseId" class="btn btn-sm btn-outline-secondary w-100">View Curriculum</a>
+                                <a asp-action="Details" asp-route-id="@c.CourseId" class="btn btn-sm btn-outline-secondary">View Curriculum</a>
+                            }
+                            @if (User.IsInRole(AccountRoles.Student))
+                            {
+                                <form asp-action="SaveCourse" method="post">
+                                    <input type="hidden" name="id" value="@c.CourseId" />
+                                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                                    <button type="submit" class="btn btn-sm @(c.IsSaved ? "btn-outline-primary" : "btn-outline-secondary")">
+                                        @(c.IsSaved ? "Saved ✓" : "Save course")
+                                    </button>
+                                </form>
                             }
                         </div>
                     </div>

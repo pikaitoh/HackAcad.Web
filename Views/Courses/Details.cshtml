@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = Model.Course.Title;
     var signedIn = User.Identity?.IsAuthenticated == true;
+    var returnUrl = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
 }
 
 <div class="container module-shell">
@@ -64,6 +65,16 @@
                     <a asp-controller="Account" asp-action="Login" asp-route-returnUrl="@Url.Action("Details", "Courses", new { id = Model.Course.CourseId })" class="btn btn-primary w-100">
                         Log in to Enrol
                     </a>
+                }
+                @if (User.IsInRole(AccountRoles.Student))
+                {
+                    <form asp-action="SaveCourse" method="post" class="mt-3">
+                        <input type="hidden" name="id" value="@Model.Course.CourseId" />
+                        <input type="hidden" name="returnUrl" value="@returnUrl" />
+                        <button type="submit" class="btn btn-outline-secondary w-100">
+                            @(Model.IsSaved ? "Remove from Saved Courses" : "Save Course")
+                        </button>
+                    </form>
                 }
             </div>
         </div>
