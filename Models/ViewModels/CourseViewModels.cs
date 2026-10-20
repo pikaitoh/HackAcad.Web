@@ -13,6 +13,7 @@ public class CourseCardViewModel
     public string? ThumbnailUrl { get; set; }
     public string InstructorName { get; set; } = string.Empty;
     public bool IsEnrolled { get; set; }
+    public bool IsCompleted { get; set; }
     public int ProgressPercent { get; set; }
     public int LessonCount { get; set; }
     public int ChallengeCount { get; set; }
@@ -55,6 +56,7 @@ public class CourseLearnViewModel
     public Course Course { get; set; } = null!;
     public Enrollment Enrollment { get; set; } = null!;
     public int ProgressPercent { get; set; }
+    public bool IsCourseCompleted { get; set; }
 
     public List<Lesson> Lessons { get; set; } = [];
     public List<Challenge> Challenges { get; set; } = [];

@@ -175,9 +175,13 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             var totalItems = lessonCount + challengeCount + simulationCount;
 
             var completedCount = await db.ProgressRecords
-                .CountAsync(p => p.EnrollmentId == e.EnrollmentId && p.IsCompleted);
+                .CountAsync(p => p.EnrollmentId == e.EnrollmentId && p.IsCompleted
+                    && (p.ContentType == ProgressContentType.Lesson && db.Lessons.Any(l => l.LessonId == p.LessonId && l.CourseId == course.CourseId)
+                        || p.ContentType == ProgressContentType.Challenge && db.Challenges.Any(c => c.ChallengeId == p.ChallengeId && c.CourseId == course.CourseId && c.IsPublished)
+                        || p.ContentType == ProgressContentType.Simulation && db.SimulationTasks.Any(t => t.TaskId == p.SimulationTaskId && t.CourseId == course.CourseId && t.IsPublished)));
 
             var pct = totalItems > 0 ? (int)Math.Round((double)completedCount / totalItems * 100) : 0;
+            var isCompleted = totalItems > 0 && completedCount >= totalItems;
             instructorNames.TryGetValue(course.InstructorId, out var instructorName);
 
             enrolledCards.Add(new CourseCardViewModel
@@ -189,6 +193,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
                 ThumbnailUrl = course.ThumbnailUrl,
                 InstructorName = instructorName ?? "Instructor",
                 IsEnrolled = true,
+                IsCompleted = isCompleted,
                 ProgressPercent = Math.Clamp(pct, 0, 100),
                 LessonCount = lessonCount,
                 ChallengeCount = challengeCount,
@@ -224,7 +229,8 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             SolvedChallenges = solvedChallengeIds.Count,
             TotalPoints = totalPoints,
             EnrolledCourses = enrolledCards,
-            RecentCourse = enrolledCards.FirstOrDefault(),
+            // Keep the dashboard hero focused on a course the student can still work on.
+            RecentCourse = enrolledCards.FirstOrDefault(c => !c.IsCompleted),
             Badges = badgesList,
             RecentSubmissions = recentSubmissions
         });
