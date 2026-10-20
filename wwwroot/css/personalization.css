@@ -156,7 +156,7 @@ html[data-theme="dark"] .table-light { --bs-table-bg: var(--ha-tint); --bs-table
 
 /* Focused tasks share a centered content measure; workspaces retain their full navigation. */
 .status-message { margin-bottom: 1.5rem; }
-.account-workspace { max-width: 1140px; grid-template-columns: 220px minmax(0,1fr); gap: 2rem; }
+.account-workspace { max-width: 1600px; width: calc(100% - 4rem); grid-template-columns: 220px minmax(0,1fr); gap: 2rem; }
 .account-content { width: 100%; }
 .account-content .account-panel .form-measure { max-width: none; }
 .profile-layout { align-items: stretch; }
@@ -241,7 +241,30 @@ html[data-theme="dark"] .application-status[data-status="Rejected"] { background
 html[data-theme="dark"] .support-status[data-status="New"],html[data-theme="dark"] .support-status[data-status="Awaiting admin"] { background:#493f27; color:#f3dfa2; }
 html[data-theme="dark"] .support-status[data-status="Investigating"],html[data-theme="dark"] .support-status[data-status="Awaiting user"] { background:#253e50; color:#bde1f5; }
 html[data-theme="dark"] .support-status[data-status="Resolved"] { background:#244a3d; color:#b1efcf; }
-.audit-change { margin-block:.75rem; }
-.audit-change summary { cursor:pointer; color:var(--ha-primary); }
-.audit-change dl { margin:.75rem 0; }
-.audit-change dd { white-space:pre-wrap; overflow-wrap:anywhere; }
+
+.admin-verify-dialog { width:min(34rem,calc(100% - 4rem)); border:1px solid var(--ha-line); border-radius:var(--ha-radius); padding:2rem; color:var(--ha-ink); background:var(--ha-surface,#fff); }
+.admin-verify-dialog::backdrop { background:rgb(8 25 30 / .55); }
+.admin-verify-dialog [hidden] { display:none !important; }
+.admin-verify-dialog [data-verify-errors]:empty,.admin-verify-dialog [data-verify-notice]:empty { display:none; }
+
+/* Expand audit metadata only when requested; keep the default list easy to scan. */
+.audit-table > thead th:nth-child(1) { width: 10rem; }
+.audit-table > thead th:nth-child(2) { width: 11rem; }
+.audit-table > thead th:nth-child(3) { width: 13rem; }
+.audit-table > thead th:nth-child(4) { width: 13rem; }
+.audit-summary { margin-bottom: .6rem; }
+.audit-toggle { color: var(--ha-primary); cursor: pointer; border: 0; background: transparent; padding: 0; font: inherit; font-size: .8125rem; text-decoration: underline; text-underline-offset: .2em; }
+.audit-toggle::before { content: '▸ '; }
+.audit-toggle[aria-expanded="true"]::before { content: '▾ '; }
+.audit-detail-row[hidden] { display: none; }
+.audit-detail-row > td { background: var(--ha-canvas); }
+.audit-event-content > p { max-width: 90ch; }
+.audit-event-content { overflow-wrap: anywhere; }
+.audit-metadata { display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: .45rem 1rem; margin: 1rem 0 0; font-size: .875rem; }
+.audit-metadata dt { color: var(--ha-muted); font-weight: 500; }
+.audit-metadata dd { margin: 0; }
+.audit-changes { font-size: .875rem; table-layout: fixed; --bs-table-color:var(--ha-ink); --bs-table-bg:var(--ha-surface); --bs-table-border-color:var(--ha-line); }
+.audit-changes th, .audit-changes td { padding: .65rem !important; }
+
+.audit-filters .form-select { min-width: 12rem; }
+.support-filters #Category { min-width: 14rem; }

@@ -268,7 +268,7 @@ try
         }
         await db.SaveChangesAsync();
     }
-    foreach (var path in new[] { account + "LoginHistory", account + "SecurityHistory", "/Notifications", "/Admin/AuditLog?mine=true&search=" + prefix, "/Admin/LoginLogs?search=" + paged.Email + "&result=success&from=2020-01-01&to=2099-01-01" })
+    foreach (var path in new[] { account + "LoginHistory", account + "SecurityHistory", "/Notifications", "/Admin/AuditLog?kind=account&mine=true&search=" + prefix, "/Admin/LoginLogs?search=" + paged.Email + "&result=success&from=2020-01-01&to=2099-01-01" })
     {
         var first = await pageOwner.GetStringAsync(path);
         var nav = Regex.Match(first, @"<nav class=""pagination-bar""[\s\S]*?</nav>").Value;

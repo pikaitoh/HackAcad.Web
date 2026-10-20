@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HackAcad.Web.Services;
 
-public class AdminSecurityFilter(ApplicationDbContext db, UserManager<ApplicationUser> users, AdminSecurity security) : IAsyncActionFilter
+public class AdminSecurityFilter(ApplicationDbContext db, UserManager<ApplicationUser> users, AdminSecurity security, AdminOperations operations) : IAsyncActionFilter
 {
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
@@ -33,17 +33,23 @@ public class AdminSecurityFilter(ApplicationDbContext db, UserManager<Applicatio
         if (readOnly && controller == "Admin" && (http.Request.Method != "GET" || action is not ("Security" or "Alert" or "LoginLogs" or "AuditLog"))) {
             context.Result = action == "Index" && http.Request.Method == "GET" ? new RedirectToActionResult("Security", "Admin", null) : new ForbidResult(); return;
         }
-        var scope = "session";
         if (controller == "Admin" && http.Request.Method != "GET") {
             var id = context.ActionArguments.TryGetValue("id", out var target) ? target?.ToString() : "";
-            scope = action + ":" + id;
+            if (session?.MfaVerifiedUtc is not null && await operations.IsNoChangeAsync(action, id ?? "", context)) {
+                var executed = await next();
+                if (executed.Result is not null) executed.Result = AdminOperations.Navigation(context, executed.Result);
+                if (AdminOperations.IsAsync(http.Request) && executed.Result is ViewResult view)
+                    executed.Result = context.ModelState.IsValid && view.ViewData["NoChanges"] is string notice ? new JsonResult(new { notice }) : AdminOperations.Errors(context);
+                return;
+            }
+            await operations.RunAsync(context, next, user, sessionId, action, id ?? ""); return;
         }
-        if (session?.MfaVerifiedUtc is null || scope != "session" && !security.HasGrant(user, sessionId, scope)) {
+        if (session?.MfaVerifiedUtc is null) {
             var back = "/Admin/Security";
             if (http.Request.Method == "GET") back = http.Request.PathBase + http.Request.Path + http.Request.QueryString;
             else if (Uri.TryCreate(http.Request.Headers.Referer.ToString(), UriKind.Absolute, out var referer)
                 && referer.Scheme == http.Request.Scheme && referer.Authority == http.Request.Host.Value && referer.AbsolutePath.StartsWith("/Admin/", StringComparison.Ordinal)) back = referer.PathAndQuery;
-            var ticket = security.ChallengeTicket(user, sessionId, scope, back);
+            var ticket = security.ChallengeTicket(user, sessionId, "session", back);
             context.Result = new RedirectToActionResult("Verify", "Admin", new { ticket }); return;
         }
         await next();

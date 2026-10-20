@@ -63,6 +63,7 @@ builder.Services.AddHttpClient<GmailEmail>(client => client.Timeout = TimeSpan.F
 builder.Services.AddScoped<AccountRecords>();
 builder.Services.AddScoped<SecurityMonitor>();
 builder.Services.AddScoped<AdminSecurity>();
+builder.Services.AddScoped<AdminOperations>();
 builder.Services.AddScoped<AdminSecurityFilter>();
 builder.Services.AddScoped<SupportAccessService>();
 builder.Services.AddAuthentication().AddCookie(SupportAccessService.Scheme, options => {

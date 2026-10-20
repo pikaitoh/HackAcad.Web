@@ -1,13 +1,1 @@
-@model (string Action, string Id, string Purpose)
-@inject Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> AdminUsers
-@inject AdminSecurity AdminProof
-@{
-    var admin = await AdminUsers.GetUserAsync(User);
-    var session = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier) is null ? "" : User.FindFirst(AccountSessions.ClaimName)?.Value ?? "";
-    var scope = Model.Action + ":" + Model.Id;
-}
-@if (admin is not null && !AdminProof.HasGrant(admin, session, scope)) {
-    var back = Context.Request.PathBase + Context.Request.Path + Context.Request.QueryString;
-    var ticket = AdminProof.ChallengeTicket(admin, session, scope, back);
-    <div class="admin-verification-notice"><p>Verify your identity before @Model.Purpose. Verification lasts five minutes. Complete this step before filling in the form.</p><a asp-controller="Admin" asp-action="Verify" asp-route-ticket="@ticket" class="btn btn-outline-secondary btn-sm">Verify identity</a></div>
-}
+@* Identity verification is requested only when an administrator submits a sensitive operation. *@

@@ -33,7 +33,7 @@
                 }
                 else
                 {
-                    <div class="d-flex flex-grow-1 justify-content-end" id="site-navigation"><div class="navbar-nav align-items-center site-account-nav"><partial name="_Appearance" model='@("guest")' />@if (ViewData["SupportArea"] as bool? == true) { <a asp-controller="Account" asp-action="Login" class="nav-link">Log in</a> } else { <partial name="_LoginPartial" /> }</div></div>
+                    <div class="d-flex flex-grow-1 justify-content-end" id="site-navigation"><div class="navbar-nav align-items-center site-account-nav"><partial name="_Appearance" model='@("guest")' />@if (ViewData["SupportArea"] as bool? == true) { @if (ViewData["SupportHasApplication"] as bool? == true) { <a asp-controller="Account" asp-action="Dashboard" class="nav-link">Back to dashboard</a> } else { <a asp-controller="Account" asp-action="Login" class="nav-link">Log in</a> } } else { <partial name="_LoginPartial" /> }</div></div>
                 }
             </div>
         </nav>

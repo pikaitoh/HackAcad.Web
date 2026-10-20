@@ -1,4 +1,5 @@
 @model SupportListModel
 @{ ViewData["Title"] = "Your support requests"; }
-<div class="page-heading"><div><h1>Your support requests</h1><p class="text-secondary">Read administrator replies and follow up on your account access.</p></div><a asp-action="Create" class="btn btn-primary">New request</a></div>
-<partial name="_SupportList" model="Model" />
+<div class="page-heading"><div><h1>Your support requests</h1><p class="text-secondary">Read administrator replies and follow up on your account questions.</p></div><div class="form-actions"><a asp-action="Create" class="btn btn-primary">New request</a><form asp-action="Exit" method="post"><button class="btn btn-outline-secondary">End support session</button></form></div></div>
+@if (Model.Total == 0) { <section class="surface-panel support-empty"><h2 class="h5">You haven’t submitted any support requests yet.</h2><p class="text-secondary mb-0">Create a request for help with signing in, account security or a suspension decision.</p></section> }
+else { <partial name="_SupportList" model="Model" /> }

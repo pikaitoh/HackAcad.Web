@@ -1,0 +1,9 @@
+@model AdminResumeModel
+@{ ViewData["Title"] = "Complete operation"; }
+<div class="admin-content security-measure"><h1>Completing your operation</h1><p>Your identity is verified. Continuing with the form you submitted.</p>
+<form id="admin-resume-form" action="@Model.Path" method="post">
+    @Html.AntiForgeryToken()
+    @foreach (var pair in Model.Fields) { foreach (var value in pair.Value) { <input type="hidden" name="@pair.Key" value="@value" /> } }
+    <noscript><button class="btn btn-primary">Continue</button></noscript>
+</form></div>
+@section Scripts { <script src="~/js/admin-resume.js" asp-append-version="true" defer></script> }

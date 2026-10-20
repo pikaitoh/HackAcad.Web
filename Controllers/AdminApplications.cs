@@ -140,9 +140,10 @@ public partial class AdminController
     public async Task<IActionResult> AuditLog(string? search, bool mine = false, int page = 1, string? kind = null)
     {
         var query = db.AdminActivities.AsNoTracking(); search = search?.Trim();
+        kind = string.IsNullOrEmpty(kind) ? "admin" : kind;
         if (kind == "admin") query = query.Where(a => a.TargetType != "Account security");
         else if (kind == "account") query = query.Where(a => a.TargetType == "Account security");
-        else if (!string.IsNullOrEmpty(kind)) return BadRequest();
+        else if (kind != "all") return BadRequest();
         if (mine) { var actor = users.GetUserId(User)!; query = query.Where(r => r.ActorUserId == actor); }
         if (!string.IsNullOrEmpty(search)) query = query.Where(r => r.Action.Contains(search) || r.TargetName.Contains(search) || r.Details.Contains(search));
         var total = await query.CountAsync(); page = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(total / 20d)));

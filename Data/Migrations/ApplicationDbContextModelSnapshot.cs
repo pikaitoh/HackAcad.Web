@@ -1023,6 +1023,11 @@ namespace HackAcad.Web.Data.Migrations
                     b.Property<DateTime?>("AdminReadUtc")
                         .HasColumnType("datetime(6)");
 
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("datetime(6)");
 

@@ -8,5 +8,5 @@
 } else {
 <p><strong>@Model.Title</strong> has no enrolments or learning records. Deleting it will permanently remove its lessons, challenges and simulation tasks.</p>
 <p>This action cannot be undone.</p>
-<partial name="_AdminVerification" model='@(("DeleteCourse", Model.CourseId.ToString(), "deleting this course"))' /><form asp-action="DeleteCourse" asp-route-id="@Model.CourseId" method="post"><div asp-validation-summary="All" class="validation-summary" role="alert"></div><div class="form-actions"><button type="submit" class="btn btn-danger">Delete course permanently</button><a asp-action="Courses" class="btn btn-outline-secondary">Cancel</a></div></form>
+<form data-admin-operation asp-action="DeleteCourse" asp-route-id="@Model.CourseId" method="post"><div asp-validation-summary="All" class="validation-summary" role="alert"></div><div class="form-actions"><button type="submit" class="btn btn-danger">Delete course permanently</button><a asp-action="Courses" class="btn btn-outline-secondary">Cancel</a></div></form>
 }</div></div>

@@ -18,10 +18,10 @@ public class SecurityOverviewModel
     public int Total { get; set; }
     public int PageCount => Math.Max(1,(int)Math.Ceiling(Total/20d));
     public List<SecurityAlert> Alerts { get; set; } = [];
-    public List<AdminActivity> RecentActions { get; set; } = [];
 }
 public class AlertUpdateInput
 {
+    public string? ReturnUrl { get; set; }
     [Required] public string Status { get; set; } = "";
     private string notes = "";
     [Required, StringLength(1000, MinimumLength=10)] public string Notes { get => notes; set => notes = value?.Trim() ?? ""; }
@@ -39,6 +39,7 @@ public class SupportStartInput
 }
 public class SupportMessageInput
 {
+    [StringLength(50)] public string Category { get; set; } = SupportCategory.General;
     private string? subject;
     private string body = "";
     [StringLength(120, MinimumLength=5)] public string? Subject { get => subject; set => subject = value?.Trim(); }
@@ -51,6 +52,8 @@ public class SupportListModel
 {
     public List<SupportTicket> Tickets { get; set; } = [];
     public Dictionary<string,string> Users { get; set; } = [];
+    public HashSet<string> DisabledUsers { get; set; } = [];
+    public string? Category { get; set; }
     public string? Status { get; set; }
     public string? Search { get; set; }
     public int Page { get; set; }
@@ -72,4 +75,10 @@ public class AdminAccessInput
     public bool ReadOnly { get; set; }
     private string reason = "";
     [Required, StringLength(500,MinimumLength=10)] public string Reason { get => reason; set => reason = value?.Trim() ?? ""; }
+}
+
+public class AdminResumeModel
+{
+    public string Path { get; set; } = "";
+    public Dictionary<string,string[]> Fields { get; set; } = [];
 }

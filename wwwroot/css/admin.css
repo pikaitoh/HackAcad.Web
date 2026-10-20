@@ -110,6 +110,3 @@
 .security-stats dd { font-size:2.5rem; font-weight:650; margin:.25rem 0 0; font-variant-numeric:tabular-nums; }
 .nav-count { margin-inline-start:auto; font-size:.75rem; font-variant-numeric:tabular-nums; }
 .access-history { margin-block:1rem 0; padding-inline-start:1.5rem; }
-
-.admin-verification-notice { padding:1rem 0; margin-bottom:1rem; border-block:1px solid var(--ha-line); }
-.admin-verification-notice p { color:var(--ha-muted); font-size:.875rem; margin-bottom:.75rem; }

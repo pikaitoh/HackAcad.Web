@@ -1,7 +1,8 @@
 @model SupportMessageInput
 @{ ViewData["Title"] = "New support request"; }
-<div class="page-heading"><div><h1>Contact an administrator</h1><p class="text-secondary">Explain what happened and what you would like reviewed.</p></div></div>
+<div class="page-heading"><div><h1>Contact an administrator</h1><p class="text-secondary">Choose an account support type and explain what happened.</p></div></div>
 <section class="surface-panel"><form method="post" data-validated-form novalidate><div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+<div class="mb-3"><label asp-for="Category" class="form-label">Request type</label><select asp-for="Category" class="form-select" required aria-describedby="Category-error">@foreach (var category in SupportCategory.All.Where(c => c != SupportCategory.Appeal || ViewData["CanAppeal"] as bool? == true)) { <option>@category</option> }</select><span asp-validation-for="Category" id="Category-error" class="field-error"></span></div>
 <div class="mb-3"><label asp-for="Subject" class="form-label">Subject</label><input asp-for="Subject" class="form-control" required minlength="5" maxlength="120" aria-describedby="Subject-error" /><span asp-validation-for="Subject" id="Subject-error" class="field-error"></span></div>
 <div class="mb-3"><label asp-for="Body" class="form-label">Message</label><textarea asp-for="Body" class="form-control" rows="6" required minlength="10" maxlength="3000" aria-describedby="Body-help Body-error"></textarea><span asp-validation-for="Body" id="Body-error" class="field-error"></span><p id="Body-help" class="form-text">10–3,000 characters. Do not include passwords, verification codes or recovery codes.</p></div>
 <div class="form-actions"><button class="btn btn-primary">Send request</button><a asp-action="Requests" class="btn btn-outline-secondary">Cancel</a></div></form></section>

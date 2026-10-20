@@ -25,7 +25,7 @@ public partial class AdminController
     }
 
     [HttpPost, EnableRateLimiting("security-action")]
-    public async Task<IActionResult> Verify(AdminVerifyInput input, [FromServices] AdminSecurity security,
+    public async Task<IActionResult> Verify(AdminVerifyInput input, [FromServices] AdminSecurity security, [FromServices] AdminOperations operations,
         [FromServices] SignInManager<ApplicationUser> signIn, [FromServices] PhoneVerification phones)
     {
         var user = await users.GetUserAsync(User); var session = User.FindFirstValue(AccountSessions.ClaimName) ?? "";
@@ -50,13 +50,19 @@ public partial class AdminController
             }
         }
         ModelState.SetModelValue("CurrentPassword", "", ""); ModelState.SetModelValue("Code", "", "");
-        if (!ModelState.IsValid) { ViewData["HasPassword"] = password; ViewData["SmsEnabled"] = user.SmsTwoFactorEnabled; return View(input); }
+        if (!ModelState.IsValid) { ViewData["HasPassword"] = password; ViewData["SmsEnabled"] = user.SmsTwoFactorEnabled; return AdminOperations.IsAsync(Request) ? AdminOperations.Errors(this.ControllerContext) : View(input); }
         await users.ResetAccessFailedCountAsync(user);
         await security.MarkMfaAsync(HttpContext, user);
         if (challenge.Value.Scope != "session") security.GrantAccess(user, session, challenge.Value.Scope);
         records.AddActivity(user.Id, "Verified Admin identity", "Admin security", user.Id, user.DisplayName, "Verification applies to " + challenge.Value.Scope + " for five minutes.");
         await db.SaveChangesAsync();
-        TempData["Success"] = challenge.Value.Scope == "session" ? "Identity verified. You can now access the website." : "Identity verified for five minutes. Return to your form, review it and submit again. No previous action was automatically submitted.";
+        if (AdminOperations.IsAsync(Request)) return Json(new { verified = true });
+        if (challenge.Value.OperationId is { } operationId) {
+            var resume = operations.Resume(operationId, user, session);
+            if (resume is null) return Conflict("This operation expired. Return to the original page and review it again.");
+            return View("ResumeOperation", resume);
+        }
+        TempData["Success"] = "Identity verified. You can now access the website.";
         return Url.IsLocalUrl(challenge.Value.ReturnUrl) ? LocalRedirect(challenge.Value.ReturnUrl) : RedirectToAction(nameof(Security));
     }
 
@@ -67,6 +73,7 @@ public partial class AdminController
         if (user is null || !user.SmsTwoFactorEnabled || !user.TwoFactorEnabled || !user.PhoneNumberConfirmed || user.PhoneNumber is null
             || await users.IsLockedOutAsync(user) || security.ReadTicket(input.Ticket, user, session) is null) return Forbid();
         var error = await phones.SendAsync(user.Id, user.SecurityStamp ?? "", user.PhoneNumber, "admin:" + session + ":" + SecurityMonitor.Hash(input.Ticket));
+        if (AdminOperations.IsAsync(Request)) return error is null ? Json(new { notice = "Verification code sent to your verified phone number." }) : new JsonResult(new { errors = new[] { error } }) { StatusCode = 400 };
         TempData[error is null ? "Success" : "Error"] = error ?? "Verification code sent to your verified phone number.";
         return RedirectToAction(nameof(Verify), new { ticket = input.Ticket });
     }
@@ -84,16 +91,16 @@ public partial class AdminController
             FailedLogins = await db.SecurityEvents.CountAsync(e => !e.Success && e.OccurredUtc >= since),
             LockedAccounts = await db.Users.CountAsync(u => u.LockoutEnd != null && u.LockoutEnd > now),
             OpenAlerts = await db.SecurityAlerts.CountAsync(a => a.Status != "Resolved"),
-            Alerts = await query.OrderByDescending(a => a.CreatedUtc).ThenByDescending(a => a.Id).Skip((page-1)*20).Take(20).ToListAsync(),
-            RecentActions = await db.AdminActivities.AsNoTracking().Where(a => a.TargetType != "Account security").OrderByDescending(a => a.Id).Take(10).ToListAsync() });
+            Alerts = await query.OrderByDescending(a => a.CreatedUtc).ThenByDescending(a => a.Id).Skip((page-1)*20).Take(20).ToListAsync() });
     }
 
     [HttpGet]
-    public async Task<IActionResult> Alert(long id)
+    public async Task<IActionResult> Alert(long id, string? returnUrl = null)
     {
         var alert = await db.SecurityAlerts.AsNoTracking().SingleOrDefaultAsync(a => a.Id == id);
         if (alert is null) return NotFound();
         ViewData["ReadOnlyAdmin"] = await db.Admins.AnyAsync(a => a.UserId == users.GetUserId(User) && a.IsReadOnly);
+        ViewData["ReturnUrl"] = SecurityReturn(returnUrl);
         return View(alert);
     }
 
@@ -104,14 +111,19 @@ public partial class AdminController
         if (alert is null) return NotFound();
         if (input.Version != alert.Version) return Conflict("This alert changed. Reload before updating it.");
         if (input.Status is not ("New" or "Investigating" or "Resolved")) ModelState.AddModelError("Status", "Choose a valid status.");
+        ViewData["ReturnUrl"] = SecurityReturn(input.ReturnUrl);
         if (!ModelState.IsValid) return View(alert);
-        if (alert.Status == input.Status && alert.Notes == input.Notes.Trim()) return RedirectToAction(nameof(Alert), new { id });
+        if (alert.Status == input.Status && alert.Notes == input.Notes.Trim()) return LocalRedirect(SecurityReturn(input.ReturnUrl));
         var before = System.Text.Json.JsonSerializer.Serialize(new { alert.Status, alert.Notes });
         alert.Status = input.Status; alert.Notes = input.Notes.Trim(); alert.UpdatedUtc = DateTime.UtcNow; alert.Version = Guid.NewGuid().ToString("N");
         records.AddActivity(users.GetUserId(User)!, "Updated security alert", "Security alert", id.ToString(), alert.Title, "Investigation status or notes updated.", before, System.Text.Json.JsonSerializer.Serialize(new { alert.Status, alert.Notes }));
         try { await db.SaveChangesAsync(); } catch (DbUpdateConcurrencyException) { return Conflict("This alert changed. Reload before updating it."); }
-        return RedirectToAction(nameof(Alert), new { id });
+        TempData["Success"] = "Investigation saved.";
+        return LocalRedirect(SecurityReturn(input.ReturnUrl));
     }
+
+    private string SecurityReturn(string? path) => path is not null && Url.IsLocalUrl(path)
+        && (path == "/Admin/Security" || path.StartsWith("/Admin/Security?", StringComparison.Ordinal)) ? path : "/Admin/Security";
 
     [HttpGet]
     public async Task<IActionResult> Sessions(string id)

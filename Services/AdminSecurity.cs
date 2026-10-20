@@ -11,9 +11,9 @@ namespace HackAcad.Web.Services;
 
 public class AdminSecurity(ApplicationDbContext db, IDataProtectionProvider protection, IMemoryCache cache, TimeProvider clock)
 {
-    private sealed record Challenge(string UserId, string SessionId, string Stamp, string Scope, string ReturnUrl, DateTimeOffset Expires);
+    private sealed record Challenge(string UserId, string SessionId, string Stamp, string Scope, string ReturnUrl, DateTimeOffset Expires, string? OperationId);
     private sealed record Grant(string Stamp, DateTimeOffset Expires);
-    private readonly IDataProtector protector = protection.CreateProtector("HackAcad.AdminVerification.v1");
+    private readonly IDataProtector protector = protection.CreateProtector("HackAcad.AdminVerification.v2");
     private static readonly object OtpLock = new();
     private static string Key(string userId, string sessionId, string scope) => $"admin-grant:{userId}:{sessionId}:{scope}";
 
@@ -21,15 +21,15 @@ public class AdminSecurity(ApplicationDbContext db, IDataProtectionProvider prot
         cache.TryGetValue<Grant>(Key(user.Id, sessionId, scope), out var grant)
         && grant!.Stamp == user.SecurityStamp && grant.Expires > clock.GetUtcNow();
 
-    public string ChallengeTicket(ApplicationUser user, string sessionId, string scope, string returnUrl) =>
-        protector.Protect(JsonSerializer.Serialize(new Challenge(user.Id, sessionId, user.SecurityStamp ?? "", scope, returnUrl, clock.GetUtcNow().AddMinutes(10))));
+    public string ChallengeTicket(ApplicationUser user, string sessionId, string scope, string returnUrl, string? operationId = null) =>
+        protector.Protect(JsonSerializer.Serialize(new Challenge(user.Id, sessionId, user.SecurityStamp ?? "", scope, returnUrl, clock.GetUtcNow().AddMinutes(10), operationId)));
 
-    public (string Scope, string ReturnUrl)? ReadTicket(string ticket, ApplicationUser user, string sessionId)
+    public (string Scope, string ReturnUrl, string? OperationId)? ReadTicket(string ticket, ApplicationUser user, string sessionId)
     {
         try {
             var challenge = JsonSerializer.Deserialize<Challenge>(protector.Unprotect(ticket));
             if (challenge?.UserId == user.Id && challenge.SessionId == sessionId && challenge.Stamp == user.SecurityStamp && challenge.Expires > clock.GetUtcNow())
-                return (challenge.Scope, challenge.ReturnUrl);
+                return (challenge.Scope, challenge.ReturnUrl, challenge.OperationId);
         } catch (Exception e) when (e is System.Security.Cryptography.CryptographicException or JsonException or ArgumentException) { }
         return null;
     }

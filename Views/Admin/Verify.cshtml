@@ -1,7 +1,7 @@
 @model AdminVerifyInput
 @{ ViewData["Title"] = "Verify Admin identity"; }
 <div class="admin-content security-measure"><div class="page-heading"><div><h1>Verify your identity</h1><p class="text-secondary">Confirm that you can use this administrator account.</p></div></div><section class="surface-panel">
-<p>For a sensitive change, verification is valid for five minutes and only for that action and account or record. Review and submit your form after verification.</p>
+<p>For a sensitive change, verification is valid for five minutes and only for that action and account or record. Your submitted operation will continue automatically after verification.</p>
 <form asp-action="Verify" method="post"><input asp-for="Ticket" type="hidden" /><div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
 @if (ViewData["HasPassword"] as bool? == true) { <div class="mb-3"><label asp-for="CurrentPassword" class="form-label">Current HackAcad password</label><input asp-for="CurrentPassword" class="form-control" autocomplete="current-password" required aria-describedby="password-error" /><span asp-validation-for="CurrentPassword" id="password-error" class="field-error"></span></div> }
 <div class="mb-3"><label asp-for="Code" class="form-label">@(ViewData["SmsEnabled"] as bool? == true ? "SMS or recovery code" : "Authenticator or recovery code")</label><input asp-for="Code" class="form-control" autocomplete="one-time-code" maxlength="32" required aria-describedby="code-error" /><span asp-validation-for="Code" id="code-error" class="field-error"></span></div>

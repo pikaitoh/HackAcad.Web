@@ -15,7 +15,23 @@ namespace HackAcad.Web.Controllers;
 public class SupportController(ApplicationDbContext db, SupportAccessService access, TimeProvider clock) : Controller
 {
     [AllowAnonymous, HttpGet]
-    public IActionResult Index() => View(new SupportStartInput());
+    public async Task<IActionResult> Index()
+    {
+        if ((await HttpContext.AuthenticateAsync(SupportAccessService.Scheme)).Succeeded) return RedirectToAction(nameof(Requests));
+        var application = await HttpContext.AuthenticateAsync(Microsoft.AspNetCore.Identity.IdentityConstants.ApplicationScheme);
+        if (application.Succeeded) {
+            var id = application.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+            var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(u => u.Id == id && !u.IsDisabled && u.EmailConfirmed);
+            if (user is not null) { await SignInSupport(user); return RedirectToAction(nameof(Requests)); }
+        }
+        return View(new SupportStartInput());
+    }
+
+    private Task SignInSupport(ApplicationUser user)
+    {
+        var identity = new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id), new Claim("support:stamp", user.SecurityStamp ?? "")], SupportAccessService.Scheme);
+        return HttpContext.SignInAsync(SupportAccessService.Scheme, new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = false, ExpiresUtc = clock.GetUtcNow().AddMinutes(30) });
+    }
 
     [AllowAnonymous, HttpPost, EnableRateLimiting("support-access")]
     public async Task<IActionResult> Index(SupportStartInput input)
@@ -38,8 +54,7 @@ public class SupportController(ApplicationDbContext db, SupportAccessService acc
         Response.Headers["Referrer-Policy"] = "no-referrer";
         var user = confirm ? await access.RedeemAsync(code ?? "") : null;
         if (user is null) { ModelState.AddModelError("", "This link has expired or has already been used. Request a new support email."); return View(model: ""); }
-        var identity = new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, user.Id), new Claim("support:stamp", user.SecurityStamp ?? "")], SupportAccessService.Scheme);
-        await HttpContext.SignInAsync(SupportAccessService.Scheme, new ClaimsPrincipal(identity), new AuthenticationProperties { IsPersistent = false, ExpiresUtc = clock.GetUtcNow().AddMinutes(30) });
+        await SignInSupport(user);
         return RedirectToAction(nameof(Requests));
     }
 
@@ -53,23 +68,34 @@ public class SupportController(ApplicationDbContext db, SupportAccessService acc
     }
 
     [Authorize(AuthenticationSchemes = SupportAccessService.Scheme), HttpGet]
-    public IActionResult Create() => View(new SupportMessageInput());
+    public async Task<IActionResult> Create()
+    {
+        ViewData["CanAppeal"] = await db.Users.AnyAsync(u => u.Id == User.FindFirstValue(ClaimTypes.NameIdentifier) && u.IsDisabled);
+        return View(new SupportMessageInput { Category = ViewData["CanAppeal"] as bool? == true ? SupportCategory.Appeal : SupportCategory.SignIn });
+    }
 
     [Authorize(AuthenticationSchemes = SupportAccessService.Scheme), HttpPost, EnableRateLimiting("support-message")]
     public async Task<IActionResult> Create(SupportMessageInput input)
     {
+        ViewData["CanAppeal"] = await db.Users.AnyAsync(u => u.Id == User.FindFirstValue(ClaimTypes.NameIdentifier) && u.IsDisabled);
+        if (!SupportCategory.All.Contains(input.Category)) ModelState.AddModelError("Category", "Choose a valid account support type.");
+        if (input.Category == SupportCategory.Appeal && ViewData["CanAppeal"] as bool? != true) ModelState.AddModelError("Category", "Only a currently disabled account can submit a suspension appeal. Choose another account support type.");
         if (string.IsNullOrWhiteSpace(input.Subject)) ModelState.AddModelError("Subject", "Enter a subject of at least 5 characters.");
         if (!ModelState.IsValid) return View(input);
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!; var now = clock.GetUtcNow().UtcDateTime;
         await using var transaction = await db.Database.BeginTransactionAsync();
         var user = (await db.Users.FromSqlInterpolated($"SELECT * FROM AspNetUsers WHERE Id={userId} FOR UPDATE").ToListAsync()).Single();
         if (user.SecurityStamp != User.FindFirstValue("support:stamp")) return Forbid();
+        if (input.Category == SupportCategory.Appeal && !user.IsDisabled) {
+            ViewData["CanAppeal"] = false;
+            ModelState.AddModelError("Category", "This account is active now. Choose another account support type."); return View(input);
+        }
         var open = await db.SupportTickets.FirstOrDefaultAsync(t => t.UserId == userId && t.Status != "Resolved");
         if (open is not null) { TempData["SupportNotice"] = "You already have an open request. Add your message to that conversation."; return RedirectToAction(nameof(Thread), new { id = open.Id }); }
         if (await db.SupportTickets.CountAsync(t => t.UserId == userId && t.CreatedUtc >= now.AddDays(-1)) >= 3) {
             ModelState.AddModelError("", "You can open up to three requests per day. Use an existing conversation or try again tomorrow."); return View(input);
         }
-        var ticket = new SupportTicket { UserId = userId, Subject = input.Subject!.Trim(), CreatedUtc = now, UpdatedUtc = now, UserReadUtc = now };
+        var ticket = new SupportTicket { UserId = userId, Category = input.Category, Subject = input.Subject!.Trim(), CreatedUtc = now, UpdatedUtc = now, UserReadUtc = now };
         db.SupportTickets.Add(ticket); await db.SaveChangesAsync();
         db.SupportMessages.Add(new SupportMessage { TicketId = ticket.Id, AuthorId = userId, AuthorName = user.DisplayName, Body = input.Body.Trim(), CreatedUtc = now });
         await NotifyAdmins(ticket.Id, "New support request", "A user requested help with account access.");
@@ -124,5 +150,5 @@ public class SupportController(ApplicationDbContext db, SupportAccessService acc
     }
 
     [Authorize(AuthenticationSchemes = SupportAccessService.Scheme), HttpPost]
-    public async Task<IActionResult> Exit() { await HttpContext.SignOutAsync(SupportAccessService.Scheme); return RedirectToAction(nameof(Index)); }
+    public async Task<IActionResult> Exit() { await HttpContext.SignOutAsync(SupportAccessService.Scheme); return RedirectToAction("Index", "Home"); }
 }

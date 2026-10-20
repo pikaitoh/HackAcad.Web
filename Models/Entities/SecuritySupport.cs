@@ -36,8 +36,17 @@ public class SupportAccess
     public DateTime ExpiresUtc { get; set; }
     public DateTime? ConsumedUtc { get; set; }
 }
+public static class SupportCategory
+{
+    public const string General = "Other account issue";
+    public const string SignIn = "Sign-in issue";
+    public const string Security = "Account security concern";
+    public const string Appeal = "Account suspension appeal";
+    public static readonly string[] All = [SignIn, Security, General, Appeal];
+}
 public class SupportTicket
 {
+    [MaxLength(50)] public string Category { get; set; } = "Account support";
     public long Id { get; set; }
     [MaxLength(255)] public string UserId { get; set; } = "";
     [MaxLength(120)] public string Subject { get; set; } = "";

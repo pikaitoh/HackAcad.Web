@@ -1,0 +1,13 @@
+<dialog class="admin-verify-dialog" id="admin-verify-dialog" aria-labelledby="admin-verify-title" aria-describedby="admin-verify-help">
+    <form id="admin-verify-form" asp-controller="Admin" asp-action="Verify" method="post">
+        <h2 id="admin-verify-title" class="h4">Verify your identity</h2>
+        <p id="admin-verify-help" class="text-secondary">Confirm your identity to complete this operation. Your form will stay filled in.</p>
+        <div data-verify-errors class="field-error mb-3" role="alert" tabindex="-1"></div>
+        <input type="hidden" name="Ticket" />
+        <div data-password-field class="mb-3"><label for="admin-verify-password" class="form-label">Current HackAcad password</label><input id="admin-verify-password" name="CurrentPassword" type="password" class="form-control" autocomplete="current-password" maxlength="100" /></div>
+        <div class="mb-3"><label for="admin-verify-code" data-code-label class="form-label">Authenticator or recovery code</label><input id="admin-verify-code" name="Code" class="form-control" autocomplete="one-time-code" maxlength="32" required /></div>
+        <div data-verify-notice class="form-text mb-3" role="status"></div>
+        <button type="button" data-send-verify-sms data-url='@Url.Action("SendVerifySms", "Admin")' class="btn btn-outline-secondary btn-sm mb-3" hidden>Send SMS code</button>
+        <div class="form-actions"><button type="submit" class="btn btn-primary">Verify and continue</button><button type="button" data-cancel-verify class="btn btn-outline-secondary">Cancel</button></div>
+    </form>
+</dialog>

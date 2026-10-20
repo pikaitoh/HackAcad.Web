@@ -18,6 +18,7 @@
             @if (User.IsInRole(AccountRoles.Student) || User.IsInRole(AccountRoles.Instructor)) { <a asp-controller="Courses" asp-action="Saved" aria-current="@(currentController == "Courses" && currentAction == "Saved" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" /></svg>Saved courses</a> }
             <a asp-controller="Account" asp-action="Settings" aria-current="@(currentController == "Account" && (ViewData["AccountArea"] as string) == "manage" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4v5c0 5-8 9-8 9s-8-4-8-9V7Z" /><path d="m8 12 3 3 5-6" /></svg>Manage account</a>
             @if (User.IsInRole(AccountRoles.Student) && !User.IsInRole(AccountRoles.Admin) && !User.IsInRole(AccountRoles.Instructor)) { <a asp-controller="Education" asp-action="Index"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m2 8 10-5 10 5-10 5Zm4 3v6c4 3 8 3 12 0v-6m4-3v10"/></svg>For Education</a> }
+            <a asp-controller="Support" asp-action="Index"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h18v13H8l-5 4Z"/><path d="M7 8h10M7 12h7"/></svg>Contact support</a>
             <form asp-controller="Account" asp-action="Logout" method="post"><button type="submit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4H4v16h6m4-13 5 5-5 5M9 12h10" /></svg>Log out</button></form>
         </nav>
     </details>

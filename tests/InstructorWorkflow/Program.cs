@@ -34,8 +34,10 @@ async Task<HttpResponseMessage> Post(HttpClient c,string path,Dictionary<string,
   var location=response.Headers.Location.ToString();var html=await c.GetStringAsync(location);
   var ticket=WebUtility.HtmlDecode(Regex.Match(html,"name=\"Ticket\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
   var verify=await Post(c,"/Admin/Verify",Fields("Ticket",ticket,"CurrentPassword",password,"Code",adminCodes[email].Dequeue()),location);
-  if(verify.StatusCode!=HttpStatusCode.Redirect)throw new Exception("Admin step-up failed");
-  fields["__RequestVerificationToken"]=await Token(c,tokenPage);response=await c.PostAsync(path,new FormUrlEncodedContent(fields));
+  if(verify.StatusCode!=HttpStatusCode.OK)throw new Exception("Admin step-up failed");
+  var resume=Regex.Match(await verify.Content.ReadAsStringAsync(),"<form id=\"admin-resume-form\".*?</form>",RegexOptions.Singleline).Value;
+  var inputs=Regex.Matches(resume,"name=\"([^\"]+)\"[^>]*value=\"([^\"]*)\"").Select(m=>new KeyValuePair<string,string>(WebUtility.HtmlDecode(m.Groups[1].Value),WebUtility.HtmlDecode(m.Groups[2].Value)));
+  response=await c.PostAsync(path,new FormUrlEncodedContent(inputs));
  }return response;}
 async Task<(string Id,string Email)> Fixture(string label,string role)
 {
