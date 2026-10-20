@@ -17,7 +17,7 @@ namespace HackAcad.Web.Controllers;
 [Route("Identity/Account/[action]")]
 public partial class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     UserAccounts accounts, ApplicationDbContext db, EmailVerification verification, PhoneVerification phones,
-    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, TimeProvider clock, BadgeService badges, Personalization personalization) : Controller
+    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, TimeProvider clock, BadgeService badges, Personalization personalization, AccountConnections connections) : Controller
 {
     [AllowAnonymous, HttpGet]
     public IActionResult Register() => User.Identity?.IsAuthenticated == true ? RedirectToAction(nameof(Dashboard)) : View(new RegisterModel());
@@ -89,10 +89,10 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     }
 
     [AllowAnonymous, HttpGet]
-    public IActionResult Login(string? returnUrl = null, string? googleError = null)
+    public IActionResult Login(string? returnUrl = null, string? googleError = null, string? externalError = null)
     {
         if (User.Identity?.IsAuthenticated == true) return RedirectToAction(nameof(Dashboard));
-        if (googleError is not null) ModelState.AddModelError("", "Google sign-in could not be completed. Try again or use your email and password.");
+        if (googleError is not null || externalError is not null) ModelState.AddModelError("", "External sign-in could not be completed. Try again with a verified email address or use another sign-in method.");
         return View(new LoginModel { ReturnUrl = returnUrl });
     }
 
@@ -332,7 +332,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         var user = await users.GetUserAsync(User);
         if (user is null) return Challenge();
         var model = SettingsData(user);
-        model.GoogleConnected = (await users.GetLoginsAsync(user)).Any(l => l.LoginProvider == "Google");
+        model.ConnectedAccounts = await connections.ListAsync(user, await AvailableProviders());
         return View(model);
     }
 
@@ -500,7 +500,15 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
                 try
                 {
                     var token = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(code));
+                    var oldEmail = user.Email;
                     confirmed = (await accounts.ChangeEmailAsync(user, email, token)).Succeeded;
+                    if (confirmed)
+                    {
+                        var notice = $"Your HackAcad email changed to {email}. Existing Google and GitHub connections remain linked. All sessions must sign in again.";
+                        var delivered = await verification.SendSecurityNoticeAsync(email, "Account email changed", notice);
+                        if (!string.IsNullOrEmpty(oldEmail)) delivered &= await verification.SendSecurityNoticeAsync(oldEmail, "Account email changed", notice);
+                        if (!delivered) TempData["Error"] = "Your email was changed, but a security email could not be delivered. The change is saved in security activity.";
+                    }
                     if (confirmed && users.GetUserId(User) == user.Id) await signIn.SignOutAsync();
                 }
                 catch (FormatException) { /* Invalid links show the same recovery screen. */ }
@@ -516,7 +524,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         if (row is null) return Challenge();
         var user = await users.FindByIdAsync(row.Id);
         return View(new ChangePasswordModel { LastLoginUtc = row.LastLoginUtc, LastPasswordChangedUtc = row.LastPasswordChangedUtc,
-            HasPassword = await users.HasPasswordAsync(user!), RecentGoogleLogin = HasRecentGoogleLogin() });
+            HasPassword = await users.HasPasswordAsync(user!), RecentExternalLogin = HasRecentExternalLogin(), ReauthenticationProviders = await ReauthenticationProviders(user!) });
     }
 
     [HttpPost]
@@ -528,11 +536,12 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         input.LastLoginUtc = row.LastLoginUtc;
         input.LastPasswordChangedUtc = row.LastPasswordChangedUtc;
         input.HasPassword = await users.HasPasswordAsync(user);
-        input.RecentGoogleLogin = HasRecentGoogleLogin();
+        input.RecentExternalLogin = HasRecentExternalLogin();
+        input.ReauthenticationProviders = await ReauthenticationProviders(user);
         if (!input.HasPassword)
         {
             ModelState.Remove(nameof(input.CurrentPassword));
-            if (!input.RecentGoogleLogin) ModelState.AddModelError("", "Sign in with Google again before setting your HackAcad password.");
+            if (!input.RecentExternalLogin) ModelState.AddModelError("", $"Sign in with {string.Join(" or ", input.ReauthenticationProviders)} again before setting your HackAcad password.");
         }
         if (!ModelState.IsValid) return View(input);
         await using (var transaction = await db.Database.BeginTransactionAsync())

@@ -223,3 +223,17 @@ html[data-theme="dark"] .application-status[data-status="Rejected"] { background
 .verification-notes { margin-top: 1.25rem; font-size: .875rem; }
 .verification-notes h4 { font-size: .8125rem; color: var(--ha-muted); font-weight: 550; }
 .verification-notes p { max-width: 75ch; }
+
+/* Provider choices share a stable measure and remain readable in either theme. */
+.external-login-options { display: grid; gap: .75rem; }
+.external-login-options .google-login-button { width: 100%; }
+.connected-provider { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-block: 1rem; border-top: 1px solid var(--ha-line); }
+.connected-provider-name { display: flex; align-items: center; gap: .75rem; }
+.connected-provider-name h3 { margin: 0; }
+.connected-provider .form-text { margin: 0; }
+.connected-provider-identity { min-width: 0; }
+.connected-provider-identity .form-text { margin-top: .35rem; overflow-wrap: anywhere; }
+.connected-provider-actions { display: flex; align-items: center; justify-content: flex-end; gap: 1rem; flex-shrink: 0; }
+.security-activity-table th:first-child { width: 25%; }
+.security-activity-table th:nth-child(2) { width: 25%; }
+.security-activity-table td:last-child { white-space: normal; overflow-wrap: anywhere; }

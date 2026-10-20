@@ -5,22 +5,39 @@
     <section class="form-measure email-settings" aria-labelledby="email-title">
         <h2 id="email-title">Your email</h2>
         <dl class="detail-list"><dt>Email address</dt><dd class="text-break">@Model.Email</dd><dt>Verification status</dt><dd><span class="status-label @(Model.EmailConfirmed ? "status-active" : "status-disabled")">@(Model.EmailConfirmed ? "Verified" : "Not verified")</span></dd></dl>
-        <p class="text-secondary">When you change your email, your current address stays in use until you confirm the new one.</p>
+        <p class="text-secondary">Your current email stays in use until you confirm a new one. Changing it does not disconnect Google or GitHub.</p>
         <div class="form-actions"><a asp-action="ChangeEmail" class="btn btn-primary">Change email</a>
         @if (!Model.EmailConfirmed) { <a asp-action="ResendVerification" class="btn btn-outline-secondary">Resend verification email</a> }
         </div>
     </section>
-    <section class="form-measure mt-4" aria-labelledby="google-title">
-        <h2 id="google-title">Google sign-in</h2>
+    <section class="form-measure mt-4" aria-labelledby="external-title">
+        <h2 id="external-title">Connected accounts</h2>
         @if (TempData["Error"] is string error) { <p class="field-error" role="alert">@error</p> }
-        @if (Model.GoogleConnected) { <p class="status-label status-active">Connected</p><p class="text-secondary mb-0">You can use Google to log in to this account.</p> }
-        else
-        {
-            <p class="text-secondary">Connect the Google account that uses your current HackAcad email.</p>
-            @inject Microsoft.AspNetCore.Identity.SignInManager<ApplicationUser> GoogleSignIn
-            @if ((await GoogleSignIn.GetExternalAuthenticationSchemesAsync()).Any(s => s.Name == "Google"))
-            { <form asp-action="GoogleLogin" method="post"><input type="hidden" name="connect" value="true" /><button type="submit" class="btn google-login-button"><partial name="_GoogleMark" /><span>Connect Google</span></button></form> }
-            else { <p class="text-secondary mb-0">Google sign-in is currently unavailable.</p> }
+        <p class="text-secondary">Use a connected account to sign in. New connections must use your verified HackAcad email; existing connections stay linked when that email changes.</p>
+        @inject Microsoft.AspNetCore.Identity.SignInManager<ApplicationUser> ExternalSignIn
+        @{ var available = (await ExternalSignIn.GetExternalAuthenticationSchemesAsync()).Select(s => s.Name).ToHashSet(); }
+        @foreach (var provider in ExternalAuthentication.Providers) {
+            var account = Model.ConnectedAccounts.FirstOrDefault(a => a.Provider == provider);
+            <div class="connected-provider">
+                <div class="connected-provider-identity">
+                    <div class="connected-provider-name"><partial name="_ProviderMark" model="provider" /><h3 class="h6">@provider</h3></div>
+                    @if (account is not null) {
+                        @if (!string.IsNullOrEmpty(account.Email)) { <p class="form-text">@account.Email</p> }
+                        @if (!string.IsNullOrEmpty(account.Name) && account.Name != account.Email) { <p class="form-text">@account.Name</p> }
+                        @if (string.IsNullOrEmpty(account.Email) && string.IsNullOrEmpty(account.Name)) { <p class="form-text">Account details will appear after your next @provider sign-in.</p> }
+                    }
+                </div>
+                <div class="connected-provider-actions">
+                @if (account is not null) {
+                    <span class="status-label status-active">Connected</span>
+                    <a asp-action="Disconnect" asp-route-provider="@provider" class="btn btn-outline-secondary btn-sm" aria-label="Disconnect @provider">Disconnect</a>
+                }
+                else if (available.Contains(provider)) {
+                    <form asp-action="ExternalLogin" asp-route-provider="@provider" method="post"><input type="hidden" name="connect" value="true" /><button type="submit" class="btn btn-outline-secondary btn-sm">Connect @provider</button></form>
+                } else { <span class="form-text">Currently unavailable</span> }
+                </div>
+            </div>
         }
+        <div class="form-actions mt-3"><a asp-action="SecurityHistory" class="btn btn-outline-secondary btn-sm">View security activity</a></div>
     </section>
 </div>

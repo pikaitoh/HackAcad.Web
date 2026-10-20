@@ -1,0 +1,62 @@
+@model DisconnectModel
+@{ ViewData["Title"] = "Disconnect " + Model.Provider; Layout = "_ManageAccountLayout"; }
+<div class="account-panel">
+    <div class="page-heading"><div><h1>Disconnect @Model.Provider</h1><p class="text-secondary">Manage how you sign in to HackAcad.</p></div></div>
+    <section class="form-measure" aria-labelledby="disconnect-title">
+        <div class="connected-provider-name mb-3"><partial name="_ProviderMark" model="Model.Provider" /><h2 id="disconnect-title">@Model.Provider account</h2></div>
+        @if (!string.IsNullOrEmpty(Model.Account)) { <p class="text-break">@Model.Account</p> }
+        <p>After disconnecting, you can no longer use this @Model.Provider account to sign in. Your HackAcad profile, role and learning records will stay unchanged.</p>
+        <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+        <form id="disconnect-cancel" asp-action="CancelDisconnect" asp-route-provider="@Model.Provider" method="post" hidden></form>
+        @if (!Model.CanDisconnect) {
+            <p class="field-error" role="status">Keep at least one available sign-in method. Set a HackAcad password or connect another account before disconnecting @Model.Provider.</p>
+            <div class="form-actions"><a asp-action="ChangePassword" class="btn btn-primary">Set a password</a><a asp-action="Settings" class="btn btn-outline-secondary">Back to connected accounts</a></div>
+        } else if (Model.Ready) {
+            <p class="status-label status-active">Verified with @Model.VerifiedMethod</p>
+            @if (Model.VerificationExpiresUtc is { } deadline) {
+                <p class="form-text">Verification complete. Finish disconnecting @Model.Provider before <time datetime="@(DateTime.SpecifyKind(deadline, DateTimeKind.Utc).ToString("O"))">@UserTime.Format(deadline, "HH:mm:ss")</time> (@UserTime.Id).</p>
+            }
+            <form asp-action="Disconnect" asp-route-provider="@Model.Provider" method="post" data-account-form>
+                <div class="form-check mb-4"><input asp-for="Confirm" class="form-check-input" required aria-describedby="Confirm-error" /><label asp-for="Confirm" class="form-check-label">I understand I can no longer sign in with this @Model.Provider account.</label><span id="Confirm-error" asp-validation-for="Confirm" class="field-error" aria-live="polite"></span></div>
+                <p class="form-text">A security notice will be saved and emailed to your HackAcad address. All sessions will end; sign in again with a remaining method.</p>
+                <div class="form-actions"><button type="submit" class="btn btn-danger">Disconnect @Model.Provider</button><button type="submit" form="disconnect-cancel" class="btn btn-outline-secondary">Cancel</button></div>
+            </form>
+        } else if (Model.IdentityVerified) {
+            <p class="status-label status-active">Verified with @Model.VerifiedMethod</p>
+            <h3 class="h6 mt-4">Two-factor authentication</h3>
+            <p class="form-text">Enter your verification code to finish confirming your identity.</p>
+            <form asp-action="VerifyDisconnect" asp-route-provider="@Model.Provider" method="post">
+                <div class="mb-4">
+                    <label asp-for="Code" class="form-label"></label>
+                    <input asp-for="Code" class="form-control" autocomplete="one-time-code" maxlength="32" required autofocus aria-describedby="Code-help Code-error" aria-invalid="@(ViewData.ModelState["Code"]?.Errors.Count > 0 ? "true" : null)" />
+                    <p id="Code-help" class="form-text">@(Model.SmsEnabled ? "Enter the SMS code sent to your verified number, or an unused recovery code. SMS resends have a one-minute limit." : "Enter a current authenticator code or an unused recovery code.")</p>
+                    <span id="Code-error" asp-validation-for="Code" class="field-error" aria-live="polite"></span>
+                </div>
+                <div class="form-actions"><button class="btn btn-primary" type="submit">Verify code</button>
+                @if (Model.SmsEnabled) { <button type="submit" name="sendSms" value="true" formnovalidate class="btn btn-outline-secondary">Resend SMS code</button> }
+                <button type="submit" form="disconnect-cancel" class="btn btn-outline-secondary">Cancel</button></div>
+            </form>
+        } else {
+            <h3 class="h6 mt-4">Verify your identity</h3>
+            <p class="form-text">@(Model.HasPassword
+                ? Model.RemainingProviders.Count > 0
+                    ? $"Enter your HackAcad password, or verify with another connected account, to continue disconnecting {Model.Provider}."
+                    : $"Enter your HackAcad password to continue disconnecting {Model.Provider}."
+                : $"Verify with another connected account to continue disconnecting {Model.Provider}.")</p>
+            @if (Model.HasPassword) {
+                <form asp-action="VerifyDisconnect" asp-route-provider="@Model.Provider" method="post">
+                    <div class="mb-4"><label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" class="form-control" autocomplete="current-password" maxlength="100" required aria-describedby="CurrentPassword-error" aria-invalid="@(ViewData.ModelState["CurrentPassword"]?.Errors.Count > 0 ? "true" : null)" /><span id="CurrentPassword-error" asp-validation-for="CurrentPassword" class="field-error" aria-live="polite"></span></div>
+                    <div class="form-actions"><button type="submit" class="btn btn-primary">Verify password</button><button type="submit" form="disconnect-cancel" class="btn btn-outline-secondary">Cancel</button></div>
+                </form>
+            }
+            @if (Model.RemainingProviders.Count > 0) {
+                <div class="external-login-options mt-4">
+                @foreach (var retained in Model.RemainingProviders) {
+                    <form asp-action="ConfirmDisconnectWithProvider" asp-route-provider="@Model.Provider" asp-route-retainedProvider="@retained" method="post"><button type="submit" class="btn google-login-button"><partial name="_ProviderMark" model="retained" /><span>Verify with @retained</span></button></form>
+                }
+                </div>
+            }
+            @if (!Model.HasPassword) { <button class="btn btn-outline-secondary mt-4" type="submit" form="disconnect-cancel">Cancel</button> }
+        }
+    </section>
+</div>

@@ -1,5 +1,9 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-<rect width="64" height="64" rx="12" fill="#f2fbf7" />
+<style>
+@media (prefers-color-scheme: dark) {
+    :root { --brand-cover: #f2fbf7; --brand-left: #f2fbf7; --brand-right: #b4d5c7; }
+}
+</style>
 <g transform="translate(4 2) scale(.875)">
     <path d="M5 12 10 15v24c0 5 9 11 19 17v5C14 53 5 47 5 38V12Zm54 0-5 3v24c0 5-9 11-19 17v5c15-8 24-14 24-23V12Z" fill="var(--brand-cover, #233f46)" />
     <path d="M10 4c8 2 15 6 19 11v37c-5-5-11-9-19-12V4Zm5 14v18c3 1 6 3 9 5V24c-3-3-6-5-9-6Z" fill="var(--brand-left, #233f46)" fill-rule="evenodd" />

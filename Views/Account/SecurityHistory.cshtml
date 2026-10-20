@@ -1,0 +1,12 @@
+@model AdminActivityModel
+@{ ViewData["Title"] = "Security activity"; Layout = "_ManageAccountLayout"; }
+<div class="account-panel">
+    <div class="page-heading"><div><h1>Security activity</h1><p class="text-secondary">Connected account and email changes. Times shown in @UserTime.Id.</p></div></div>
+    @if (Model.Records.Count == 0) { <div class="empty-state"><h2>No security changes recorded yet</h2><p>Future account connections, disconnections and confirmed email changes will appear here.</p></div> }
+    else {
+        <div class="table-responsive" role="region" aria-label="Your security activity"><table class="table module-table security-activity-table"><caption class="visually-hidden">Security changes to your HackAcad account</caption><thead><tr><th scope="col">Time</th><th scope="col">Change</th><th scope="col">Details</th></tr></thead><tbody>
+        @foreach (var record in Model.Records) { <tr><td>@UserTime.Format(record.OccurredUtc, "dd MMM yyyy, HH:mm:ss")</td><td>@record.Action</td><td>@record.Details</td></tr> }
+        </tbody></table></div>
+        <partial name="_Pagination" model='new PaginationModel(Model.Page, Math.Max(1, (int)Math.Ceiling(Model.Total / 20d)))' />
+    }
+</div>

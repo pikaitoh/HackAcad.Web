@@ -43,7 +43,7 @@ public class UserAccounts(ApplicationDbContext db, UserManager<ApplicationUser> 
         return IdentityResult.Success;
     }
 
-    public async Task<IdentityResult> CreateGoogleAsync(ApplicationUser user, UserLoginInfo login)
+    public async Task<IdentityResult> CreateExternalAsync(ApplicationUser user, UserLoginInfo login)
     {
         await using var transaction = await db.Database.BeginTransactionAsync();
         var result = await users.CreateAsync(user);
@@ -51,6 +51,7 @@ public class UserAccounts(ApplicationDbContext db, UserManager<ApplicationUser> 
         result = await users.AddLoginAsync(user, login);
         if (!result.Succeeded) return result;
         AddRole(user.Id, AccountRoles.Student);
+        records.AddSecurityActivity(user, $"{login.LoginProvider} connected", $"{login.LoginProvider} was connected when you created your HackAcad account.");
         await db.SaveChangesAsync();
         await transaction.CommitAsync();
         return IdentityResult.Success;
@@ -62,7 +63,12 @@ public class UserAccounts(ApplicationDbContext db, UserManager<ApplicationUser> 
         await using var transaction = await db.Database.BeginTransactionAsync();
         var result = await users.ChangeEmailAsync(user, newEmail, token);
         if (result.Succeeded) result = await users.SetUserNameAsync(user, newEmail);
-        if (result.Succeeded) await transaction.CommitAsync();
+        if (result.Succeeded)
+        {
+            records.AddSecurityActivity(user, "Account email changed", $"Your HackAcad email changed to {newEmail}. Existing Google and GitHub connections remain linked.");
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
         else
         {
             await transaction.RollbackAsync();

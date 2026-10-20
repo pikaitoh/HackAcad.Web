@@ -24,6 +24,13 @@ public class AccountRecords(ApplicationDbContext db, IHttpContextAccessor access
         await db.SaveChangesAsync();
     }
 
+    public void AddSecurityActivity(ApplicationUser user, string action, string details)
+    {
+        AddActivity(user.Id, action, "Account security", user.Id, user.DisplayName, details.Length > 512 ? details[..512] : details);
+        db.UserNotifications.Add(new UserNotification { UserId = user.Id, EventKey = "security:" + Guid.NewGuid().ToString("N"),
+            Title = action, Message = details.Length > 400 ? details[..400] : details, Link = "/Identity/Account/SecurityHistory", CreatedUtc = DateTime.UtcNow });
+    }
+
     // Add before the caller's SaveChanges/commit so the action and audit record are atomic.
     public void AddActivity(string actorId, string action, string targetType, string targetId, string targetName, string details = "") =>
         db.AdminActivities.Add(new AdminActivity { ActorUserId = actorId, Action = action,

@@ -57,25 +57,11 @@ public class EmailVerification(UserManager<ApplicationUser> users, IConfiguratio
             message.To.Add(MailboxAddress.Parse(recipient));
             message.Subject = passwordReset ? "Reset your HackAcad password" : changingEmail ? "Confirm your new HackAcad email" : "Verify your HackAcad email";
             var purpose = passwordReset ? "Reset your HackAcad password. This link does not sign you in or turn off two-factor authentication." : changingEmail
-                ? "Confirm this address as your new HackAcad login email. Your current email stays unchanged until you confirm. After confirmation, log in again using this new address."
+                ? "Confirm this address as your new HackAcad login email. Your current email stays unchanged until you confirm. Existing Google and GitHub connections will stay linked. After confirmation, sign in again with your new email and password or a connected account."
                 : "Verify your email to log in to HackAcad.";
             message.Body = new TextPart("plain") { Text = $"{purpose}\n\nOpen this link within 10 minutes:\n{link}\n\nIf you did not request this, you can ignore this email." };
 
-            if (!string.IsNullOrWhiteSpace(pickup))
-            {
-                // Explicit, Development-only mail capture; never expose tokens in a page or log.
-                var directory = Path.GetFullPath(pickup, environment.ContentRootPath);
-                var webRoot = Path.GetFullPath(environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot"));
-                if (directory.Equals(webRoot, StringComparison.OrdinalIgnoreCase)
-                    || directory.StartsWith(webRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
-                    throw new InvalidOperationException("Mail capture must be outside wwwroot.");
-                Directory.CreateDirectory(directory);
-                await message.WriteToAsync(Path.Combine(directory, Guid.NewGuid() + ".eml"));
-                return true;
-            }
-
-            using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            await gmail.SendAsync(message, timeout.Token);
+            await DeliverAsync(message);
             return true;
         }
         catch (Exception error)
@@ -85,5 +71,48 @@ public class EmailVerification(UserManager<ApplicationUser> users, IConfiguratio
             logger.LogWarning("Account email delivery failed ({ErrorType}).", error.GetType().Name);
             return false;
         }
+    }
+
+    public async Task<bool> SendSecurityNoticeAsync(string recipient, string title, string detail)
+    {
+        try
+        {
+            var pickup = environment.IsDevelopment() ? config["Email:DevelopmentPickupDirectory"] : null;
+            if (!MailboxAddress.TryParse(recipient, out var to)) return false;
+            var address = config["Email:GmailAddress"];
+            if (string.IsNullOrWhiteSpace(pickup) && (string.IsNullOrWhiteSpace(address) || !gmail.IsConfigured)) return false;
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress("HackAcad", string.IsNullOrWhiteSpace(pickup) ? address! : "preview@hackacad.local"));
+            message.To.Add(to);
+            message.Subject = "HackAcad security: " + title;
+            message.Body = new TextPart("plain") { Text = $"{detail}\n\nTime (UTC): {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}\n\nIf you did not make this change, sign in using a remaining method, review Devices & sessions, and contact an administrator." };
+            await DeliverAsync(message);
+            return true;
+        }
+        catch (Exception error)
+        {
+            logger.LogWarning("Security notice delivery failed ({ErrorType}).", error.GetType().Name);
+            return false;
+        }
+    }
+
+    private async Task DeliverAsync(MimeMessage message)
+    {
+        var pickup = environment.IsDevelopment() ? config["Email:DevelopmentPickupDirectory"] : null;
+        if (!string.IsNullOrWhiteSpace(pickup))
+        {
+            // Explicit, Development-only mail capture; never expose tokens in a page or log.
+            var directory = Path.GetFullPath(pickup, environment.ContentRootPath);
+            var webRoot = Path.GetFullPath(environment.WebRootPath ?? Path.Combine(environment.ContentRootPath, "wwwroot"));
+            if (directory.Equals(webRoot, StringComparison.OrdinalIgnoreCase)
+                || directory.StartsWith(webRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                throw new InvalidOperationException("Mail capture must be outside wwwroot.");
+            Directory.CreateDirectory(directory);
+            await message.WriteToAsync(Path.Combine(directory, Guid.NewGuid() + ".eml"));
+            return;
+        }
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        await gmail.SendAsync(message, timeout.Token);
     }
 }

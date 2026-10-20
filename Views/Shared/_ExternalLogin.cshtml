@@ -1,0 +1,14 @@
+@model string
+@inject Microsoft.AspNetCore.Identity.SignInManager<ApplicationUser> ExternalSignIn
+@{ var providers = (await ExternalSignIn.GetExternalAuthenticationSchemesAsync()).Where(s => ExternalAuthentication.Providers.Contains(s.Name)).ToList(); }
+@if (providers.Count > 0) {
+    <div class="external-login-options">
+    @foreach (var provider in providers) {
+        <form asp-controller="Account" asp-action="ExternalLogin" asp-route-provider="@provider.Name" method="post">
+            <input type="hidden" name="returnUrl" value="@Model" />
+            <button type="submit" class="btn google-login-button"><partial name="_ProviderMark" model="provider.Name" /><span>Continue with @provider.Name</span></button>
+        </form>
+    }
+    </div>
+    <div class="auth-divider"><span>@(ViewContext.RouteData.Values["action"]?.ToString() == "Login" ? "or use your email or phone" : "or use your email")</span></div>
+}

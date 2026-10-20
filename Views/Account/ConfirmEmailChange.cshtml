@@ -3,7 +3,8 @@
 <div class="container module-shell form-measure">
     @if (Model)
     {
-        <h1>Email changed</h1><p class="text-secondary mb-4">Your new email is verified and ready to use. Log in again with the new address.</p>
+        <h1>Email changed</h1><p class="text-secondary mb-4">Your new email is verified and ready to use. Sign in again with the new address and your password, or an existing connected Google or GitHub account.</p>
+        @if (TempData["Error"] is string error) { <p class="field-error" role="alert">@error</p> }
         <a asp-action="Login" class="btn btn-primary">Log in</a>
     }
     else

@@ -68,7 +68,7 @@ public class PhoneCodeInput
 
 public class AccountSettingsModel
 {
-    public bool GoogleConnected { get; set; }
+    public List<ConnectedAccount> ConnectedAccounts { get; set; } = [];
     public bool TwoFactorEnabled { get; set; }
     public string Email { get; set; } = "";
     public bool EmailConfirmed { get; set; }
@@ -97,7 +97,9 @@ public class ChangePasswordModel
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
     public bool HasPassword { get; set; } = true;
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
-    public bool RecentGoogleLogin { get; set; }
+    public bool RecentExternalLogin { get; set; }
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public List<string> ReauthenticationProviders { get; set; } = [];
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
     public DateTime? LastLoginUtc { get; set; }
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]

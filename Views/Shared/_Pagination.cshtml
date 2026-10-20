@@ -1,0 +1,25 @@
+@model PaginationModel
+@using Microsoft.AspNetCore.WebUtilities
+@using Microsoft.Extensions.Primitives
+@{
+    string PageUrl(int page)
+    {
+        var query = Context.Request.Query.ToDictionary(pair => pair.Key, pair => pair.Value, StringComparer.OrdinalIgnoreCase);
+        query["page"] = new StringValues(page.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        return QueryHelpers.AddQueryString(Context.Request.PathBase + Context.Request.Path, query);
+    }
+    var previous = 0;
+}
+<nav class="pagination-bar" aria-label="@(ViewData["Title"]) pages">
+    <span>Page @Model.Page of @Model.PageCount@if (Model.Suffix is not null) { <text> · @Model.Suffix</text> }</span>
+    <ul class="page-navigation">
+        <li>@if (Model.Page > 1) { <a class="btn btn-outline-secondary btn-sm" href="@PageUrl(Model.Page - 1)" rel="prev">Previous</a> } else { <span class="btn btn-outline-secondary btn-sm" aria-disabled="true">Previous</span> }</li>
+        @foreach (var number in Model.Numbers)
+        {
+            if (number > previous + 1) { <li class="page-ellipsis"><span aria-hidden="true">…</span><span class="visually-hidden">More pages</span></li> }
+            <li>@if (number == Model.Page) { <span class="btn btn-primary btn-sm page-number" aria-current="page" aria-label="Page @number">@number</span> } else { <a class="btn btn-outline-secondary btn-sm page-number" href="@PageUrl(number)" aria-label="Page @number">@number</a> }</li>
+            previous = number;
+        }
+        <li>@if (Model.Page < Model.PageCount) { <a class="btn btn-outline-secondary btn-sm" href="@PageUrl(Model.Page + 1)" rel="next">Next</a> } else { <span class="btn btn-outline-secondary btn-sm" aria-disabled="true">Next</span> }</li>
+    </ul>
+</nav>

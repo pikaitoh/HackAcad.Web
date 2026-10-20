@@ -2,8 +2,8 @@
 @{ Layout = "_AuthLayout"; ViewData["Title"] = "Log in"; }
 <h1 id="auth-title">Welcome back</h1>
 <p class="text-secondary mb-4">Log in to your HackAcad account.</p>
-@if (TempData["GoogleNotice"] is string notice) { <p class="google-notice" role="status">@notice</p> }
-<partial name="_GoogleLogin" model="@(Model.ReturnUrl ?? string.Empty)" />
+@if (TempData["ExternalNotice"] is string notice) { <p class="google-notice" role="status">@notice</p> }
+<partial name="_ExternalLogin" model="@(Model.ReturnUrl ?? string.Empty)" />
 <form asp-action="Login" method="post" data-account-form>
     <input asp-for="ReturnUrl" type="hidden" />
     <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>

@@ -137,6 +137,7 @@ try
         await users.SetLockoutEndDateAsync((await users.FindByEmailAsync(adminEmail))!,null);
     }
     var other=await Google(admin,prefix+".other@gmail.com","other-"+suffix,connect:true);
+    Check(other.Body.Contains("Google account not connected. You selected "+prefix+".other@gmail.com") && other.Body.Contains("but your verified HackAcad email is "+adminEmail) && other.Body.Contains("change and verify your HackAcad email before connecting"), "Google mismatch names both emails and explains recovery");
     using(var scope=factory.Services.CreateScope())
     {
         var users=scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();

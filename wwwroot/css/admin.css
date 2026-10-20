@@ -59,10 +59,11 @@
 
 
 
-/* Keep field tops aligned when a date error wraps; actions have their own row. */
-.login-log-filters { display: grid; grid-template-columns: minmax(12rem, 1.6fr) minmax(8rem, 1fr) repeat(2, minmax(9rem, 1fr)); align-items: start; }
+/* Shared rows keep inputs and actions aligned even when a date error wraps. */
+.login-log-filters { display: grid; grid-template-columns: minmax(10rem, 1.6fr) minmax(7.5rem, 1fr) repeat(2, minmax(8.5rem, 1fr)) max-content; grid-template-rows: auto auto auto; row-gap: 0; align-items: start; }
 .login-log-filters > div, .login-log-filters input { min-width: 0; }
-.login-log-filter-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .75rem; }
+.login-log-filters > div:not(.login-log-filter-actions) { display: grid; grid-template-rows: subgrid; grid-row: 1 / 4; }
+.login-log-filter-actions { grid-row: 2; display: flex; align-items: center; gap: .75rem; }
 
 /* Full-width desktop workspaces share navigation across all authenticated roles. */
 .workspace-area .site-header .container { max-width: none; padding-inline: 2rem; }
@@ -80,3 +81,8 @@
 .workspace-main .application-measure { max-width: 1000px; margin-inline: 0; }
 .workspace-main .admin-content > .form-measure { max-width: 48rem; }
 .workspace-main .module-shell { padding-block: 0; }
+
+.page-navigation { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.page-navigation .page-number { min-width: 2.25rem; padding-inline: .75rem; }
+.page-navigation [aria-disabled="true"] { opacity: .5; cursor: default; }
+.page-ellipsis { padding-inline: .25rem; }

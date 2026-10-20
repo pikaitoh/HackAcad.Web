@@ -17,7 +17,8 @@
             <label asp-for="CurrentPassword" class="form-label"></label><input asp-for="CurrentPassword" autocomplete="current-password" class="form-control" required aria-invalid="@(ViewData.ModelState["CurrentPassword"]?.Errors.Count > 0 ? "true" : null)" aria-describedby="CurrentPassword-error" />
             <span id="CurrentPassword-error" asp-validation-for="CurrentPassword" class="field-error" aria-live="polite"></span>
         </div>
-        <p class="form-text mb-4">Keep using your current email until you confirm the new address. After confirmation, all sessions will end and you'll log in again with the new email.</p>
+        <p class="form-text mb-4">Keep using your current email until you confirm the new address. After confirmation, all sessions will end. Sign in again with the new email and your password, or an existing connected Google or GitHub account.</p>
+        <p class="form-text mb-4">Changing your HackAcad email does not change or disconnect your Google or GitHub account. Security notices will be sent to your old and new email addresses.</p>
         <div class="form-actions"><button type="submit" class="btn btn-primary">Send confirmation link</button><a asp-action="Settings" class="btn btn-outline-secondary">Cancel</a></div>
     </form>
 </div>
