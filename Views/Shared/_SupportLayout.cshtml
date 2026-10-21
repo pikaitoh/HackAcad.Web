@@ -1,6 +1,4 @@
-@using Microsoft.AspNetCore.Authentication
-@{ Layout = "_Layout"; ViewData["SupportArea"] = true; ViewData["StatusMessageHandled"] = true;
-   ViewData["SupportHasApplication"] = (await Context.AuthenticateAsync(Microsoft.AspNetCore.Identity.IdentityConstants.ApplicationScheme)).Succeeded; }
+@{ Layout = "_Layout"; ViewData["SupportArea"] = true; ViewData["StatusMessageHandled"] = true; }
 <div class="container support-measure">
     <partial name="_StatusMessage" />
     @if (TempData["SupportNotice"] is string notice) { <p class="alert alert-info" role="status">@notice</p> }

@@ -1,6 +1,6 @@
 @model HeaderToolsModel
-@{ var admin = User.IsInRole(AccountRoles.Admin); var instructor = User.IsInRole(AccountRoles.Instructor); var controller = ViewContext.RouteData.Values["controller"]?.ToString(); }
-@if (ViewData["PageClass"] as string != "workspace-area" && (controller is "Education" or "Notifications" || controller == "Account" && ViewContext.RouteData.Values["action"]?.ToString() != "Dashboard")) {
+@{ var headerUser = ViewData["HeaderUser"] as System.Security.Claims.ClaimsPrincipal ?? User; var admin = headerUser.IsInRole(AccountRoles.Admin); var instructor = headerUser.IsInRole(AccountRoles.Instructor); var controller = ViewContext.RouteData.Values["controller"]?.ToString(); }
+@if (ViewData["PageClass"] as string != "workspace-area" && (controller is "Education" or "Notifications" or "Support" || controller == "Account" && ViewContext.RouteData.Values["action"]?.ToString() != "Dashboard")) {
 <a class="nav-link workspace-return" asp-controller="@(admin ? "Admin" : instructor ? "InstructorCourses" : "Account")" asp-action="@(admin || instructor ? "Index" : "Dashboard")">@(admin ? "Admin Dashboard" : instructor ? "Instructor Studio" : "Dashboard")</a>
 }
 <partial name="_Appearance" model="Model.Appearance" />

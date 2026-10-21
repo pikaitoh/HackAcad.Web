@@ -7,9 +7,11 @@ using Microsoft.EntityFrameworkCore;
 namespace HackAcad.Web.ViewComponents;
 public class HeaderToolsViewComponent(ApplicationDbContext db, Personalization personalization) : ViewComponent
 {
-    public async Task<IViewComponentResult> InvokeAsync()
+    public async Task<IViewComponentResult> InvokeAsync(ClaimsPrincipal? principal = null)
     {
-        var id = HttpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        principal ??= HttpContext.User;
+        ViewData["HeaderUser"] = principal;
+        var id = principal.FindFirstValue(ClaimTypes.NameIdentifier)!;
         await personalization.SyncRewards(id);
         var user = await db.Users.AsNoTracking().Where(u => u.Id == id).Select(u => new { u.DisplayName, u.Appearance }).SingleAsync();
         var query = db.UserNotifications.AsNoTracking().Where(n => n.UserId == id);

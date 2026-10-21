@@ -1,8 +1,20 @@
 @inject HackAcad.Web.Data.ApplicationDbContext HeaderDb
 @using Microsoft.EntityFrameworkCore
 @using System.Security.Claims
-@{ var savedAppearance = User.Identity?.IsAuthenticated == true ? await HeaderDb.Users.Where(u => u.Id == User.FindFirstValue(ClaimTypes.NameIdentifier)).Select(u => u.Appearance).FirstOrDefaultAsync() ?? "system" : "guest"; }
-@{ var signedIn = User.Identity?.IsAuthenticated == true && ViewData["SupportArea"] as bool? != true; var isAdmin = User.IsInRole(AccountRoles.Admin); }
+@using Microsoft.AspNetCore.Authentication
+@{
+    var supportArea = ViewData["SupportArea"] as bool? == true;
+    var headerUser = supportArea
+        ? (await Context.AuthenticateAsync(Microsoft.AspNetCore.Identity.IdentityConstants.ApplicationScheme)).Principal ?? new ClaimsPrincipal()
+        : User;
+    // Display application controls only for the same account as the support conversation.
+    var supportIdentity = User.Identities.FirstOrDefault(i => i.AuthenticationType == SupportAccessService.Scheme);
+    if (supportArea && supportIdentity is not null && supportIdentity.FindFirst(ClaimTypes.NameIdentifier)?.Value != headerUser.FindFirstValue(ClaimTypes.NameIdentifier)) headerUser = new ClaimsPrincipal();
+    ViewData["HeaderUser"] = headerUser;
+    var signedIn = headerUser.Identity?.IsAuthenticated == true;
+    var isAdmin = headerUser.IsInRole(AccountRoles.Admin);
+    var savedAppearance = signedIn ? await HeaderDb.Users.Where(u => u.Id == headerUser.FindFirstValue(ClaimTypes.NameIdentifier)).Select(u => u.Appearance).FirstOrDefaultAsync() ?? "system" : "guest";
+}
 <!DOCTYPE html>
 <html lang="en" data-appearance="@savedAppearance">
 <head>
@@ -29,11 +41,11 @@
                 <a class="navbar-brand" asp-controller="@(signedIn ? (isAdmin ? "Admin" : "Account") : "Home")" asp-action="@(signedIn && !isAdmin ? "Dashboard" : "Index")" aria-label="@(signedIn ? "HackAcad dashboard" : "HackAcad home")"><partial name="_Brand" /></a>
                 @if (signedIn)
                 {
-                    <div class="navbar-nav site-account-nav signed-in-nav" id="site-navigation">@await Component.InvokeAsync("HeaderTools")<partial name="_LoginPartial" /></div>
+                    <div class="navbar-nav site-account-nav signed-in-nav" id="site-navigation">@await Component.InvokeAsync("HeaderTools", new { principal = headerUser })<partial name="_LoginPartial" /></div>
                 }
                 else
                 {
-                    <div class="d-flex flex-grow-1 justify-content-end" id="site-navigation"><div class="navbar-nav align-items-center site-account-nav"><partial name="_Appearance" model='@("guest")' />@if (ViewData["SupportArea"] as bool? == true) { @if (ViewData["SupportHasApplication"] as bool? == true) { <a asp-controller="Account" asp-action="Dashboard" class="nav-link">Back to dashboard</a> } else { <a asp-controller="Account" asp-action="Login" class="nav-link">Log in</a> } } else { <partial name="_LoginPartial" /> }</div></div>
+                    <div class="d-flex flex-grow-1 justify-content-end" id="site-navigation"><div class="navbar-nav align-items-center site-account-nav"><partial name="_Appearance" model='@("guest")' />@if (supportArea) { <a asp-controller="Account" asp-action="Login" class="nav-link">Log in</a> } else { <partial name="_LoginPartial" /> }</div></div>
                 }
             </div>
         </nav>

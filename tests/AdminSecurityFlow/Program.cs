@@ -210,6 +210,33 @@ try {
  using var activeSupport=Client();await Login(activeSupport,modalUser);var mailCount=Mails().Count();var activeOpened=await Follow(activeSupport,await activeSupport.GetAsync("/Support"));
  Check(activeOpened.Path=="/Support/Requests" && Mails().Count()==mailCount,"active signed-in users enter their own support area without a mailbox link");
  Check(!activeOpened.Body.Contains("pagination-bar") && !activeOpened.Body.Contains("<table"),"empty personal request list uses an empty state without a pager");
+ string Header(string html) => Regex.Match(html,"<header.*?</header>",RegexOptions.Singleline).Value;
+ foreach(var role in new[]{AccountRoles.Student,AccountRoles.Instructor}) {
+     var member=await UserFixture("header-"+role.ToLowerInvariant(),role);using var memberClient=Client();await Login(memberClient,member);
+     using(var scope=factory.Services.CreateScope()) {var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();db.UserNotifications.Add(new UserNotification {UserId=member.Id,EventKey=prefix+".header."+role,Title="Header notification "+role,Message="Only this account should see this notice.",Link=account+"Settings",CreatedUtc=clock.GetUtcNow().UtcDateTime});await db.SaveChangesAsync();}
+     var requests=await Follow(memberClient,await memberClient.GetAsync("/Support"));var header=Header(requests.Body);
+     Check(requests.Path=="/Support/Requests" && header.Contains("Open account menu") && header.Contains("account-avatar") && header.Contains("Notifications: 1 unread") && header.Contains("Header notification "+role),role+" support list retains avatar, account name and own notifications");
+     Check(header.Contains(role+" account") && header.Contains("Saved courses") && header.Contains(role==AccountRoles.Instructor?"Instructor Studio":"Dashboard"),role+" support header retains role-aware account menu and dashboard return");
+     Check(Header(await Html(memberClient,"/Support/Create")).Contains("Open account menu"),role+" new support request retains the signed-in header");
+     var conversation=await Follow(memberClient,await Post(memberClient,"/Support/Create",new(){{"Category",SupportCategory.SignIn},{"Subject","Header check "+role},{"Body","A disposable request to verify the shared support header."}}));
+     Check(conversation.Path.StartsWith("/Support/Thread/") && Header(conversation.Body).Contains("Notifications: 1 unread"),role+" conversation retains header and support CSRF submission works");
+     if(role==AccountRoles.Student) {
+         var logout=await Post(memberClient,account+"Logout",new(),"/Support/Requests");
+         Check(logout.StatusCode==HttpStatusCode.Redirect,"signed-in support header logout form passes application CSRF validation");
+         var supportOnly=Header(await Html(memberClient,"/Support/Requests"));
+         Check(!supportOnly.Contains("Open account menu") && !supportOnly.Contains("Notifications:") && supportOnly.Contains(">Log in</a>"),"remaining support-only session does not display website account controls after logout");
+         Check((await memberClient.GetAsync(account+"Settings")).StatusCode==HttpStatusCode.Redirect,"support-only access after logout cannot enter account settings");
+         await Login(memberClient,other);
+         Check(!Header(await Html(memberClient,"/Support/Requests")).Contains("Open account menu"),"different application and support accounts are never combined in one header");
+         Check((await Html(memberClient,conversation.Path)).Contains("Header check "+role),"header identity selection does not change the support conversation owner");
+     }
+ }
+ using(var mailboxOnly=Client()) {
+     var mailboxMember=await UserFixture("header-mailbox-only");await OpenSupport(mailboxOnly,mailboxMember);
+     var header=Header(await Html(mailboxOnly,"/Support/Requests"));
+     Check(!header.Contains("Open account menu") && !header.Contains("Notifications:") && header.Contains(">Log in</a>"),"active mailbox-only support access also retains the simplified header");
+ }
+
  var createHtml=await Html(activeSupport,"/Support/Create");Check(createHtml.Contains("<option selected=\"selected\">Sign-in issue</option>"),"active support request defaults to sign-in issue");Check(!createHtml.Contains("<option>"+SupportCategory.Appeal),"active users do not see the suspension appeal option");
  var appeal=await Post(activeSupport,"/Support/Create",new(){{"Category",SupportCategory.Appeal},{"Subject","Forged suspension appeal"},{"Body","I am attempting a suspension appeal while active."}});
  Check(appeal.StatusCode==HttpStatusCode.OK && (await appeal.Content.ReadAsStringAsync()).Contains("Only a currently disabled"),"server rejects a forged suspension appeal from an active user");
