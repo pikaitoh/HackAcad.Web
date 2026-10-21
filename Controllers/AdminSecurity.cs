@@ -159,7 +159,7 @@ public partial class AdminController
     {
         if (!ModelState.IsValid || id == users.GetUserId(User)) return BadRequest("You cannot change your own administrative access. Provide a reason for another administrator's change.");
         await using var transaction = await db.Database.BeginTransactionAsync();
-        var admins = await db.Admins.FromSqlRaw("SELECT * FROM Admins FOR UPDATE").ToListAsync();
+        var admins = await db.Admins.FromSqlRaw("SELECT * FROM `admins` FOR UPDATE").ToListAsync();
         var actorId = users.GetUserId(User)!; var actorStamp = User.FindFirst("AspNet.Identity.SecurityStamp")?.Value;
         if (!admins.Any(a => a.UserId == actorId && !a.IsReadOnly)
             || !await db.Users.AsNoTracking().AnyAsync(u => u.Id == actorId && !u.IsDisabled && u.EmailConfirmed && u.TwoFactorEnabled && u.SecurityStamp == actorStamp)) return Forbid();

@@ -84,7 +84,7 @@ public class SupportController(ApplicationDbContext db, SupportAccessService acc
         if (!ModelState.IsValid) return View(input);
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!; var now = clock.GetUtcNow().UtcDateTime;
         await using var transaction = await db.Database.BeginTransactionAsync();
-        var user = (await db.Users.FromSqlInterpolated($"SELECT * FROM AspNetUsers WHERE Id={userId} FOR UPDATE").ToListAsync()).Single();
+        var user = (await db.Users.FromSqlInterpolated($"SELECT * FROM `users` WHERE Id={userId} FOR UPDATE").ToListAsync()).Single();
         if (user.SecurityStamp != User.FindFirstValue("support:stamp")) return Forbid();
         if (input.Category == SupportCategory.Appeal && !user.IsDisabled) {
             ViewData["CanAppeal"] = false;
@@ -124,9 +124,9 @@ public class SupportController(ApplicationDbContext db, SupportAccessService acc
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!; var now = clock.GetUtcNow().UtcDateTime;
         await using var transaction = await db.Database.BeginTransactionAsync();
-        var owner = (await db.Users.FromSqlInterpolated($"SELECT * FROM AspNetUsers WHERE Id={userId} FOR UPDATE").ToListAsync()).SingleOrDefault();
+        var owner = (await db.Users.FromSqlInterpolated($"SELECT * FROM `users` WHERE Id={userId} FOR UPDATE").ToListAsync()).SingleOrDefault();
         if (owner is null || owner.SecurityStamp != User.FindFirstValue("support:stamp")) return Forbid(SupportAccessService.Scheme);
-        var ticket = (await db.SupportTickets.FromSqlInterpolated($"SELECT * FROM SupportTickets WHERE Id={id} AND UserId={userId} FOR UPDATE").ToListAsync()).SingleOrDefault();
+        var ticket = (await db.SupportTickets.FromSqlInterpolated($"SELECT * FROM `support_tickets` WHERE Id={id} AND UserId={userId} FOR UPDATE").ToListAsync()).SingleOrDefault();
         if (ticket is null) return NotFound();
         if (ticket.Status == "Resolved") {
             var open = await db.SupportTickets.AsNoTracking().FirstOrDefaultAsync(t => t.UserId == userId && t.Id != id && t.Status != "Resolved");

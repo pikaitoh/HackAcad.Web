@@ -17,11 +17,12 @@
             <thead><tr><th>Time</th><th>Performed by</th><th>Action</th><th>Target</th><th>Summary and details</th></tr></thead>
             <tbody>@foreach (var record in Model.Records) {
                 var changes = AuditPresentation.Changes(record.Before, record.After).ToList();
+                var targetName = AuditPresentation.TargetName(record, Model.UserNames);
                 <tr>
                     <td>@UserTime.Format(record.OccurredUtc, "dd MMM yyyy")<span class="record-secondary">@UserTime.Format(record.OccurredUtc, "HH:mm:ss")</span></td>
-                    <td>@(record.ActorUserId is { } actor && Model.Actors.TryGetValue(actor, out var name) ? name : "Former user")</td>
+                    <td>@(record.ActorUserId is { } actor && Model.UserNames.TryGetValue(actor, out var name) ? name : "Former user")</td>
                     <td>@record.Action</td>
-                    <td>@AuditPresentation.Recorded(record.TargetName)<span class="record-secondary">@AuditPresentation.Recorded(record.TargetType)</span></td>
+                    <td>@targetName<span class="record-secondary">@AuditPresentation.Recorded(record.TargetType)</span></td>
                     <td><p class="audit-summary">@AuditPresentation.Summary(record)</p>
                         <button type="button" class="audit-toggle" data-audit-toggle aria-expanded="false" aria-controls="audit-event-@record.Id">View details<span class="visually-hidden"> for event @record.Id</span></button>
                     </td>
@@ -33,6 +34,7 @@
                                 @if (changes.Count == 0) { <p class="text-secondary">Not recorded</p> }
                                 else { <table class="table audit-changes"><caption class="visually-hidden">Values before and after this event</caption><thead><tr><th>Field</th><th>Before</th><th>After</th></tr></thead><tbody>@foreach (var change in changes) { <tr><th scope="row">@change.Field</th><td class="preserve-lines">@change.Before</td><td class="preserve-lines">@change.After</td></tr> }</tbody></table> }
                                 <dl class="audit-metadata">
+                                    @if (targetName != AuditPresentation.Recorded(record.TargetName)) { <dt>Target name at event</dt><dd>@AuditPresentation.Recorded(record.TargetName)</dd> }
                                     <dt>Result</dt><dd>@AuditPresentation.Recorded(record.Result)</dd><dt>IP address</dt><dd>@AuditPresentation.Recorded(record.IpAddress)</dd>
                                     <dt>Device</dt><dd>@AuditPresentation.Recorded(record.Device)</dd><dt>Performed by ID</dt><dd>@AuditPresentation.Recorded(record.ActorUserId)</dd>
                                     <dt>Target ID</dt><dd>@AuditPresentation.Recorded(record.TargetId)</dd><dt>Event ID</dt><dd>@record.Id</dd>

@@ -5,6 +5,12 @@ namespace HackAcad.Web.Models.ViewModels;
 
 public static class AuditPresentation
 {
+    public static readonly string[] AccountTargetTypes = ["User", "Account security", "Admin security"];
+
+    public static string TargetName(HackAcad.Web.Models.Entities.AdminActivity record, IReadOnlyDictionary<string, string> userNames) =>
+        AccountTargetTypes.Contains(record.TargetType) && userNames.TryGetValue(record.TargetId, out var name)
+            ? name : Recorded(record.TargetName);
+
     public static string Summary(HackAcad.Web.Models.Entities.AdminActivity record)
     {
         if (record.Action == "Reviewed Instructor application") {

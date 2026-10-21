@@ -86,7 +86,7 @@ try
     Check((await Follow(unverifiedOwner, await unverifiedOwner.GetAsync(account + "PhoneNumber"))).Body.Contains("Your phone number"), "the SMS setup entry opens the existing phone settings page");
     var disabled = await Fixture("disabled", disabled: true);
     var disabledLogin = await Login(Client(), disabled.Phone);
-    Check(disabledLogin.Path.EndsWith("Login") && disabledLogin.Body.Contains("This account has been disabled"), "a disabled account cannot log in by phone and is directed to support");
+    Check(disabledLogin.Path.EndsWith("Login") && disabledLogin.Body.Contains("Your HackAcad account has been disabled") && disabledLogin.Body.Contains("Contact support"), "a disabled account cannot log in by phone and is directed to support");
     using (var scope = factory.Services.CreateScope())
     {
         var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();

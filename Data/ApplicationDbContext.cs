@@ -1,19 +1,19 @@
 using HackAcad.Web.Models.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace HackAcad.Web.Data;
 
-public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
+public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
     }
 
-    // Role tables (v3.0) — the single source of truth for role membership.
-    // AspNetRoles/AspNetUserRoles still exist (from IdentityDbContext) but are
-    // intentionally left unused. See Database_Schema.md v3.0.
+    // Role membership lives only in these business tables; Identity stores users,
+    // claims, external logins and MFA tokens without a second role schema.
     public DbSet<Student> Students => Set<Student>();
     public DbSet<Instructor> Instructors => Set<Instructor>();
     public DbSet<Admin> Admins => Set<Admin>();
@@ -44,6 +44,35 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+        // Explicit table names keep Identity and application tables in snake_case.
+        builder.Entity<ApplicationUser>().ToTable("users");
+        builder.Entity<IdentityUserClaim<string>>().ToTable("user_claims");
+        builder.Entity<IdentityUserLogin<string>>().ToTable("user_logins");
+        builder.Entity<IdentityUserToken<string>>().ToTable("user_tokens");
+        builder.Entity<Student>().ToTable("students");
+        builder.Entity<Instructor>().ToTable("instructors");
+        builder.Entity<Admin>().ToTable("admins");
+        builder.Entity<Course>().ToTable("courses");
+        builder.Entity<Lesson>().ToTable("lessons");
+        builder.Entity<Enrollment>().ToTable("enrollments");
+        builder.Entity<SavedCourse>().ToTable("saved_courses");
+        builder.Entity<Progress>().ToTable("progress_records");
+        builder.Entity<Challenge>().ToTable("challenges");
+        builder.Entity<ChallengeSubmission>().ToTable("challenge_submissions");
+        builder.Entity<SimulationTask>().ToTable("simulation_tasks");
+        builder.Entity<LoginRecord>().ToTable("login_records");
+        builder.Entity<AdminActivity>().ToTable("admin_activities");
+        builder.Entity<AccountSession>().ToTable("account_sessions");
+        builder.Entity<InstructorApplication>().ToTable("instructor_applications");
+        builder.Entity<InstructorReview>().ToTable("instructor_reviews");
+        builder.Entity<UserNotification>().ToTable("user_notifications");
+        builder.Entity<BannerReward>().ToTable("banner_rewards");
+        builder.Entity<SecurityEvent>().ToTable("security_events");
+        builder.Entity<SecurityAlert>().ToTable("security_alerts");
+        builder.Entity<SupportAccess>().ToTable("support_accesses");
+        builder.Entity<SupportTicket>().ToTable("support_tickets");
+        builder.Entity<SupportMessage>().ToTable("support_messages");
+
         builder.Entity<AdminActivity>().Property(a => a.Before).HasColumnType("text");
         builder.Entity<AdminActivity>().Property(a => a.After).HasColumnType("text");
         builder.Entity<SecurityEvent>().HasIndex(e => new { e.IpAddress, e.OccurredUtc });
@@ -86,7 +115,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         builder.Entity<InstructorReview>().Property(r => r.VerifiedYears).HasPrecision(5, 2);
         builder.Entity<InstructorReview>().HasOne<InstructorApplication>().WithMany().HasForeignKey(r => r.ApplicationId).OnDelete(DeleteBehavior.Restrict);
 
-        // --- Role tables: UserId is PK and FK to AspNetUsers in one step ---
+        // --- Role tables: UserId is PK and FK to users in one step ---
         builder.Entity<Student>()
             .HasOne(s => s.User)
             .WithMany()
@@ -105,7 +134,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             .HasForeignKey(a => a.UserId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // --- Courses: InstructorId points at Instructors, not AspNetUsers directly ---
+        // --- Courses: InstructorId points at Instructors, not users directly ---
         builder.Entity<Course>()
             .HasOne<Instructor>()
             .WithMany()

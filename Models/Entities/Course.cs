@@ -20,7 +20,7 @@ public class Course
 
     public bool IsPublished { get; set; }
 
-    // FK points at Instructors.UserId, not AspNetUsers.Id directly — the
+    // FK points at Instructors.UserId, not users.Id directly — the
     // database itself refuses to let a non-Instructor own a course.
     // See Database_Schema.md v3.0.
     [Required]

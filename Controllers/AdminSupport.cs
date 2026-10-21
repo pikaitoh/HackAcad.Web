@@ -48,7 +48,7 @@ public partial class AdminController
     public async Task<IActionResult> SupportReply(long id, SupportMessageInput input, [FromServices] EmailVerification email)
     {
         await using var transaction = await db.Database.BeginTransactionAsync();
-        var ticket = (await db.SupportTickets.FromSqlInterpolated($"SELECT * FROM SupportTickets WHERE Id={id} FOR UPDATE").ToListAsync()).SingleOrDefault();
+        var ticket = (await db.SupportTickets.FromSqlInterpolated($"SELECT * FROM `support_tickets` WHERE Id={id} FOR UPDATE").ToListAsync()).SingleOrDefault();
         if (ticket is null) return NotFound();
         if (input.Version != ticket.Version) return Conflict("This conversation changed. Reload before replying.");
         if (input.Status is not ("Awaiting admin" or "Awaiting user" or "Resolved")) ModelState.AddModelError("Status", "Choose a valid request status.");

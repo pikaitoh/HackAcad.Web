@@ -19,7 +19,7 @@ public class SupportAccessService(ApplicationDbContext db, UserManager<Applicati
         var now = clock.GetUtcNow().UtcDateTime;
         string token;
         await using (var transaction = await db.Database.BeginTransactionAsync()) {
-            await db.Users.FromSqlInterpolated($"SELECT * FROM AspNetUsers WHERE Id={user.Id} FOR UPDATE").ToListAsync();
+            await db.Users.FromSqlInterpolated($"SELECT * FROM `users` WHERE Id={user.Id} FOR UPDATE").ToListAsync();
             await db.Entry(user).ReloadAsync();
             if (await db.SupportAccesses.AnyAsync(a => a.UserId == user.Id && a.CreatedUtc > now.AddMinutes(-1))) return;
             token = Convert.ToHexString(RandomNumberGenerator.GetBytes(32));
@@ -37,7 +37,7 @@ public class SupportAccessService(ApplicationDbContext db, UserManager<Applicati
         await using var transaction = await db.Database.BeginTransactionAsync();
         var access = await db.SupportAccesses.AsNoTracking().SingleOrDefaultAsync(a => a.TokenHash == hash && a.ConsumedUtc == null && a.ExpiresUtc > now);
         if (access is null) return null;
-        await db.Users.FromSqlInterpolated($"SELECT * FROM AspNetUsers WHERE Id={access.UserId} FOR UPDATE").ToListAsync();
+        await db.Users.FromSqlInterpolated($"SELECT * FROM `users` WHERE Id={access.UserId} FOR UPDATE").ToListAsync();
         var user = await users.FindByIdAsync(access.UserId);
         if (user is null || user.SecurityStamp != access.Stamp) return null;
         var used = await db.SupportAccesses.Where(a => a.Id == access.Id && a.ConsumedUtc == null && a.ExpiresUtc > now)

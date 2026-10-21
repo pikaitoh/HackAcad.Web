@@ -10,7 +10,7 @@ public class Personalization(ApplicationDbContext db, TimeProvider clock)
     {
         var now = clock.GetUtcNow().UtcDateTime;
         // The unique recipient/event key makes retries and concurrent tabs idempotent.
-        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO UserNotifications (UserId, EventKey, Title, Message, Link, CreatedUtc) VALUES ({userId}, {key}, {title}, {message}, {link}, {now}) ON DUPLICATE KEY UPDATE Id = Id");
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO `user_notifications` (UserId, EventKey, Title, Message, Link, CreatedUtc) VALUES ({userId}, {key}, {title}, {message}, {link}, {now}) ON DUPLICATE KEY UPDATE Id = Id");
     }
     public async Task NotifyAdmins(long applicationId, string applicant, bool revised)
     {
@@ -38,7 +38,7 @@ public class Personalization(ApplicationDbContext db, TimeProvider clock)
             var theme = ThemeFor(item.Category ?? item.Title);
             var title = item.Title.Length > 150 ? item.Title[..150] : item.Title;
             var now = clock.GetUtcNow().UtcDateTime;
-            await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO BannerRewards (UserId, CourseId, CourseTitle, Theme, UnlockedUtc) VALUES ({userId}, {item.CourseId}, {title}, {theme}, {now}) ON DUPLICATE KEY UPDATE Id = Id");
+            await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO `banner_rewards` (UserId, CourseId, CourseTitle, Theme, UnlockedUtc) VALUES ({userId}, {item.CourseId}, {title}, {theme}, {now}) ON DUPLICATE KEY UPDATE Id = Id");
             await Notify(userId, $"banner:{item.CourseId}", "New profile banner unlocked", $"You completed {title}. Choose your reward in My profile.", "/Identity/Account/Profile#profile-banners");
         }
     }

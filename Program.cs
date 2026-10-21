@@ -35,9 +35,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 });
 
 // --- Identity: password and external sign-in. Roles live in Students/Instructors/Admins,
-// not AspNetRoles — see Data/RoleClaimsTransformation.cs and Database_Schema.md v3.0. ---
+// resolved on each request by Data/RoleClaimsTransformation.cs. ---
 builder.Services
-    .AddIdentity<ApplicationUser, IdentityRole>(options =>
+    .AddIdentityCore<ApplicationUser>(options =>
     {
         options.SignIn.RequireConfirmedEmail = true;
         options.User.RequireUniqueEmail = true;
@@ -48,7 +48,15 @@ builder.Services
         options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
     })
     .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddSignInManager()
     .AddDefaultTokenProviders();
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+}).AddIdentityCookies();
 
 // Each provider is enabled only when its local OAuth credentials are configured.
 builder.Services.AddHackAcadExternalAuthentication(builder.Configuration);

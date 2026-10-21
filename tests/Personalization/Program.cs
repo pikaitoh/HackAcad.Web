@@ -19,6 +19,8 @@ Check(InstructorApplications.TeachingDays([new(){StartDate=today.AddYears(-3)},n
 Check(InstructorApplications.TeachingDays([new(){StartDate=today.AddYears(-5)}],today)>=InstructorApplications.MinimumDays(today),"exact five-year ongoing history meets the date threshold");
 await using var factory=new WebApplicationFactory<AccountController>();
 var prefix="personalize."+Guid.NewGuid().ToString("N")[..8];const string password="HackAcad@123!";
+var adminCodes = new Dictionary<string,Queue<string>>();
+var signedInAdmins = new Dictionary<HttpClient,string>();
 HttpClient Client()=>factory.CreateClient(new WebApplicationFactoryClientOptions{AllowAutoRedirect=false,BaseAddress=new Uri("https://localhost")});
 Dictionary<string,string> Fields(params string[] pairs)=>Enumerable.Range(0,pairs.Length/2).ToDictionary(i=>pairs[i*2],i=>pairs[i*2+1]);
 async Task<string> Token(HttpClient c,string path="/Identity/Account/Profile")
@@ -27,13 +29,26 @@ async Task<string> Token(HttpClient c,string path="/Identity/Account/Profile")
  if(token.Length==0)throw new Exception("No CSRF token: "+path);return WebUtility.HtmlDecode(token);
 }
 async Task<HttpResponseMessage> Post(HttpClient c,string path,Dictionary<string,string> fields,string tokenPage="/Identity/Account/Profile")
-{fields["__RequestVerificationToken"]=await Token(c,tokenPage);return await c.PostAsync(path,new FormUrlEncodedContent(fields));}
+{fields["__RequestVerificationToken"]=await Token(c,tokenPage);var response=await c.PostAsync(path,new FormUrlEncodedContent(fields));
+ if(response.Headers.Location?.ToString().StartsWith("/Admin/Verify?ticket=")==true && signedInAdmins.TryGetValue(c,out var email)) {
+  var location=response.Headers.Location.ToString();var html=await c.GetStringAsync(location);
+  var ticket=WebUtility.HtmlDecode(Regex.Match(html,"name=\"Ticket\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
+  var verify=await Post(c,"/Admin/Verify",Fields("Ticket",ticket,"CurrentPassword",password,"Code",adminCodes[email].Dequeue()),location);
+  if(verify.StatusCode!=HttpStatusCode.OK)throw new Exception("Admin step-up failed");
+  var resume=Regex.Match(await verify.Content.ReadAsStringAsync(),"<form id=\"admin-resume-form\".*?</form>",RegexOptions.Singleline).Value;
+  var inputs=Regex.Matches(resume,"name=\"([^\"]+)\"[^>]*value=\"([^\"]*)\"").Select(m=>new KeyValuePair<string,string>(WebUtility.HtmlDecode(m.Groups[1].Value),WebUtility.HtmlDecode(m.Groups[2].Value)));
+  response=await c.PostAsync(path,new FormUrlEncodedContent(inputs));
+ }return response;}
 async Task<(string Id,string Email)> Fixture(string label,string role)
 {
  using var scope=factory.Services.CreateScope();var user=new ApplicationUser{Email=prefix+"."+label+"@hackacad.local",UserName=prefix+"."+label+"@hackacad.local",DisplayName="Workflow "+label,EmailConfirmed=true};
- if(!(await scope.ServiceProvider.GetRequiredService<UserAccounts>().CreateAsync(user,password,role)).Succeeded)throw new Exception("Fixture failed");return(user.Id,user.Email);
+ if(!(await scope.ServiceProvider.GetRequiredService<UserAccounts>().CreateAsync(user,password,role)).Succeeded)throw new Exception("Fixture failed");
+ if(role==AccountRoles.Admin) { var manager=scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();await manager.ResetAuthenticatorKeyAsync(user);await manager.SetTwoFactorEnabledAsync(user,true);adminCodes[user.Email!]=new Queue<string>((await manager.GenerateNewTwoFactorRecoveryCodesAsync(user,50))!); }
+return(user.Id,user.Email);
 }
-async Task Login(HttpClient c,string email){var response=await Post(c,"/Identity/Account/Login",Fields("Email",email,"Password",password),"/Identity/Account/Login");Check(response.StatusCode==HttpStatusCode.Redirect,"account signs in normally");}
+async Task Login(HttpClient c,string email){var response=await Post(c,"/Identity/Account/Login",Fields("Email",email,"Password",password),"/Identity/Account/Login");Check(response.StatusCode==HttpStatusCode.Redirect,"account signs in normally");
+ if(adminCodes.TryGetValue(email,out var recovery)) { signedInAdmins[c]=email;var complete=await Post(c,"/Identity/Account/LoginRecoveryCode",Fields("Code",recovery.Dequeue()),"/Identity/Account/LoginRecoveryCode");Check(complete.StatusCode==HttpStatusCode.Redirect,"Admin fixture completes mandatory MFA"); }
+}
 async Task<HttpResponseMessage> Submit(HttpClient c,int years=6,bool invalidPdf=false,string note="",string fullName="Instructor Applicant",string topics="Cybersecurity and Linux",string subjects="Computer science and security",string email="applicant@example.edu")
 {
  using var form=new MultipartFormDataContent();
@@ -127,7 +142,7 @@ try
  using(var scope=factory.Services.CreateScope())
  {
   var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-  auditBefore=await db.AdminActivities.CountAsync(x=>x.ActorUserId==admin.Id);
+  auditBefore=await db.AdminActivities.CountAsync(x=>x.ActorUserId==admin.Id && x.Action=="Updated course");
   noticesBefore=await db.UserNotifications.CountAsync(x=>x.UserId==instructor.Id);
  }
  var noChange=await Post(a,"/Admin/EditCourse/"+courseId,Fields("Title",prefix+" Cryptography","Category","Cryptography","Description","","IsPublished","true"));
@@ -136,7 +151,7 @@ try
  using(var scope=factory.Services.CreateScope())
  {
   var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-  Check(await db.AdminActivities.CountAsync(x=>x.ActorUserId==admin.Id)==auditBefore,"identical or whitespace-only course saves create no update audit records");
+  Check(await db.AdminActivities.CountAsync(x=>x.ActorUserId==admin.Id && x.Action=="Updated course")==auditBefore,"identical or whitespace-only course saves create no update audit records");
   Check(await db.UserNotifications.CountAsync(x=>x.UserId==instructor.Id)==noticesBefore,"unchanged course saves create no notifications");
   Check((await db.Courses.SingleAsync(x=>x.CourseId==courseId)).Description==null,"unchanged saves do not mutate optional stored fields");
  }
@@ -144,7 +159,7 @@ try
  Check(editPage.Contains("data-original-values"),"edit page provides persisted values for reversible dirty-state tracking");
  var changedSave=await Post(a,"/Admin/EditCourse/"+courseId,Fields("Title",prefix+" Cryptography updated","Category","Cryptography","IsPublished","true"));
  Check(changedSave.StatusCode==HttpStatusCode.Redirect,"actual course modification saves successfully");
- using(var scope=factory.Services.CreateScope())Check(await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().AdminActivities.CountAsync(x=>x.ActorUserId==admin.Id)==auditBefore+1,"actual course modification creates exactly one update audit event");
+ using(var scope=factory.Services.CreateScope())Check(await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().AdminActivities.CountAsync(x=>x.ActorUserId==admin.Id && x.Action=="Updated course")==auditBefore+1,"actual course modification creates exactly one update audit event");
  var blocked=await a.GetStringAsync("/Admin/DeleteCourse/"+courseId);
  Check(blocked.Contains("Course cannot be deleted")&&!blocked.Contains("Delete course permanently"),"course with enrolment has a clear explanation and no delete button");
  Check((await a.GetStringAsync("/Admin/DeleteCourse/"+emptyId)).Contains("Delete course permanently"),"unused course retains permanent deletion option");

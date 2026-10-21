@@ -32,6 +32,6 @@ public class SecurityMonitor(ApplicationDbContext db, TimeProvider clock)
     {
         var now = clock.GetUtcNow().UtcDateTime;
         // Unique event keys deduplicate concurrent detections and keep resolved alerts resolved.
-        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT IGNORE INTO SecurityAlerts (EventKey,Title,Explanation,UserId,IpAddress,Status,Notes,CreatedUtc,UpdatedUtc,Version) VALUES ({key},{title},{explanation},{userId},{ip},{"New"},{""},{now},{now},{Guid.NewGuid().ToString("N")})");
+        await db.Database.ExecuteSqlInterpolatedAsync($"INSERT IGNORE INTO `security_alerts` (EventKey,Title,Explanation,UserId,IpAddress,Status,Notes,CreatedUtc,UpdatedUtc,Version) VALUES ({key},{title},{explanation},{userId},{ip},{"New"},{""},{now},{now},{Guid.NewGuid().ToString("N")})");
     }
 }

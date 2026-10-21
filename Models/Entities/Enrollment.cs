@@ -4,7 +4,7 @@ public class Enrollment
 {
     public int EnrollmentId { get; set; }
 
-    // Points at AspNetUsers, not Students — a Instructor can also enrol and
+    // Points at users, not Students — a Instructor can also enrol and
     // learn (spec v2.0, Section 2). Only course OWNERSHIP is Instructor-restricted.
     public string UserId { get; set; } = string.Empty;
 

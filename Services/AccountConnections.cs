@@ -33,14 +33,14 @@ public class AccountConnections(ApplicationDbContext db, UserManager<Application
         foreach (var pair in new[] { (EmailKey, info.Principal.FindFirstValue(ClaimTypes.Email)), (NameKey, info.Principal.FindFirstValue(ClaimTypes.Name)) })
         {
             var value = pair.Item2 is { Length: > 0 } text ? text[..Math.Min(text.Length, 256)] : null;
-            await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO AspNetUserTokens (UserId, LoginProvider, Name, Value) VALUES ({user.Id}, {info.LoginProvider}, {pair.Item1}, {value}) ON DUPLICATE KEY UPDATE Value = VALUES(Value)");
+            await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO `user_tokens` (UserId, LoginProvider, Name, Value) VALUES ({user.Id}, {info.LoginProvider}, {pair.Item1}, {value}) ON DUPLICATE KEY UPDATE Value = VALUES(Value)");
         }
     }
 
     private async Task LockAsync(ApplicationUser user)
     {
         // Serialize changes to this user's login methods, including concurrent disconnects.
-        await db.Users.FromSqlInterpolated($"SELECT * FROM AspNetUsers WHERE Id = {user.Id} FOR UPDATE").ToListAsync();
+        await db.Users.FromSqlInterpolated($"SELECT * FROM `users` WHERE Id = {user.Id} FOR UPDATE").ToListAsync();
         await db.Entry(user).ReloadAsync();
     }
 

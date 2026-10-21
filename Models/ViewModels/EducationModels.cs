@@ -87,5 +87,5 @@ public class AuditLogModel
     public int Total { get; set; }
     public int PageCount => Math.Max(1, (int)Math.Ceiling(Total / 20d));
     public List<AdminActivity> Records { get; set; } = [];
-    public Dictionary<string, string> Actors { get; set; } = [];
+    public Dictionary<string, string> UserNames { get; set; } = [];
 }

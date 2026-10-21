@@ -287,8 +287,8 @@ try
         var html = await pageOwner.GetStringAsync(path);
         Check(html.Contains("aria-current=\"page\" aria-label=\"Page 1\"") && html.Contains("aria-disabled=\"true\">Previous") && html.Contains("aria-disabled=\"true\">Next"), path + " uses the shared pager for single-page or empty filtered lists");
     }
-    Check((await pageOwner.GetStringAsync("/Admin/Users?search=" + paged.Email)).Contains("1 user(s)"), "user pagination includes the filtered total");
-    Check((await pageOwner.GetStringAsync("/Admin/Courses?search=" + prefix)).Contains("0 course(s)"), "course pagination includes the filtered total even for no matches");
+    Check((await pageOwner.GetStringAsync("/Admin/Users?search=" + paged.Email)).Contains("1 user"), "user pagination includes the filtered total");
+    Check((await pageOwner.GetStringAsync("/Admin/Courses?search=" + prefix)).Contains("0 courses"), "course pagination includes the filtered total even for no matches");
     Check(!(await pageOwner.GetStringAsync(account + "SecurityHistory")).Contains("Back to connected accounts"), "security history omits the redundant return button");
     Console.WriteLine($"All {checks} account connection checks passed. No real OAuth, SMS or email sent.");
 }

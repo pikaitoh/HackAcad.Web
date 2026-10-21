@@ -67,7 +67,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("UserId", "ExpiresUtc");
 
-                    b.ToTable("AccountSessions");
+                    b.ToTable("account_sessions", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Admin", b =>
@@ -80,7 +80,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("Admins");
+                    b.ToTable("admins", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.AdminActivity", b =>
@@ -155,7 +155,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("ActorUserId", "OccurredUtc");
 
-                    b.ToTable("AdminActivities");
+                    b.ToTable("admin_activities", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.ApplicationUser", b =>
@@ -263,7 +263,7 @@ namespace HackAcad.Web.Data.Migrations
                     b.HasIndex("PhoneNumber")
                         .IsUnique();
 
-                    b.ToTable("AspNetUsers", (string)null);
+                    b.ToTable("users", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.BannerReward", b =>
@@ -300,7 +300,7 @@ namespace HackAcad.Web.Data.Migrations
                     b.HasIndex("UserId", "CourseId")
                         .IsUnique();
 
-                    b.ToTable("BannerRewards");
+                    b.ToTable("banner_rewards", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Challenge", b =>
@@ -350,7 +350,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.ToTable("Challenges");
+                    b.ToTable("challenges", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.ChallengeSubmission", b =>
@@ -382,7 +382,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("UserId", "ChallengeId");
 
-                    b.ToTable("ChallengeSubmissions");
+                    b.ToTable("challenge_submissions", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Course", b =>
@@ -424,7 +424,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("InstructorId");
 
-                    b.ToTable("Courses");
+                    b.ToTable("courses", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Enrollment", b =>
@@ -462,7 +462,7 @@ namespace HackAcad.Web.Data.Migrations
                     b.HasIndex("UserId", "CourseId")
                         .IsUnique();
 
-                    b.ToTable("Enrollments");
+                    b.ToTable("enrollments", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Instructor", b =>
@@ -472,7 +472,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("Instructors");
+                    b.ToTable("instructors", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.InstructorApplication", b =>
@@ -549,7 +549,7 @@ namespace HackAcad.Web.Data.Migrations
                     b.HasIndex("UserId", "Revision")
                         .IsUnique();
 
-                    b.ToTable("InstructorApplications");
+                    b.ToTable("instructor_applications", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.InstructorReview", b =>
@@ -617,7 +617,7 @@ namespace HackAcad.Web.Data.Migrations
                     b.HasIndex("ApplicationId")
                         .IsUnique();
 
-                    b.ToTable("InstructorReviews");
+                    b.ToTable("instructor_reviews", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Lesson", b =>
@@ -650,7 +650,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.ToTable("Lessons");
+                    b.ToTable("lessons", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.LoginRecord", b =>
@@ -688,7 +688,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("UserId", "OccurredUtc");
 
-                    b.ToTable("LoginRecords");
+                    b.ToTable("login_records", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Progress", b =>
@@ -737,7 +737,7 @@ namespace HackAcad.Web.Data.Migrations
                     b.HasIndex("EnrollmentId", "SimulationTaskId")
                         .IsUnique();
 
-                    b.ToTable("ProgressRecords", t =>
+                    b.ToTable("progress_records", null, t =>
                         {
                             t.HasCheckConstraint("CK_Progress_ExactlyOneContentRef", "(ContentType = 0 AND LessonId IS NOT NULL AND ChallengeId IS NULL AND SimulationTaskId IS NULL) OR (ContentType = 1 AND ChallengeId IS NOT NULL AND LessonId IS NULL AND SimulationTaskId IS NULL) OR (ContentType = 2 AND SimulationTaskId IS NOT NULL AND LessonId IS NULL AND ChallengeId IS NULL)");
                         });
@@ -770,7 +770,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("UserId", "SavedUtc");
 
-                    b.ToTable("SavedCourses");
+                    b.ToTable("saved_courses", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.SecurityAlert", b =>
@@ -834,7 +834,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("Status", "CreatedUtc");
 
-                    b.ToTable("SecurityAlerts");
+                    b.ToTable("security_alerts", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.SecurityEvent", b =>
@@ -881,7 +881,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("SubjectHash", "OccurredUtc");
 
-                    b.ToTable("SecurityEvents");
+                    b.ToTable("security_events", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.SimulationTask", b =>
@@ -915,7 +915,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.ToTable("SimulationTasks");
+                    b.ToTable("simulation_tasks", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Student", b =>
@@ -925,7 +925,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasKey("UserId");
 
-                    b.ToTable("Students");
+                    b.ToTable("students", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.SupportAccess", b =>
@@ -967,7 +967,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("UserId", "CreatedUtc");
 
-                    b.ToTable("SupportAccesses");
+                    b.ToTable("support_accesses", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.SupportMessage", b =>
@@ -1009,7 +1009,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("TicketId");
 
-                    b.ToTable("SupportMessages");
+                    b.ToTable("support_messages", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.SupportTicket", b =>
@@ -1062,7 +1062,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("UserId", "UpdatedUtc");
 
-                    b.ToTable("SupportTickets");
+                    b.ToTable("support_tickets", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.UserNotification", b =>
@@ -1111,58 +1111,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("UserId", "ReadUtc", "CreatedUtc");
 
-                    b.ToTable("UserNotifications");
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<string>("ConcurrencyStamp")
-                        .IsConcurrencyToken()
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar(256)");
-
-                    b.Property<string>("NormalizedName")
-                        .HasMaxLength(256)
-                        .HasColumnType("varchar(256)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NormalizedName")
-                        .IsUnique()
-                        .HasDatabaseName("RoleNameIndex");
-
-                    b.ToTable("AspNetRoles", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ClaimType")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("ClaimValue")
-                        .HasColumnType("longtext");
-
-                    b.Property<string>("RoleId")
-                        .IsRequired()
-                        .HasColumnType("varchar(255)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("AspNetRoleClaims", (string)null);
+                    b.ToTable("user_notifications", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -1187,7 +1136,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims", (string)null);
+                    b.ToTable("user_claims", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
@@ -1209,22 +1158,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins", (string)null);
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasColumnType("varchar(255)");
-
-                    b.Property<string>("RoleId")
-                        .HasColumnType("varchar(255)");
-
-                    b.HasKey("UserId", "RoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("AspNetUserRoles", (string)null);
+                    b.ToTable("user_logins", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -1243,7 +1177,7 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("AspNetUserTokens", (string)null);
+                    b.ToTable("user_tokens", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.AccountSession", b =>
@@ -1451,15 +1385,6 @@ namespace HackAcad.Web.Data.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
                 {
                     b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
@@ -1471,21 +1396,6 @@ namespace HackAcad.Web.Data.Migrations
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
-                    b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
-            modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
                         .WithMany()
                         .HasForeignKey("UserId")

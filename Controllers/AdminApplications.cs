@@ -29,7 +29,7 @@ public partial class AdminController
         }
         if (user.IsDisabled == input.Disable) return RedirectToAction(nameof(UserDetails), new { id });
         await using var transaction = await db.Database.BeginTransactionAsync();
-        var administrators = await db.Admins.FromSqlRaw("SELECT * FROM Admins FOR UPDATE").ToListAsync();
+        var administrators = await db.Admins.FromSqlRaw("SELECT * FROM `admins` FOR UPDATE").ToListAsync();
         var actorId = users.GetUserId(User)!;
         var actorStamp = User.FindFirst("AspNet.Identity.SecurityStamp")?.Value;
         if (!administrators.Any(a => a.UserId == actorId && !a.IsReadOnly)
@@ -145,11 +145,15 @@ public partial class AdminController
         else if (kind == "account") query = query.Where(a => a.TargetType == "Account security");
         else if (kind != "all") return BadRequest();
         if (mine) { var actor = users.GetUserId(User)!; query = query.Where(r => r.ActorUserId == actor); }
-        if (!string.IsNullOrEmpty(search)) query = query.Where(r => r.Action.Contains(search) || r.TargetName.Contains(search) || r.Details.Contains(search));
+        if (!string.IsNullOrEmpty(search)) query = query.Where(r => r.Action.Contains(search) || r.TargetName.Contains(search) || r.Details.Contains(search)
+            || (AuditPresentation.AccountTargetTypes.Contains(r.TargetType)
+                && db.Users.Any(u => u.Id == r.TargetId && u.DisplayName.Contains(search))));
         var total = await query.CountAsync(); page = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(total / 20d)));
         var rows = await query.OrderByDescending(r => r.OccurredUtc).ThenByDescending(r => r.Id).Skip((page - 1) * 20).Take(20).ToListAsync();
-        var actors = rows.Select(r => r.ActorUserId).ToList();
+        var accountIds = rows.Select(r => r.ActorUserId)
+            .Concat(rows.Where(r => AuditPresentation.AccountTargetTypes.Contains(r.TargetType)).Select(r => r.TargetId))
+            .Distinct().ToList();
         return View(new AuditLogModel { Kind = kind, Search = search, Mine = mine, Page = page, Total = total, Records = rows,
-            Actors = await db.Users.Where(u => actors.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName) });
+            UserNames = await db.Users.AsNoTracking().Where(u => accountIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName) });
     }
 }

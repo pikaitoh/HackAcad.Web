@@ -87,6 +87,15 @@ async Task OpenSupport(HttpClient c,Fixture user) { await Follow(c,await Post(c,
 async Task<SupportTicket> Ticket(Fixture user) {using var s=factory.Services.CreateScope();return await s.ServiceProvider.GetRequiredService<ApplicationDbContext>().SupportTickets.AsNoTracking().SingleAsync(t=>t.UserId==user.Id);}
 async Task<int> Audit(string action,string target) {using var s=factory.Services.CreateScope();return await s.ServiceProvider.GetRequiredService<ApplicationDbContext>().AdminActivities.CountAsync(a=>a.Action==action && a.TargetId==target);}
 try {
+ using(var scope=factory.Services.CreateScope()) {
+     var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+     var obsolete=await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND LOWER(TABLE_NAME) IN ('aspnetroles','aspnetuserroles','aspnetroleclaims')").SingleAsync();
+     Check(obsolete==0,"authentication and permission scenarios run with all three unused role tables absent");
+     var tableNames=await db.Database.SqlQueryRaw<string>("SELECT TABLE_NAME AS Value FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME <> '__EFMigrationsHistory'").ToListAsync();
+     var expectedNames=new[]{"users","user_claims","user_logins","user_tokens","students","instructors","admins","courses","lessons","enrollments","saved_courses","progress_records","challenges","challenge_submissions","simulation_tasks","login_records","admin_activities","account_sessions","instructor_applications","instructor_reviews","user_notifications","banner_rewards","security_events","security_alerts","support_accesses","support_tickets","support_messages"};
+     Check(tableNames.Order().SequenceEqual(expectedNames.Order()),"all 27 application tables use readable names without the AspNet prefix");
+
+ }
  var administrator=await UserFixture("manager",AccountRoles.Admin,true);manager=administrator;var disabled=await UserFixture("disabled",disabled:true);var other=await UserFixture("other");
  var setup=await UserFixture("setup",AccountRoles.Admin);using var setupClient=Client();var setupResult=await Login(setupClient,setup);
  Check(setupResult.Path.Contains("TwoFactor"),"administrator without MFA is directed to setup");
@@ -161,6 +170,26 @@ try {
  var reviewRecord=new AdminActivity { Action="Reviewed Instructor application", Details="Rejected; revision 2. A long reason remains available in full details." };
  Check(AuditPresentation.Summary(reviewRecord)=="Rejected · Revision 2" && reviewRecord.Details.Contains("A long reason"),"review summary separates result and revision without changing stored reason");
  Check(AuditPresentation.Summary(new AdminActivity { Action="Reviewed Instructor application", Details="Historical reason only" })=="Historical reason only","legacy review text without metadata remains readable");
+ var renamedAccount=await UserFixture("renamed-audit",AccountRoles.Admin);
+ var oldTargetName=prefix+" original account";var currentTargetName=prefix+" renamed account";
+ using(var scope=factory.Services.CreateScope()) {
+     var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+     await db.Users.Where(u=>u.Id==renamedAccount.Id).ExecuteUpdateAsync(u=>u.SetProperty(x=>x.DisplayName,oldTargetName));
+     foreach(var type in AuditPresentation.AccountTargetTypes)
+         db.AdminActivities.Add(new AdminActivity { ActorUserId=renamedAccount.Id,TargetId=renamedAccount.Id,TargetType=type,TargetName=oldTargetName,Action=prefix+" renamed "+type,Details="Immutable account-name snapshot." });
+     await db.SaveChangesAsync();
+     await db.Users.Where(u=>u.Id==renamedAccount.Id).ExecuteUpdateAsync(u=>u.SetProperty(x=>x.DisplayName,currentTargetName));
+ }
+ var renamedAuditPage=await Html(admin,"/Admin/AuditLog?search="+Uri.EscapeDataString(currentTargetName));
+ foreach(var type in AuditPresentation.AccountTargetTypes) {
+     var row=Regex.Matches(renamedAuditPage,"<tr>.*?</tr>",RegexOptions.Singleline).Single(m=>m.Value.Contains(prefix+" renamed "+type)).Value;
+     Check(Regex.Matches(row,Regex.Escape(currentTargetName)).Count==2 && !row.Contains(oldTargetName),type+" audit rows show the current account name for both actor and target");
+ }
+ Check(renamedAuditPage.Contains("Target name at event</dt><dd>"+oldTargetName),"renamed targets retain the original name inside event details");
+ Check((await Html(admin,"/Admin/AuditLog?search="+Uri.EscapeDataString(oldTargetName))).Contains(prefix+" renamed Admin security"),"historical account names remain searchable after a rename");
+ using(var scope=factory.Services.CreateScope()) Check(await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().AdminActivities.CountAsync(a=>a.TargetId==renamedAccount.Id && a.TargetName==oldTargetName)==3,"displaying and searching current names never rewrites stored audit snapshots");
+ Check(AuditPresentation.TargetName(new AdminActivity {TargetType="User",TargetId="former-account",TargetName="Recorded former name"},new Dictionary<string,string>())=="Recorded former name","missing accounts fall back to the recorded target name");
+ Check(AuditPresentation.TargetName(new AdminActivity {TargetType="Course",TargetId=renamedAccount.Id,TargetName="Recorded course title"},new Dictionary<string,string>{{renamedAccount.Id,currentTargetName}})=="Recorded course title","non-account targets are not replaced when an ID matches a user");
  foreach(var route in new[]{"Users","Courses","Applications","LoginLogs","AuditLog","SupportRequests","Security"})
      Check((await Html(admin,"/Admin/"+route)).Contains("list-results"),"result summary appears above the "+route+" list");
  var sessionsPage=await Html(admin,account+"Sessions");
