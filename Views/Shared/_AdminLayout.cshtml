@@ -1,4 +1,5 @@
 @{ Layout = "_WorkspaceLayout"; }
 @RenderBody()
 <partial name="_AdminVerifyDialog" />
+@section Styles { @await RenderSectionAsync("Styles", required: false) }
 @section Scripts { <script src="~/js/admin-operations.js" asp-append-version="true" defer></script>@await RenderSectionAsync("Scripts", required: false) }

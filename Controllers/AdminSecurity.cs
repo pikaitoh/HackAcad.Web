@@ -81,11 +81,12 @@ public partial class AdminController
     [HttpGet]
     public async Task<IActionResult> Security(string? status, int page = 1, string? search = null)
     {
-        if (status is not (null or "" or "New" or "Investigating" or "Resolved")) return BadRequest();
+        if (status is not (null or "" or "open" or "New" or "Investigating" or "Resolved")) return BadRequest();
         search = search?.Trim();
         var query = db.SecurityAlerts.AsNoTracking();
         if (!string.IsNullOrEmpty(search)) query = query.Where(a => a.Title.Contains(search) || a.IpAddress.Contains(search));
-        if (!string.IsNullOrEmpty(status)) query = query.Where(a => a.Status == status);
+        if (status == "open") query = query.Where(a => a.Status != "Resolved");
+        else if (!string.IsNullOrEmpty(status)) query = query.Where(a => a.Status == status);
         var total = await query.CountAsync(); page = Math.Clamp(page, 1, Math.Max(1,(int)Math.Ceiling(total/20d)));
         var since = DateTime.UtcNow.AddDays(-1); var now = DateTimeOffset.UtcNow;
         ViewData["ReadOnlyAdmin"] = await db.Admins.AnyAsync(a => a.UserId == users.GetUserId(User) && a.IsReadOnly);

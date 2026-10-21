@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using HackAcad.Web.Models.Entities;
 
 namespace HackAcad.Web.Models.ViewModels;
 
@@ -32,14 +33,39 @@ public class UserListModel
 
 public class AdminOverviewModel
 {
+    public string AdminName { get; set; } = "Admin";
+    public int Days { get; set; } = 30;
+    public DateOnly From { get; set; }
+    public DateOnly To { get; set; }
     public int PendingApplications { get; set; }
     public int Users { get; set; }
+    public int NewUsers { get; set; }
+    public int ActiveUsers { get; set; }
+    public int PreviousActiveUsers { get; set; }
     public int DisabledUsers { get; set; }
-    public int Instructors { get; set; }
     public int Courses { get; set; }
     public int PublishedCourses { get; set; }
-    public int Enrollments { get; set; }
-    public List<UserRow> RecentUsers { get; set; } = [];
+    public int PendingSupport { get; set; }
+    public int OpenAlerts { get; set; }
+    public List<DashboardActivityDay> Activity { get; set; } = [];
+    public List<DashboardCourseEnrollments> CourseEnrollments { get; set; } = [];
+    public List<DashboardRoleCount> Roles { get; set; } = [];
+    public List<AdminActivity> RecentActions { get; set; } = [];
+    public Dictionary<string, string> UserNames { get; set; } = [];
+}
+
+public record DashboardActivityDay(DateOnly Date, int Users);
+public class DashboardCourseEnrollments
+{
+    public int CourseId { get; set; }
+    public string Title { get; set; } = "";
+    public int Current { get; set; }
+    public int Previous { get; set; }
+}
+public class DashboardRoleCount
+{
+    public string Role { get; set; } = "";
+    public int Count { get; set; }
 }
 
 public class CourseRow

@@ -14,15 +14,6 @@ namespace HackAcad.Web.Controllers;
 public partial class AdminController(ApplicationDbContext db, UserManager<ApplicationUser> users,
     UserAccounts accounts, AccountRecords records, UserTimeZone userTime, Personalization personalization) : Controller
 {
-    public async Task<IActionResult> Index() => View(new AdminOverviewModel
-    {
-        Users = await db.Users.CountAsync(), DisabledUsers = await db.Users.CountAsync(u => u.IsDisabled),
-        Instructors = await db.Instructors.CountAsync(), Courses = await db.Courses.CountAsync(),
-        PublishedCourses = await db.Courses.CountAsync(c => c.IsPublished), Enrollments = await db.Enrollments.CountAsync(),
-        PendingApplications = await db.InstructorApplications.CountAsync(a => a.Status == ApplicationStatus.Pending),
-        RecentUsers = await accounts.Query().OrderByDescending(u => u.JoinedDate).Take(5).ToListAsync()
-    });
-
     public async Task<IActionResult> Users(string? search, string? role, string? status, int page = 1)
     {
         var query = accounts.Query();

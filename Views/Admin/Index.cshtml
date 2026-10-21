@@ -1,23 +1,103 @@
+@using System.Globalization
 @model AdminOverviewModel
-@{ ViewData["Title"] = "Admin dashboard"; }
-<div class="admin-content">
-    <div class="page-heading"><div><h1>Admin dashboard</h1><p class="text-secondary">A clear view of your community and learning content.</p></div><a class="btn btn-primary" asp-action="Applications" asp-route-status="Pending">Review Instructor applications</a></div>
-    <section class="platform-summary" aria-labelledby="platform-title">
-        <div class="summary-intro"><h2 id="platform-title">Your community, at a glance.</h2><p>Review access, support your instructors and keep learning content in order.</p><a asp-action="Users">Manage users <span aria-hidden="true">→</span></a></div>
-        <dl class="summary-values"><div><dt>Registered users</dt><dd>@Model.Users</dd></div><div><dt>Instructors</dt><dd>@Model.Instructors</dd></div><div><dt>Disabled accounts</dt><dd>@Model.DisabledUsers</dd></div></dl>
-    </section>
-    <section class="review-queue" aria-labelledby="review-title">
-        <div><h2 id="review-title">Review queue</h2><p>Applications awaiting a decision and account access records.</p></div>
-        <nav aria-label="Administration review queue"><a asp-action="Users" asp-route-status="disabled"><span>Disabled accounts</span><strong>@Model.DisabledUsers</strong></a><a asp-action="Applications" asp-route-status="Pending"><span>Pending Instructor applications</span><strong>@Model.PendingApplications</strong></a></nav>
-    </section>
-    <div class="overview-layout">
-        <section class="surface-panel" aria-labelledby="recent-title"><div class="section-heading"><h2 id="recent-title">Recently joined</h2><a asp-action="Users">View all users</a></div>
-            @if (Model.RecentUsers.Count == 0) { <p class="empty-state">No accounts have been registered yet.</p> }
-            else { <ul class="recent-users">@foreach (var account in Model.RecentUsers) { <li><div class="person-details"><span class="person-avatar" aria-hidden="true">@(string.IsNullOrWhiteSpace(account.DisplayName) ? "H" : account.DisplayName[..1].ToUpperInvariant())</span><div><a asp-action="UserDetails" asp-route-id="@account.Id">@account.DisplayName</a><span class="record-secondary">@account.Email</span></div></div><span class="role-badge" data-role="@account.Role">@account.Role</span></li> }</ul> }
+@{
+    ViewData["Title"] = "Admin dashboard";
+    string N(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+    var lineMax = Math.Max(4, (int)Math.Ceiling(Model.Activity.Max(a => a.Users) / 4d) * 4);
+    var barMax = Math.Max(4, (int)Math.Ceiling(Model.CourseEnrollments.Select(c => Math.Max(c.Current, c.Previous)).DefaultIfEmpty().Max() / 4d) * 4);
+    double X(int i) => 44 + 508d * i / Math.Max(1, Model.Activity.Count - 1);
+    double Y(int count, int max) => 190 - 156d * count / max;
+    var points = string.Join(" ", Model.Activity.Select((a, i) => $"{N(X(i))},{N(Y(a.Users, lineMax))}"));
+    var roleOrder = new[] { "Student", "Instructor", "Admin", "Unassigned" };
+    var roleNames = new[] { "Students", "Instructors", "Admins", "Unassigned" };
+    var roleClasses = new[] { "student", "instructor", "admin", "unassigned" };
+    double roleOffset = 0;
+}
+@section Styles { <link rel="stylesheet" href="~/css/admin-dashboard.css" asp-append-version="true" /> }
+<div class="admin-content admin-dashboard">
+    <div class="dashboard-heading">
+        <div><h1>Admin dashboard</h1><p>Welcome back, <strong>@Model.AdminName</strong>. Here is what is happening on HackAcad.</p></div>
+        <form method="get" class="dashboard-period" aria-label="Dashboard activity period">
+            <div class="dashboard-date-range"><partial name="_DashboardIcon" model='@("calendar")' /><span>@Model.From.ToString("dd MMM", CultureInfo.InvariantCulture) – @Model.To.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)</span></div>
+            <div class="dashboard-period-controls"><label class="visually-hidden" for="dashboard-days">Activity period</label><select id="dashboard-days" name="days" class="form-select"><option value="7" selected="@(Model.Days == 7)">Last 7 days</option><option value="30" selected="@(Model.Days == 30)">Last 30 days</option><option value="90" selected="@(Model.Days == 90)">Last 90 days</option></select><button type="submit" class="btn btn-outline-secondary btn-sm">Apply</button></div>
+        </form>
+    </div>
+    <div class="dashboard-metrics" aria-label="Platform statistics">
+        <a asp-action="Users" class="dashboard-metric"><span class="dashboard-metric-icon"><partial name="_DashboardIcon" model='@("users")' /></span><div><h2>Total users</h2><strong class="dashboard-metric-value">@Model.Users</strong><span class="dashboard-metric-note">@ListPresentation.Count(Model.NewUsers, "new account") in this period</span></div></a>
+        <a asp-action="LoginLogs" asp-route-result="success" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")" class="dashboard-metric"><span class="dashboard-metric-icon"><partial name="_DashboardIcon" model='@("activity")' /></span><div><h2>Active users</h2><strong class="dashboard-metric-value">@Model.ActiveUsers</strong><span class="dashboard-metric-note">Signed in during this period</span><span class="dashboard-metric-comparison">@Model.PreviousActiveUsers in the previous @Model.Days days</span></div></a>
+        <a asp-action="Courses" class="dashboard-metric"><span class="dashboard-metric-icon dashboard-icon-courses"><partial name="_DashboardIcon" model='@("courses")' /></span><div><h2>Courses</h2><strong class="dashboard-metric-value">@Model.Courses</strong><span class="dashboard-metric-note">@Model.PublishedCourses published · @(Model.Courses - Model.PublishedCourses) drafts</span></div></a>
+        <a asp-action="SupportRequests" asp-route-status="Awaiting admin" class="dashboard-metric"><span class="dashboard-metric-icon dashboard-icon-support"><partial name="_DashboardIcon" model='@("support")' /></span><div><h2>Pending requests</h2><strong class="dashboard-metric-value">@Model.PendingSupport</strong><span class="dashboard-metric-note">Awaiting an administrator reply</span></div></a>
+    </div>
+    <div class="dashboard-chart-grid">
+        <section class="dashboard-panel" aria-labelledby="activity-heading">
+            <div class="dashboard-section-heading"><h2 id="activity-heading"><partial name="_DashboardIcon" model='@("activity")' />User activity over time</h2><span class="dashboard-legend-item"><i class="dashboard-key-current"></i>Active users</span></div>
+            <p class="dashboard-caption">Unique users with a successful sign-in each day.</p>
+            <div class="dashboard-chart" data-chart>
+                <svg class="dashboard-line-chart" viewBox="0 0 590 230" role="group" aria-labelledby="activity-heading activity-description">
+                    <desc id="activity-description">Daily successful sign-in activity from @Model.From.ToString("dd MMM yyyy") to @Model.To.ToString("dd MMM yyyy"). Values are available in the data table below.</desc>
+                    @for (var tick = 0; tick <= 4; tick++) { var value = lineMax * tick / 4; <g class="dashboard-chart-gridline"><line x1="44" y1="@N(Y(value, lineMax))" x2="552" y2="@N(Y(value, lineMax))"/><text x="32" y="@N(Y(value, lineMax) + 4)" text-anchor="end">@value</text></g> }
+                    <polygon points="44,190 @points 552,190" class="dashboard-chart-area"/>
+                    <polyline points="@points" class="dashboard-chart-line"/>
+                    @for (var i = 0; i < Model.Activity.Count; i++) { var day = Model.Activity[i];
+                        <g class="dashboard-chart-point" tabindex="@(i == 0 ? 0 : -1)" role="img" aria-label="@day.Date.ToString("dd MMM yyyy"): @ListPresentation.Count(day.Users, "active user")" data-chart-label="@day.Date.ToString("dd MMM yyyy")" data-chart-value="@ListPresentation.Count(day.Users, "active user")"><circle class="dashboard-chart-hit" cx="@N(X(i))" cy="@N(Y(day.Users, lineMax))" r="10"/><circle class="dashboard-chart-dot" cx="@N(X(i))" cy="@N(Y(day.Users, lineMax))" r="3"/><title>@day.Date.ToString("dd MMM"): @day.Users</title></g>
+                    }
+                    @foreach (var i in new[] { 0, (Model.Activity.Count - 1) / 3, (Model.Activity.Count - 1) * 2 / 3, Model.Activity.Count - 1 }.Distinct()) { <g class="dashboard-chart-axis"><text x="@N(X(i))" y="216" text-anchor="middle">@Model.Activity[i].Date.ToString("dd MMM", CultureInfo.InvariantCulture)</text></g> }
+                </svg>
+                <div class="dashboard-chart-tooltip" role="tooltip" hidden></div>
+            </div>
+            <details class="dashboard-data"><summary>View activity data</summary><div class="dashboard-data-scroll"><table class="table"><thead><tr><th>Date</th><th>Active users</th></tr></thead><tbody>@foreach (var day in Model.Activity) { <tr><td>@day.Date.ToString("dd MMM yyyy", CultureInfo.InvariantCulture)</td><td>@day.Users</td></tr> }</tbody></table></div></details>
         </section>
-        <section class="surface-panel" aria-labelledby="content-title"><div class="section-heading"><h2 id="content-title">Learning content</h2></div>
-            <dl class="overview-facts"><div><dt>All courses</dt><dd>@Model.Courses</dd></div><div><dt>Published courses</dt><dd>@Model.PublishedCourses</dd></div><div><dt>Course enrolments</dt><dd>@Model.Enrollments</dd></div></dl>
-            <a class="btn btn-outline-secondary w-100" asp-action="Courses">Review courses</a>
+        <section class="dashboard-panel" aria-labelledby="enrolments-heading">
+            <div class="dashboard-section-heading"><h2 id="enrolments-heading"><partial name="_DashboardIcon" model='@("courses")' />Course enrolments</h2><div class="dashboard-chart-legend"><span class="dashboard-legend-item"><i class="dashboard-key-current"></i>This period</span><span class="dashboard-legend-item"><i class="dashboard-key-previous"></i>Previous period</span></div></div>
+            <p class="dashboard-caption">Top five courses by enrolments in the selected period.</p>
+            @if (Model.CourseEnrollments.Count == 0) { <div class="dashboard-chart-empty"><partial name="_DashboardIcon" model='@("courses")' /><p>No courses to show yet.</p><a asp-action="Courses">Review courses</a></div> }
+            else {
+                <div class="dashboard-chart" data-chart>
+                    <svg class="dashboard-bar-chart" viewBox="0 0 590 230" role="group" aria-labelledby="enrolments-heading enrolments-description">
+                        <desc id="enrolments-description">Course enrolments for this @Model.Days day period compared with the preceding @Model.Days days. Full course names and counts are available in the data table below.</desc>
+                        @for (var tick = 0; tick <= 4; tick++) { var value = barMax * tick / 4; <g class="dashboard-chart-gridline"><line x1="44" y1="@N(Y(value, barMax))" x2="552" y2="@N(Y(value, barMax))"/><text x="32" y="@N(Y(value, barMax) + 4)" text-anchor="end">@value</text></g> }
+                        @for (var i = 0; i < Model.CourseEnrollments.Count; i++) { var course = Model.CourseEnrollments[i]; var center = 44 + (i + .5) * 508 / Model.CourseEnrollments.Count; var shortTitle = course.Title.Length > 17 ? course.Title[..16] + "…" : course.Title;
+                            <g class="dashboard-chart-point" tabindex="@(i == 0 ? 0 : -1)" role="img" aria-label="@course.Title: @course.Current this period; @course.Previous previous period" data-chart-label="@course.Title" data-chart-value="@course.Current this period · @course.Previous previous period"><rect class="dashboard-bar-current" x="@N(center - 23)" y="@N(Y(course.Current, barMax))" width="21" height="@N(190 - Y(course.Current, barMax))" rx="2"/><rect class="dashboard-bar-previous" x="@N(center + 3)" y="@N(Y(course.Previous, barMax))" width="21" height="@N(190 - Y(course.Previous, barMax))" rx="2"/><rect class="dashboard-chart-hit" x="@N(center - 28)" y="32" width="57" height="163"/><text x="@N(center)" y="216" text-anchor="middle" class="dashboard-chart-course-label">@shortTitle</text><title>@course.Title: @course.Current / @course.Previous</title></g>
+                        }
+                    </svg>
+                    <div class="dashboard-chart-tooltip" role="tooltip" hidden></div>
+                </div>
+            }
+            <details class="dashboard-data"><summary>View enrolment data</summary><div class="dashboard-data-scroll"><table class="table"><thead><tr><th>Course</th><th>This period</th><th>Previous period</th></tr></thead><tbody>@foreach (var course in Model.CourseEnrollments) { <tr><td><a asp-action="EditCourse" asp-route-id="@course.CourseId">@course.Title</a></td><td>@course.Current</td><td>@course.Previous</td></tr> }</tbody></table></div></details>
         </section>
     </div>
+    <div class="dashboard-detail-grid">
+        <section class="dashboard-panel" aria-labelledby="roles-heading">
+            <div class="dashboard-section-heading"><h2 id="roles-heading"><partial name="_DashboardIcon" model='@("users")' />User roles &amp; account status</h2><a asp-action="Users">View users</a></div>
+            <div class="dashboard-role-layout">
+                <svg class="dashboard-donut" viewBox="0 0 180 180" role="img" aria-label="@Model.Users total users. Role counts are shown alongside the chart.">
+                    <circle cx="90" cy="90" r="64" class="dashboard-donut-track"/>
+                    @for (var i = 0; i < roleOrder.Length; i++) { var count = Model.Roles.FirstOrDefault(r => r.Role == roleOrder[i])?.Count ?? 0; var percent = Model.Users == 0 ? 0 : 100d * count / Model.Users;
+                        if (count > 0) { <circle cx="90" cy="90" r="64" pathLength="100" class="dashboard-donut-segment dashboard-role-@roleClasses[i]" stroke-dasharray="@N(percent) @N(100 - percent)" stroke-dashoffset="@N(-roleOffset)" transform="rotate(-90 90 90)"><title>@roleNames[i]: @count</title></circle> }
+                        roleOffset += percent;
+                    }
+                    <g class="dashboard-donut-label"><text x="90" y="88" text-anchor="middle" class="dashboard-donut-total">@Model.Users</text><text x="90" y="110" text-anchor="middle">Total users</text></g>
+                </svg>
+                <dl class="dashboard-role-legend">@for (var i = 0; i < roleOrder.Length; i++) { var count = Model.Roles.FirstOrDefault(r => r.Role == roleOrder[i])?.Count ?? 0; var percent = Model.Users == 0 ? 0 : 100d * count / Model.Users; if (roleOrder[i] == "Unassigned" && count == 0) continue;
+                    <div><dt><i class="dashboard-role-@roleClasses[i]"></i>@roleNames[i]</dt><dd>@count <span>(@percent.ToString("0.#", CultureInfo.InvariantCulture)%)</span></dd></div>
+                }</dl>
+            </div>
+            <div class="dashboard-account-status"><span><strong>@(Model.Users - Model.DisabledUsers)</strong> enabled accounts</span><a asp-action="Users" asp-route-status="disabled"><strong>@Model.DisabledUsers</strong> disabled</a></div>
+        </section>
+        <section class="dashboard-panel dashboard-recent" aria-labelledby="recent-actions-heading">
+            <div class="dashboard-section-heading"><h2 id="recent-actions-heading"><partial name="_DashboardIcon" model='@("clock")' />Recent admin activity</h2><a asp-action="AuditLog" asp-route-kind="admin">View audit logs</a></div>
+            @if (Model.RecentActions.Count == 0) { <div class="dashboard-activity-empty"><p>No administrative actions have been recorded yet.</p><a asp-action="AuditLog">Explore audit logs</a></div> }
+            else { <div class="dashboard-activity-table"><table class="table"><caption class="visually-hidden">Five most recent administrative actions, shown in your saved time zone.</caption><thead><tr><th>Time</th><th>Performed by</th><th>Action</th><th>Target</th></tr></thead><tbody>@foreach (var record in Model.RecentActions) { <tr><td>@UserTime.Format(record.OccurredUtc, "dd MMM, HH:mm")</td><td title="@(record.ActorUserId is { } actorId && Model.UserNames.TryGetValue(actorId, out var actorName) ? actorName : "Former user")">@(record.ActorUserId is { } actor && Model.UserNames.TryGetValue(actor, out var name) ? name : "Former user")</td><td title="@record.Action">@record.Action</td><td title="@AuditPresentation.TargetName(record, Model.UserNames)">@AuditPresentation.TargetName(record, Model.UserNames)</td></tr> }</tbody></table></div> }
+        </section>
+    </div>
+    <nav class="dashboard-review-queue" aria-label="Items needing review">
+        <a asp-action="Applications" asp-route-status="Pending"><partial name="_DashboardIcon" model='@("review")' /><span>Pending Instructor applications</span><strong>@Model.PendingApplications</strong></a>
+        <a asp-action="Security" asp-route-status="open"><partial name="_DashboardIcon" model='@("shield")' /><span>Open security alerts</span><strong>@Model.OpenAlerts</strong></a>
+    </nav>
+    <section class="dashboard-quick-actions" aria-labelledby="quick-actions-heading"><h2 id="quick-actions-heading">Quick actions</h2><div class="dashboard-quick-grid">
+        <a asp-action="Users"><span class="dashboard-quick-icon"><partial name="_DashboardIcon" model='@("users")' /></span><span><strong>Manage users</strong><small>Review accounts and access</small></span><partial name="_DashboardIcon" model='@("arrow")' /></a>
+        <a asp-action="Courses"><span class="dashboard-quick-icon"><partial name="_DashboardIcon" model='@("courses")' /></span><span><strong>Review courses</strong><small>Manage learning content</small></span><partial name="_DashboardIcon" model='@("arrow")' /></a>
+        <a asp-action="SupportRequests"><span class="dashboard-quick-icon"><partial name="_DashboardIcon" model='@("support")' /></span><span><strong>Account support</strong><small>Read and reply to requests</small></span><partial name="_DashboardIcon" model='@("arrow")' /></a>
+    </div></section>
 </div>
+@section Scripts { <script src="~/js/admin-dashboard.js" asp-append-version="true" defer></script> }
