@@ -111,7 +111,7 @@ html[data-theme="dark"] {
 }
 html[data-theme="light"] { color-scheme: light; }
 html[data-theme="dark"] body { color: var(--ha-ink); background: var(--ha-canvas); }
-html[data-theme="dark"] :is(.surface-panel,.form-measure,.auth-form,.profile-details,.activity-summary,.table-responsive,.account-menu-panel,.dashboard-account,.course-preview,.course-card,.cat-pill-btn,.learn-container,.learn-sidebar-header,.learn-main-pane,.ctf-card-interactive,.path-marker) { background: var(--ha-surface); color: var(--ha-ink); }
+html[data-theme="dark"] :is(.surface-panel,.form-measure,.auth-form,.profile-details,.activity-summary,.table-responsive,.account-menu-panel,.dashboard-account,.course-preview,.course-card,.cat-pill-btn,.learn-container,.learn-sidebar-header,.learn-main-pane,.ctf-card-interactive,.path-marker,.builder-card,.builder-item-card,.objective-card,.custom-cmd-card,.simulation-objectives-box) { background: var(--ha-surface); color: var(--ha-ink); }
 html[data-theme="dark"] :is(.workspace-sidebar,.learn-sidebar) { background: #172f35; }
 html[data-theme="dark"] :is(.form-control,.form-select,.form-check-input) { background-color: #142b32; color: var(--ha-ink); border-color: var(--ha-field-line); }
 html[data-theme="dark"] .form-control:disabled { background-color: var(--ha-tint); }

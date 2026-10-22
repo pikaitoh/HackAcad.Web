@@ -7,7 +7,7 @@ namespace HackAcad.Web.Services;
 // Replay virtual commands only. This never accesses the real filesystem, shell or network.
 public static class SimulationVerifier
 {
-    private static readonly HashSet<string> Supported = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "chmod", "whoami", "id", "echo", "base64", "ping", "nmap", "curl", "history", "date"];
+    private static readonly HashSet<string> Supported = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "chmod", "whoami", "id", "echo", "base64", "ping", "nmap", "curl", "history", "date", "touch", "nano"];
     private static string Text(JsonElement item, string name, string fallback = "") =>
         item.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString()! : fallback;
 
@@ -27,6 +27,26 @@ public static class SimulationVerifier
             if (value.TryGetProperty("allowedCommands", out var commands)
                 && (commands.ValueKind != JsonValueKind.Array || commands.EnumerateArray().Any(c =>
                     c.ValueKind != JsonValueKind.String || !Supported.Contains(c.GetString()!.Trim().ToLowerInvariant())))) return false;
+
+            // Validate custom commands if present
+            var customCommandNames = new HashSet<string>(StringComparer.Ordinal);
+            if (value.TryGetProperty("customCommands", out var customCmds))
+            {
+                if (customCmds.ValueKind != JsonValueKind.Array || customCmds.GetArrayLength() > 64) return false;
+                foreach (var cc in customCmds.EnumerateArray())
+                {
+                    if (cc.ValueKind != JsonValueKind.Object) return false;
+                    var ccCmd = Text(cc, "command").Trim();
+                    if (string.IsNullOrWhiteSpace(ccCmd) || ccCmd.Length > 512) return false;
+                    var enabled = !cc.TryGetProperty("enabled", out var enProp) || enProp.ValueKind != JsonValueKind.False;
+                    if (enabled)
+                    {
+                        if (!customCommandNames.Add(ccCmd)) return false; // Duplicate custom command
+                        if (Supported.Contains(ccCmd.ToLowerInvariant())) return false; // Conflicts with built-in
+                    }
+                }
+            }
+
             var initial = Normalize(Text(value, "initialDirectory", "/home/student"), "/");
             if (Node(fs, initial)?.ValueKind != JsonValueKind.Object) return false;
             var ids = new HashSet<string>(StringComparer.Ordinal);
@@ -36,7 +56,11 @@ public static class SimulationVerifier
                     || !ids.Add(Text(goal, "id")) || string.IsNullOrWhiteSpace(Text(goal, "target"))) return false;
                 var type = Text(goal, "type");
                 if (type is not ("cwd" or "cat" or "chmod" or "command")) return false;
-                if (type == "command" && !Supported.Contains(Text(goal, "target"))) return false;
+                if (type == "command")
+                {
+                    var target = Text(goal, "target");
+                    if (!Supported.Contains(target) && !customCommandNames.Contains(target)) return false;
+                }
                 if (type == "chmod" && !Regex.IsMatch(Text(goal, "mode", "755"), "^[0-7]{3,4}$")) return false;
             }
             root = value.Clone();
@@ -81,15 +105,69 @@ public static class SimulationVerifier
         var goals = config.GetProperty("objectives").EnumerateArray().ToArray();
         var allowed = config.TryGetProperty("allowedCommands", out var permitted)
             ? permitted.EnumerateArray().Select(c => c.GetString()!.Trim().ToLowerInvariant()).ToHashSet() : Supported;
+
+        // Collect enabled custom commands
+        var customCommands = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (config.TryGetProperty("customCommands", out var customArray) && customArray.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var cc in customArray.EnumerateArray())
+            {
+                if (cc.ValueKind == JsonValueKind.Object)
+                {
+                    var enabled = !cc.TryGetProperty("enabled", out var enProp) || enProp.ValueKind != JsonValueKind.False;
+                    if (enabled)
+                    {
+                        var cStr = Text(cc, "command").Trim();
+                        if (!string.IsNullOrEmpty(cStr))
+                            customCommands[cStr] = Text(cc, "output");
+                    }
+                }
+            }
+        }
+
         var cwd = Normalize(Text(config, "initialDirectory", "/home/student"), "/");
         var completed = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var input in commands)
+        foreach (var rawInput in commands)
         {
-            if (input is null || input.Length > 1024) return false;
-            var parts = Regex.Split(input.Trim(), @"\s+");
-            var cmd = parts[0].ToLowerInvariant(); var args = parts.Skip(1).ToArray();
+            if (rawInput is null || rawInput.Length > 1024) return false;
+            var input = rawInput.Trim();
+            if (string.IsNullOrEmpty(input)) continue;
+
+            // Handle output redirection '>'
+            string commandToRun = input;
+            string? redirectDest = null;
+            if (input.Contains('>'))
+            {
+                var firstIdx = input.IndexOf('>');
+                var secondIdx = input.IndexOf('>', firstIdx + 1);
+                if (secondIdx != -1 || firstIdx == 0) continue; // multiple or leading redirection invalid
+                var leftPart = input.Substring(0, firstIdx).Trim();
+                var rightPart = input.Substring(firstIdx + 1).Trim();
+                if (string.IsNullOrEmpty(leftPart) || string.IsNullOrEmpty(rightPart)) continue;
+                commandToRun = leftPart;
+                redirectDest = rightPart.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+            }
+
+            // 1. Check exact-match custom commands
+            if (customCommands.TryGetValue(commandToRun, out var customOutput))
+            {
+                foreach (var goal in goals)
+                {
+                    var type = Text(goal, "type");
+                    var target = Text(goal, "target");
+                    if (type == "command" && (commandToRun == target || commandToRun.Equals(target, StringComparison.OrdinalIgnoreCase)))
+                        completed.Add(Text(goal, "id"));
+                }
+                continue;
+            }
+
+            // 2. Built-in command processing
+            var parts = Regex.Split(commandToRun, @"\s+");
+            var cmd = parts[0].ToLowerInvariant();
+            var args = parts.Skip(1).ToArray();
             if (!Supported.Contains(cmd) || !allowed.Contains(cmd) && cmd is not ("help" or "clear")) continue;
-            string? operatedPath = null; var success = true;
+            string? operatedPath = null;
+            var success = true;
             switch (cmd)
             {
                 case "cd":
@@ -104,6 +182,13 @@ public static class SimulationVerifier
                     success = Node(fs, operatedPath)?.ValueKind == JsonValueKind.String;
                     if (cmd == "chmod") success &= Regex.IsMatch(args[0], "^[0-7]{3,4}$");
                     break;
+                case "touch": case "nano":
+                    if (args.Length == 0) { success = false; break; }
+                    operatedPath = Normalize(args[0], cwd);
+                    var parentPath = operatedPath.Contains('/') ? operatedPath.Substring(0, operatedPath.LastIndexOf('/')) : "";
+                    if (string.IsNullOrEmpty(parentPath)) parentPath = "/";
+                    success = Node(fs, parentPath)?.ValueKind == JsonValueKind.Object;
+                    break;
                 case "base64":
                     if (args.Contains("-d"))
                     {
@@ -117,13 +202,14 @@ public static class SimulationVerifier
             if (!success) continue;
             foreach (var goal in goals)
             {
-                var type = Text(goal, "type"); var target = Text(goal, "target");
+                var type = Text(goal, "type");
+                var target = Text(goal, "target");
                 var matchPath = operatedPath is not null && (target.Contains('/')
                     ? operatedPath == Normalize(target, cwd) : operatedPath.Split('/').Last() == target);
                 if (type == "cwd" && cwd == Normalize(target, "/")
                     || type == "cat" && cmd == "cat" && matchPath
                     || type == "chmod" && cmd == "chmod" && matchPath && args[0] == Text(goal, "mode", "755")
-                    || type == "command" && cmd == target)
+                    || type == "command" && (cmd == target || commandToRun == target))
                     completed.Add(Text(goal, "id"));
             }
         }

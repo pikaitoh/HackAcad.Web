@@ -31,7 +31,8 @@
             }
         };
 
-        let allowedCommands = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "whoami", "chmod", "echo", "base64", "ping", "nmap", "curl", "history", "date", "id"];
+        let allowedCommands = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "whoami", "chmod", "echo", "base64", "ping", "nmap", "curl", "history", "date", "id", "touch", "nano"];
+        let customCommands = [];
         let currentPath = ["home", "student"];
         let filePermissions = {}; // e.g. "audit.sh": "755"
         let objectives = [];
@@ -41,7 +42,7 @@
         let commandSucceeded = true;
 
         function escapeHtml(value) {
-            return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+            return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
         function resolvePath(path) {
@@ -72,15 +73,20 @@
                 const parsed = typeof config === 'string' ? JSON.parse(config) : config;
                 if (parsed.allowedCommands && Array.isArray(parsed.allowedCommands)) {
                     allowedCommands = parsed.allowedCommands.map(c => c.toLowerCase().trim());
-                    if (!allowedCommands.includes("help")) allowedCommands.push("help");
-                    if (!allowedCommands.includes("clear")) allowedCommands.push("clear");
                 }
+                // Permanently enabled built-in system commands
+                if (!allowedCommands.includes("help")) allowedCommands.push("help");
+                if (!allowedCommands.includes("clear")) allowedCommands.push("clear");
+
                 if (parsed.fileSystem) virtualFS = parsed.fileSystem;
                 if (parsed.initialDirectory) {
                     currentPath = parsed.initialDirectory.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
                 }
                 if (parsed.objectives && Array.isArray(parsed.objectives)) {
                     objectives = parsed.objectives.map(o => ({ ...o, completed: false }));
+                }
+                if (parsed.customCommands && Array.isArray(parsed.customCommands)) {
+                    customCommands = parsed.customCommands.filter(c => c && c.enabled !== false && typeof c.command === 'string' && c.command.trim());
                 }
             } catch (e) {
                 console.warn("Using default simulation environment:", e);
@@ -169,22 +175,26 @@
         function renderObjectives() {
             const listEl = document.getElementById('simulation-objectives-list');
             if (!listEl) return;
+            const checkSvg = '<svg class="sim-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            const pendingSvg = '<svg class="sim-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle></svg>';
             listEl.innerHTML = objectives.map(obj => `
                 <li class="objective-item ${obj.completed ? 'completed' : 'pending'}">
-                    <span class="obj-icon">${obj.completed ? '✓' : '○'}</span>
+                    <span class="obj-icon">${obj.completed ? checkSvg : pendingSvg}</span>
                     <span class="obj-text">${escapeHtml(obj.text)}</span>
                 </li>
             `).join('');
         }
 
-        function checkObjectives(cmd, args) {
+        function checkObjectives(cmd, args, outputResult) {
             if (!commandSucceeded) return;
             objectives.forEach(obj => {
                 if (obj.completed) return;
                 if (obj.type === 'cwd' && getPathString() === '/' + resolvePath(obj.target).join('/')) obj.completed = true;
-                if (obj.type === 'cat' && cmd === 'cat' && args[0] && matchesFile(args[0], obj.target)) obj.completed = true;
-                if (obj.type === 'chmod' && cmd === 'chmod' && args[1] && matchesFile(args[1], obj.target) && args[0] === (obj.mode || '755')) obj.completed = true;
-                if (obj.type === 'command' && cmd === obj.target) obj.completed = true;
+                if (obj.type === 'cat' && cmd === 'cat' && args && args[0] && matchesFile(args[0], obj.target)) obj.completed = true;
+                if (obj.type === 'chmod' && cmd === 'chmod' && args && args[1] && matchesFile(args[1], obj.target) && args[0] === (obj.mode || '755')) obj.completed = true;
+                if (obj.type === 'command') {
+                    if (cmd === obj.target || cmd.toLowerCase() === obj.target.toLowerCase()) obj.completed = true;
+                }
             });
             renderObjectives();
             if (!isTaskCompleted && objectives.every(o => o.completed)) {
@@ -203,6 +213,108 @@
             }
         }
 
+        // Output Redirection File Writer
+        function writeOutputFile(targetPath, text) {
+            const parts = resolvePath(targetPath);
+            const name = parts.pop();
+            if (!name) {
+                printLine(`hackacad-sh: ${escapeHtml(targetPath)}: Invalid path`, 'term-error');
+                return false;
+            }
+            const parentDir = getDirectoryNode(parts);
+            if (!parentDir || typeof parentDir !== 'object') {
+                printLine(`hackacad-sh: ${escapeHtml(targetPath)}: No such file or directory`, 'term-error');
+                return false;
+            }
+            if (Object.hasOwn(parentDir, name) && typeof parentDir[name] === 'object') {
+                printLine(`hackacad-sh: ${escapeHtml(targetPath)}: Is a directory`, 'term-error');
+                return false;
+            }
+            parentDir[name] = text;
+            return true;
+        }
+
+        // Simulated Nano Editor UI
+        function openNanoEditor(filepath) {
+            const parts = resolvePath(filepath);
+            const filename = parts.pop();
+            if (!filename) {
+                printLine(`nano: ${escapeHtml(filepath)}: Invalid path`, 'term-error');
+                return;
+            }
+            const parentDir = getDirectoryNode(parts);
+            if (!parentDir || typeof parentDir !== 'object') {
+                printLine(`nano: ${escapeHtml(filepath)}: No such file or directory`, 'term-error');
+                return;
+            }
+            if (Object.hasOwn(parentDir, filename) && typeof parentDir[filename] === 'object') {
+                printLine(`nano: ${escapeHtml(filepath)}: Is a directory`, 'term-error');
+                return;
+            }
+            const isExisting = Object.hasOwn(parentDir, filename) && typeof parentDir[filename] === 'string';
+            const initialContent = isExisting ? parentDir[filename] : "";
+
+            const inputRow = container.querySelector('.terminal-input-row');
+            outputEl.style.display = 'none';
+            inputRow.style.display = 'none';
+
+            const nanoDiv = document.createElement('div');
+            nanoDiv.className = 'nano-wrapper';
+            nanoDiv.innerHTML = `
+                <div class="nano-titlebar">
+                    <span>GNU nano 7.2 (Simulated)</span>
+                    <span class="font-monospace fw-bold">File: ${escapeHtml(filename)}</span>
+                    <span>${isExisting ? '' : '[New File]'}</span>
+                </div>
+                <textarea class="nano-editor-area" id="nano-textarea" spellcheck="false">${escapeHtml(initialContent)}</textarea>
+                <div class="nano-statusbar">
+                    <div>
+                        <span class="badge bg-secondary me-2">^O / [Save] WriteOut</span>
+                        <span class="badge bg-secondary">^X / [Exit] Close</span>
+                    </div>
+                    <div class="nano-actions">
+                        <button type="button" class="btn btn-sm btn-success py-0 px-2" id="nano-save-btn">Save (^O)</button>
+                        <button type="button" class="btn btn-sm btn-outline-light py-0 px-2" id="nano-cancel-btn">Exit (^X)</button>
+                    </div>
+                </div>
+            `;
+
+            const termWrapper = container.querySelector('.terminal-wrapper');
+            termWrapper.appendChild(nanoDiv);
+
+            const textarea = nanoDiv.querySelector('#nano-textarea');
+            textarea.focus();
+
+            function closeNano(saved, content) {
+                nanoDiv.remove();
+                outputEl.style.display = '';
+                inputRow.style.display = '';
+                inputEl.focus();
+
+                if (saved) {
+                    parentDir[filename] = content;
+                    const lineCount = content ? content.split('\n').length : 0;
+                    printLine(`[ Wrote ${lineCount} line(s) to ${escapeHtml(filename)} ]`);
+                    checkObjectives('nano', [filepath, filename], content);
+                } else {
+                    printLine(`[ nano: closed without saving ]`);
+                }
+            }
+
+            nanoDiv.querySelector('#nano-save-btn').addEventListener('click', () => closeNano(true, textarea.value));
+            nanoDiv.querySelector('#nano-cancel-btn').addEventListener('click', () => closeNano(false, null));
+
+            textarea.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'o') {
+                    e.preventDefault();
+                    closeNano(true, textarea.value);
+                } else if (((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') || e.key === 'Escape') {
+                    e.preventDefault();
+                    closeNano(false, null);
+                }
+            });
+        }
+
         // Handle Command Execution
         function executeCommand(rawInput) {
             const trimmed = rawInput.trim();
@@ -217,7 +329,52 @@
 
             printLine(`<span class="term-prompt">${escapeHtml(promptEl.textContent)}</span> <span class="term-cmd">${escapeHtml(trimmed)}</span>`);
 
-            const parts = trimmed.split(/\s+/);
+            // Output Redirection Detection & Parsing
+            let redirectDest = null;
+            let commandToRun = trimmed;
+
+            if (trimmed.includes('>')) {
+                const firstIdx = trimmed.indexOf('>');
+                const secondIdx = trimmed.indexOf('>', firstIdx + 1);
+                if (secondIdx !== -1) {
+                    printLine('hackacad-sh: syntax error: multiple redirection not supported', 'term-error');
+                    return;
+                }
+                if (firstIdx === 0) {
+                    printLine("hackacad-sh: syntax error near unexpected token '>'", 'term-error');
+                    return;
+                }
+                const leftPart = trimmed.substring(0, firstIdx).trim();
+                const rightPart = trimmed.substring(firstIdx + 1).trim();
+                if (!leftPart) {
+                    printLine("hackacad-sh: syntax error near unexpected token '>'", 'term-error');
+                    return;
+                }
+                if (!rightPart) {
+                    printLine("hackacad-sh: syntax error near unexpected token 'newline'", 'term-error');
+                    return;
+                }
+                commandToRun = leftPart;
+                redirectDest = rightPart.split(/\s+/)[0];
+            }
+
+            // 1. Check Exact-Match Custom Commands
+            const matchedCustom = customCommands.find(c => c && c.enabled !== false && c.command === commandToRun);
+            if (matchedCustom) {
+                if (redirectDest) {
+                    const writeOk = writeOutputFile(redirectDest, matchedCustom.output);
+                    if (writeOk) {
+                        checkObjectives(commandToRun, [], matchedCustom.output);
+                    }
+                } else {
+                    printOutput(matchedCustom.output);
+                    checkObjectives(commandToRun, [], matchedCustom.output);
+                }
+                return;
+            }
+
+            // 2. Built-in Command Parsing
+            const parts = commandToRun.split(/\s+/);
             const cmd = parts[0].toLowerCase();
             const args = parts.slice(1);
 
@@ -228,11 +385,30 @@
                 return;
             }
 
-            let outputResult = '';
+            let capturedOutput = '';
+            let captureLines = [];
+
+            // Helper to route command output depending on redirection
+            function emitOutput(text) {
+                capturedOutput = text;
+                if (!redirectDest) {
+                    printOutput(text);
+                }
+            }
+
+            function emitLine(html) {
+                if (redirectDest) {
+                    // Extract plain text for redirected file
+                    const plain = html.replace(/<[^>]*>/g, '');
+                    captureLines.push(plain);
+                } else {
+                    printLine(html);
+                }
+            }
 
             switch (cmd) {
                 case 'help':
-                    printLine('<strong>Available Lab Commands:</strong>');
+                    emitLine('<strong>Available Lab Commands:</strong>');
                     allowedCommands.forEach(c => {
                         let desc = '';
                         switch (c) {
@@ -242,6 +418,8 @@
                             case 'ls': desc = 'List files and subdirectories'; break;
                             case 'cd': desc = 'Change working directory'; break;
                             case 'cat': desc = 'Display contents of a file'; break;
+                            case 'touch': desc = 'Create an empty file or update timestamp'; break;
+                            case 'nano': desc = 'Edit file in simulated terminal editor'; break;
                             case 'grep': desc = 'Search for patterns in file'; break;
                             case 'chmod': desc = 'Change file access permissions'; break;
                             case 'whoami': desc = 'Display current user identity'; break;
@@ -255,8 +433,14 @@
                             case 'date': desc = 'Display current system time'; break;
                             default: desc = 'Lab utility'; break;
                         }
-                        printLine(`  <span class="term-highlight">${escapeHtml(c.padEnd(10))}</span> - ${desc}`);
+                        emitLine(`  <span class="term-highlight">${escapeHtml(c.padEnd(10))}</span> - ${desc}`);
                     });
+                    if (customCommands.length > 0) {
+                        emitLine('<strong>Custom Scenario Commands:</strong>');
+                        customCommands.forEach(cc => {
+                            emitLine(`  <span class="term-highlight">${escapeHtml(cc.command.padEnd(20))}</span> - ${escapeHtml(cc.description || 'Scenario command')}`);
+                        });
+                    }
                     break;
 
                 case 'clear':
@@ -264,30 +448,63 @@
                     break;
 
                 case 'pwd':
-                    outputResult = getPathString();
-                    printLine(outputResult);
+                    emitOutput(getPathString());
                     break;
 
                 case 'whoami':
-                    outputResult = 'student';
-                    printLine(outputResult);
+                    emitOutput('student');
                     break;
 
                 case 'id':
-                    outputResult = 'uid=1000(student) gid=1000(student) groups=1000(student),4(adm),27(sudo)';
-                    printLine(outputResult);
+                    emitOutput('uid=1000(student) gid=1000(student) groups=1000(student),4(adm),27(sudo)');
                     break;
 
                 case 'date':
-                    outputResult = new Date().toUTCString();
-                    printLine(outputResult);
+                    emitOutput(new Date().toUTCString());
                     break;
 
                 case 'history':
                     commandHistory.forEach((h, idx) => {
-                        printLine(`  ${(idx + 1).toString().padStart(3, ' ')}  ${escapeHtml(h)}`);
+                        emitLine(`  ${(idx + 1).toString().padStart(3, ' ')}  ${escapeHtml(h)}`);
                     });
                     break;
+
+                case 'touch': {
+                    if (args.length === 0) {
+                        printLine('touch: missing file operand', 'term-error');
+                        break;
+                    }
+                    for (const target of args) {
+                        const tParts = resolvePath(target);
+                        const tName = tParts.pop();
+                        if (!tName) {
+                            printLine(`touch: cannot touch '${escapeHtml(target)}': Invalid path`, 'term-error');
+                            break;
+                        }
+                        const pDir = getDirectoryNode(tParts);
+                        if (!pDir || typeof pDir !== 'object') {
+                            printLine(`touch: cannot touch '${escapeHtml(target)}': No such file or directory`, 'term-error');
+                            break;
+                        }
+                        if (Object.hasOwn(pDir, tName) && typeof pDir[tName] === 'object') {
+                            printLine(`touch: cannot touch '${escapeHtml(target)}': Is a directory`, 'term-error');
+                            break;
+                        }
+                        if (!Object.hasOwn(pDir, tName)) {
+                            pDir[tName] = "";
+                        }
+                    }
+                    break;
+                }
+
+                case 'nano': {
+                    if (args.length === 0) {
+                        printLine('nano: missing file operand', 'term-error');
+                        break;
+                    }
+                    openNanoEditor(args[0]);
+                    return; // Nano handles its own prompt restore
+                }
 
                 case 'ls': {
                     const isLong = args.includes('-l') || args.includes('-la') || args.includes('-al');
@@ -301,10 +518,10 @@
 
                     const entries = Object.keys(targetDir);
                     if (isLong) {
-                        printLine(`total ${entries.length * 4}`);
+                        emitLine(`total ${entries.length * 4}`);
                         if (showAll) {
-                            printLine(`drwxr-xr-x 2 student student 4096 Oct 18 10:00 .`);
-                            printLine(`drwxr-xr-x 4 root    root    4096 Oct 18 10:00 ..`);
+                            emitLine(`drwxr-xr-x 2 student student 4096 Oct 18 10:00 .`);
+                            emitLine(`drwxr-xr-x 4 root    root    4096 Oct 18 10:00 ..`);
                         }
                         entries.forEach(name => {
                             const isDir = typeof targetDir[name] === 'object';
@@ -313,7 +530,7 @@
                             const coloredName = isDir
                                 ? `<span class="term-dir">${escapeHtml(name)}/</span>`
                                 : (filePermissions[[...currentPath, name].join('/')] ? `<span class="term-exec">${escapeHtml(name)}*</span>` : escapeHtml(name));
-                            printLine(`${perm} 1 student student ${size.toString().padStart(5, ' ')} Oct 18 10:00 ${coloredName}`);
+                            emitLine(`${perm} 1 student student ${size.toString().padStart(5, ' ')} Oct 18 10:00 ${coloredName}`);
                         });
                     } else {
                         const formatted = entries.map(name => {
@@ -322,7 +539,7 @@
                                 ? `<span class="term-dir">${escapeHtml(name)}/</span>`
                                 : (filePermissions[[...currentPath, name].join('/')] ? `<span class="term-exec">${escapeHtml(name)}*</span>` : escapeHtml(name));
                         });
-                        printLine(formatted.join('&nbsp;&nbsp;&nbsp;&nbsp;'));
+                        emitLine(formatted.join('&nbsp;&nbsp;&nbsp;&nbsp;'));
                     }
                     break;
                 }
@@ -334,14 +551,19 @@
                     if (directory && typeof directory === 'object') {
                         currentPath = resolved;
                         updatePrompt();
-                    } else printOutput(`cd: ${dest}: No such directory`, 'term-error');
+                    } else {
+                        printOutput(`cd: ${dest}: No such directory`, 'term-error');
+                    }
                     break;
                 }
 
                 case 'cat': {
                     const content = args[0] ? readFile(args[0]) : null;
-                    if (content === null) printOutput('cat: choose an existing file', 'term-error');
-                    else { outputResult = content; printOutput(content); }
+                    if (content === null) {
+                        printOutput('cat: choose an existing file', 'term-error');
+                    } else {
+                        emitOutput(content);
+                    }
                     break;
                 }
 
@@ -371,9 +593,9 @@
                             matches.forEach(m => {
                                 const literalPattern = escapeHtml(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                                 const highlighted = escapeHtml(m).replace(new RegExp(literalPattern, 'gi'), '<span class="term-match">$&</span>');
-                                printLine(highlighted);
+                                emitLine(highlighted);
                             });
-                            outputResult = matches.join('\n');
+                            capturedOutput = matches.join('\n');
                         }
                     } else {
                         printLine(`grep: ${escapeHtml(fileName)}: No such file or directory`, 'term-error');
@@ -387,13 +609,13 @@
                         break;
                     }
                     filePermissions[resolvePath(args[1]).join('/')] = args[0];
-                    printOutput(`Changed permissions of '${args[1]}' to ${args[0]}`);
+                    emitOutput(`Changed permissions of '${args[1]}' to ${args[0]}`);
                     break;
                 }
 
                 case 'echo': {
                     const text = args.join(' ');
-                    printOutput(text);
+                    emitOutput(text);
                     break;
                 }
 
@@ -406,57 +628,56 @@
                         }
                         try {
                             const decoded = atob(target);
-                            outputResult = decoded;
-                            printOutput(decoded);
+                            emitOutput(decoded);
                         } catch (e) {
                             printLine('base64: invalid input', 'term-error');
                         }
                     } else {
                         const target = args[0] || '';
-                        printOutput(btoa(target));
+                        emitOutput(btoa(target));
                     }
                     break;
                 }
 
                 case 'ping': {
                     const host = args[args.length - 1] || 'localhost';
-                    printLine(`PING ${escapeHtml(host)} (127.0.0.1) 56(84) bytes of data.`);
-                    printLine(`64 bytes from ${escapeHtml(host)} (127.0.0.1): icmp_seq=1 ttl=64 time=0.035 ms`);
-                    printLine(`64 bytes from ${escapeHtml(host)} (127.0.0.1): icmp_seq=2 ttl=64 time=0.041 ms`);
-                    printLine(`64 bytes from ${escapeHtml(host)} (127.0.0.1): icmp_seq=3 ttl=64 time=0.038 ms`);
-                    printLine(`--- ${escapeHtml(host)} ping statistics ---`);
-                    printLine(`3 packets transmitted, 3 received, 0% packet loss, time 2004ms`);
+                    emitLine(`PING ${escapeHtml(host)} (127.0.0.1) 56(84) bytes of data.`);
+                    emitLine(`64 bytes from ${escapeHtml(host)} (127.0.0.1): icmp_seq=1 ttl=64 time=0.035 ms`);
+                    emitLine(`64 bytes from ${escapeHtml(host)} (127.0.0.1): icmp_seq=2 ttl=64 time=0.041 ms`);
+                    emitLine(`64 bytes from ${escapeHtml(host)} (127.0.0.1): icmp_seq=3 ttl=64 time=0.038 ms`);
+                    emitLine(`--- ${escapeHtml(host)} ping statistics ---`);
+                    emitLine(`3 packets transmitted, 3 received, 0% packet loss, time 2004ms`);
                     break;
                 }
 
                 case 'nmap': {
                     const target = args[args.length - 1] || 'target.hackacad.local';
-                    printLine(`Starting Nmap 7.94 ( https://nmap.org ) at 2026-10-18 10:00 UTC`);
-                    printLine(`Nmap scan report for ${escapeHtml(target)} (10.10.10.50)`);
-                    printLine(`Host is up (0.00045s latency).`);
-                    printLine(`Not shown: 997 closed tcp ports (reset)`);
-                    printLine(`PORT     STATE SERVICE VERSION`);
-                    printLine(`22/tcp   open  ssh     OpenSSH 8.9p1 Ubuntu`);
-                    printLine(`80/tcp   open  http    nginx 1.18.0`);
-                    printLine(`8080/tcp open  http    HackAcad Internal Auth API`);
-                    printLine(`Nmap done: 1 IP address (1 host up) scanned in 1.42 seconds`);
-                    outputResult = 'nmap done';
+                    emitLine(`Starting Nmap 7.94 ( https://nmap.org ) at 2026-10-18 10:00 UTC`);
+                    emitLine(`Nmap scan report for ${escapeHtml(target)} (10.10.10.50)`);
+                    emitLine(`Host is up (0.00045s latency).`);
+                    emitLine(`Not shown: 997 closed tcp ports (reset)`);
+                    emitLine(`PORT     STATE SERVICE VERSION`);
+                    emitLine(`22/tcp   open  ssh     OpenSSH 8.9p1 Ubuntu`);
+                    emitLine(`80/tcp   open  http    nginx 1.18.0`);
+                    emitLine(`8080/tcp open  http    HackAcad Internal Auth API`);
+                    emitLine(`Nmap done: 1 IP address (1 host up) scanned in 1.42 seconds`);
+                    capturedOutput = 'nmap done';
                     break;
                 }
 
                 case 'curl': {
                     const url = args[0] || 'http://localhost';
-                    printLine(`&gt; GET ${escapeHtml(url)} HTTP/1.1`);
-                    printLine(`&lt; HTTP/1.1 200 OK`);
-                    printLine(`&lt; Content-Type: application/json`);
-                    printLine(`&lt; Server: HackAcad-Sandbox/1.0`);
-                    printLine(`&lt; `);
+                    emitLine(`&gt; GET ${escapeHtml(url)} HTTP/1.1`);
+                    emitLine(`&lt; HTTP/1.1 200 OK`);
+                    emitLine(`&lt; Content-Type: application/json`);
+                    emitLine(`&lt; Server: HackAcad-Sandbox/1.0`);
+                    emitLine(`&lt; `);
                     if (url.includes('secret') || url.includes('flag') || url.includes('debug')) {
-                        outputResult = '{"status":"success","data":{"token":"flag{w3b_r3c0n_curl_m4st3r}"}}';
+                        capturedOutput = '{"status":"success","data":{"token":"flag{w3b_r3c0n_curl_m4st3r}"}}';
                     } else {
-                        outputResult = '{"status":"active","message":"HackAcad endpoint is operational."}';
+                        capturedOutput = '{"status":"active","message":"HackAcad endpoint is operational."}';
                     }
-                    printOutput(outputResult);
+                    emitOutput(capturedOutput);
                     break;
                 }
 
@@ -465,7 +686,13 @@
                     break;
             }
 
-            checkObjectives(cmd, args, outputResult);
+            // Write redirection output if requested and command succeeded
+            if (redirectDest && commandSucceeded) {
+                const textToWrite = capturedOutput || captureLines.join('\n');
+                writeOutputFile(redirectDest, textToWrite);
+            }
+
+            checkObjectives(cmd, args, capturedOutput);
         }
 
         // Key Listeners
