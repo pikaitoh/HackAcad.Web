@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using HackAcad.Web.Data;
 using HackAcad.Web.Models.Entities;
 using HackAcad.Web.Models.ViewModels;
@@ -504,26 +505,36 @@ public class InstructorCoursesController(
         var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == courseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found.");
 
-        // Supply a default ready-to-run Linux lab template
+        // Predefined Linux filesystem template containing common directories (/home/student, /etc, /tmp, /var, /var/log)
         var defaultJson = @"{
+  ""description"": ""Explore basic Linux filesystem navigation, inspect log files, and verify commands."",
+  ""difficulty"": ""Beginner"",
   ""allowedCommands"": [""help"", ""clear"", ""pwd"", ""ls"", ""cd"", ""cat"", ""grep"", ""whoami"", ""chmod""],
   ""initialDirectory"": ""/home/student"",
   ""fileSystem"": {
     ""home"": {
       ""student"": {
-        ""notes.txt"": ""Mission: Find the sensitive audit script in /var/secret and view its secret key."",
-        ""readme.md"": ""Welcome to HackAcad simulated terminal environment.""
+        ""notes.txt"": ""Mission: Inspect system configuration and find the access token in /var/log/auth.log."",
+        ""welcome.txt"": ""Welcome to the HackAcad Linux environment.\nUse ls to inspect files and cat to read them.""
       }
     },
+    ""etc"": {
+      ""motd"": ""HackAcad Virtual Security Lab v2.0\nAuthorized access only."",
+      ""hostname"": ""hackacad-sandbox""
+    },
+    ""tmp"": {
+      ""sample.tmp"": ""Temporary session data.""
+    },
     ""var"": {
-      ""secret"": {
-        ""audit.sh"": ""# HackAcad Secret Key\nFLAG_KEY=flag{l1nux_sh3ll_m4st3ry}""
+      ""log"": {
+        ""syslog"": ""systemd[1]: Started HackAcad Lab Environment."",
+        ""auth.log"": ""Oct 18 10:08:14 server audit[1400]: FLAG_TOKEN=flag{l1nux_sh3ll_m4st3ry}""
       }
     }
   },
   ""objectives"": [
-    { ""id"": ""nav_var"", ""text"": ""Navigate to /var/secret directory"", ""type"": ""cwd"", ""target"": ""/var/secret"" },
-    { ""id"": ""view_audit"", ""text"": ""Inspect audit.sh to find the secret key"", ""type"": ""cat"", ""target"": ""audit.sh"" }
+    { ""id"": ""nav_log"", ""text"": ""Navigate to /var/log directory"", ""type"": ""cwd"", ""target"": ""/var/log"", ""hint"": ""Run 'cd /var/log'"" },
+    { ""id"": ""read_auth"", ""text"": ""Inspect auth.log using cat to find the secret token"", ""type"": ""cat"", ""target"": ""auth.log"", ""hint"": ""Run 'cat auth.log'"" }
   ]
 }";
 
@@ -531,7 +542,9 @@ public class InstructorCoursesController(
         {
             CourseId = courseId,
             Title = "Linux File Navigation & Secret Inspection",
-            Instructions = "Practice basic Linux terminal navigation. Navigate to /var/secret and inspect audit.sh to complete the lab exercise.",
+            Description = "Explore basic Linux filesystem navigation, inspect log files, and verify commands.",
+            Difficulty = "Beginner",
+            Instructions = "Practice basic Linux terminal navigation. Navigate to /var/log and inspect auth.log to complete the lab exercise.",
             VirtualFileSystemJson = defaultJson,
             RewardFlag = "flag{l1nux_sh3ll_m4st3ry}",
             IsPublished = true
@@ -548,11 +561,28 @@ public class InstructorCoursesController(
         var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == task.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("You do not own this course.");
 
+        string? description = null;
+        string? difficulty = null;
+        if (!string.IsNullOrWhiteSpace(task.VirtualFileSystemJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(task.VirtualFileSystemJson);
+                if (doc.RootElement.TryGetProperty("description", out var d) && d.ValueKind == JsonValueKind.String)
+                    description = d.GetString();
+                if (doc.RootElement.TryGetProperty("difficulty", out var diff) && diff.ValueKind == JsonValueKind.String)
+                    difficulty = diff.GetString();
+            }
+            catch { }
+        }
+
         return View("SimulationForm", new SimulationCreateEditModel
         {
             TaskId = task.TaskId,
             CourseId = task.CourseId,
             Title = task.Title,
+            Description = description,
+            Difficulty = difficulty ?? "Beginner",
             Instructions = task.Instructions,
             VirtualFileSystemJson = task.VirtualFileSystemJson,
             RewardFlag = task.RewardFlagHash,
@@ -568,8 +598,53 @@ public class InstructorCoursesController(
         var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found.");
 
-        if (!SimulationVerifier.TryConfiguration(model.VirtualFileSystemJson, out _, out var configError))
-            ModelState.AddModelError(nameof(model.VirtualFileSystemJson), configError);
+        // Inject description and difficulty into JSON root if not present
+        var jsonToSave = model.VirtualFileSystemJson;
+        if (!string.IsNullOrWhiteSpace(jsonToSave))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(jsonToSave);
+                if (doc.RootElement.ValueKind == JsonValueKind.Object)
+                {
+                    var dict = new Dictionary<string, object>();
+                    foreach (var prop in doc.RootElement.EnumerateObject())
+                    {
+                        dict[prop.Name] = JsonSerializer.Deserialize<object>(prop.Value.GetRawText())!;
+                    }
+                    if (!string.IsNullOrWhiteSpace(model.Description))
+                        dict["description"] = model.Description.Trim();
+                    if (!string.IsNullOrWhiteSpace(model.Difficulty))
+                        dict["difficulty"] = model.Difficulty.Trim();
+                    jsonToSave = JsonSerializer.Serialize(dict, new JsonSerializerOptions { WriteIndented = true });
+                    model.VirtualFileSystemJson = jsonToSave;
+                }
+            }
+            catch { }
+        }
+
+        if (model.IsPublished)
+        {
+            if (!SimulationVerifier.TryConfiguration(model.VirtualFileSystemJson, out _, out var configError))
+                ModelState.AddModelError(nameof(model.VirtualFileSystemJson), configError);
+        }
+        else
+        {
+            // For drafts, allow incomplete configuration as long as it parses as a JSON object if provided
+            if (!string.IsNullOrWhiteSpace(model.VirtualFileSystemJson))
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(model.VirtualFileSystemJson);
+                    if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                        ModelState.AddModelError(nameof(model.VirtualFileSystemJson), "Configuration must be a valid JSON object.");
+                }
+                catch (JsonException ex)
+                {
+                    ModelState.AddModelError(nameof(model.VirtualFileSystemJson), $"Invalid JSON format: {ex.Message}");
+                }
+            }
+        }
 
         if (!ModelState.IsValid) return View("SimulationForm", model);
 
@@ -586,7 +661,9 @@ public class InstructorCoursesController(
             };
 
             db.SimulationTasks.Add(task);
-            TempData["Success"] = $"Simulation task \"{task.Title}\" created successfully!";
+            TempData["Success"] = model.IsPublished 
+                ? $"Simulation task \"{task.Title}\" published successfully!" 
+                : $"Simulation draft \"{task.Title}\" saved.";
         }
         else
         {
@@ -599,7 +676,9 @@ public class InstructorCoursesController(
             existing.RewardFlagHash = model.RewardFlag?.Trim();
             existing.IsPublished = model.IsPublished;
 
-            TempData["Success"] = $"Simulation task \"{existing.Title}\" updated.";
+            TempData["Success"] = model.IsPublished 
+                ? $"Simulation task \"{existing.Title}\" published." 
+                : $"Simulation draft \"{existing.Title}\" updated.";
         }
 
         await db.SaveChangesAsync();

@@ -161,6 +161,12 @@ public class SimulationCreateEditModel
     [Required(ErrorMessage = "Enter a task title."), StringLength(150, ErrorMessage = "Title cannot exceed 150 characters.")]
     public string Title { get; set; } = string.Empty;
 
+    [StringLength(2000, ErrorMessage = "Description cannot exceed 2000 characters.")]
+    public string? Description { get; set; }
+
+    [StringLength(50)]
+    public string? Difficulty { get; set; }
+
     public string? Instructions { get; set; }
 
     [Display(Name = "Virtual File System (JSON)")]

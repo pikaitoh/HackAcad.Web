@@ -1,0 +1,105 @@
+/* HackAcad Visual Simulation Builder Styles */
+
+.fs-tree {
+    font-size: 0.875rem;
+    user-select: none;
+}
+
+.tree-item {
+    display: flex;
+    align-items: center;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 120ms ease, color 120ms ease;
+    margin-bottom: 2px;
+}
+
+.tree-item:hover {
+    background-color: var(--ha-tint, #e3f1eb);
+}
+
+.tree-item.selected {
+    background-color: var(--ha-primary, #33796e) !important;
+    color: #ffffff !important;
+}
+
+.tree-item.selected .tree-label,
+.tree-item.selected .tree-caret,
+.tree-item.selected .tree-size,
+.tree-item.selected .tree-badge {
+    color: #ffffff !important;
+}
+
+.tree-caret {
+    display: inline-block;
+    width: 18px;
+    font-size: 0.8rem;
+    color: var(--ha-muted, #4d686a);
+    text-align: center;
+    cursor: pointer;
+}
+
+.tree-caret-placeholder {
+    display: inline-block;
+    width: 18px;
+}
+
+.tree-icon {
+    font-size: 1rem;
+    margin-right: 6px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.tree-label {
+    flex-grow: 1;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tree-badge {
+    font-size: 0.7rem;
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--ha-muted, #4d686a);
+    padding: 1px 6px;
+    border-radius: 999px;
+    margin-left: 6px;
+}
+
+.tree-size {
+    font-size: 0.72rem;
+    color: var(--ha-muted, #4d686a);
+    margin-left: 6px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.drop-hover {
+    outline: 2px dashed #0284c7 !important;
+    background-color: #e0f2fe !important;
+}
+
+.inspector-panel {
+    animation: fadeIn 150ms ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.objective-card {
+    transition: box-shadow 150ms ease, border-color 150ms ease;
+}
+
+.objective-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    border-color: var(--ha-primary, #33796e) !important;
+}
+
+#sim-builder-preview-terminal .terminal-wrapper {
+    margin-block: 0;
+}
