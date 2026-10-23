@@ -41,6 +41,16 @@
         let isTaskCompleted = false;
         let commandSucceeded = true;
 
+        function decodeHtmlEntities(str) {
+            return String(str || '')
+                .replace(/&nbsp;/g, ' ')
+                .replace(/&lt;/g, '<')
+                .replace(/&gt;/g, '>')
+                .replace(/&amp;/g, '&')
+                .replace(/&quot;/g, '"')
+                .replace(/&#39;/g, "'");
+        }
+
         function escapeHtml(value) {
             return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
@@ -110,7 +120,7 @@
                         <span class="t-btn t-btn-green"></span>
                     </div>
                     <div class="terminal-title">student@hackacad: ~ (bash simulation)</div>
-                    <div class="terminal-badge">NetAcad Sandbox</div>
+                    <div class="terminal-badge">HackAcad Sandbox</div>
                 </div>
                 <div class="terminal-body" id="term-output">
                     <div class="term-line term-banner">
@@ -354,11 +364,16 @@
                     printLine("hackacad-sh: syntax error near unexpected token 'newline'", 'term-error');
                     return;
                 }
+                const destTokens = rightPart.split(/\s+/).filter(Boolean);
+                if (destTokens.length > 1) {
+                    printLine("hackacad-sh: syntax error: ambiguous redirect", 'term-error');
+                    return;
+                }
                 commandToRun = leftPart;
-                redirectDest = rightPart.split(/\s+/)[0];
+                redirectDest = destTokens[0];
             }
 
-            // 1. Check Exact-Match Custom Commands
+            // 1. Check Exact-Match Custom Commands (case-sensitive)
             const matchedCustom = customCommands.find(c => c && c.enabled !== false && c.command === commandToRun);
             if (matchedCustom) {
                 if (redirectDest) {
@@ -377,6 +392,12 @@
             const parts = commandToRun.split(/\s+/);
             const cmd = parts[0].toLowerCase();
             const args = parts.slice(1);
+
+            const allBuiltins = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "whoami", "id", "echo", "base64", "ping", "nmap", "curl", "history", "date", "touch", "nano", "chmod"];
+            if (!allBuiltins.includes(cmd)) {
+                printLine(`hackacad-sh: ${escapeHtml(cmd)}: command not found`, 'term-error');
+                return;
+            }
 
             // Check if command is permitted by instructor in this exercise
             if (!allowedCommands.includes(cmd)) {
@@ -399,7 +420,7 @@
             function emitLine(html) {
                 if (redirectDest) {
                     // Extract plain text for redirected file
-                    const plain = html.replace(/<[^>]*>/g, '');
+                    const plain = decodeHtmlEntities(html.replace(/<[^>]*>/g, ''));
                     captureLines.push(plain);
                 } else {
                     printLine(html);
@@ -688,8 +709,9 @@
 
             // Write redirection output if requested and command succeeded
             if (redirectDest && commandSucceeded) {
-                const textToWrite = capturedOutput || captureLines.join('\n');
-                writeOutputFile(redirectDest, textToWrite);
+                const textToWrite = captureLines.length > 0 ? captureLines.join('\n') : capturedOutput;
+                const ok = writeOutputFile(redirectDest, textToWrite);
+                if (!ok) commandSucceeded = false;
             }
 
             checkObjectives(cmd, args, capturedOutput);

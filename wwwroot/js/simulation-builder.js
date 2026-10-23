@@ -10,25 +10,32 @@
     // Supported commands strictly implemented by the simulation engine
     const ALL_SUPPORTED_COMMANDS = [
         "help", "clear", "pwd", "ls", "cd", "cat", "grep", "chmod",
-        "whoami", "id", "echo", "base64", "ping", "nmap", "curl", "history", "date"
+        "whoami", "id", "echo", "base64", "ping", "nmap", "curl", "history", "date", "touch", "nano"
     ];
 
+    // Mandatory built-in system commands permanently enabled in every lab
+    const MANDATORY_SYSTEM_COMMANDS = [
+        { id: "help", label: "help", desc: "Display allowed lab commands and hints" },
+        { id: "clear", label: "clear", desc: "Clear terminal screen" }
+    ];
+
+    // Teacher-configurable command categories (help and clear are permanently enabled)
     const COMMAND_CATEGORIES = [
         {
             name: "Navigation & Shell Environment",
             commands: [
                 { id: "pwd", label: "pwd", desc: "Print current working directory" },
                 { id: "cd", label: "cd", desc: "Change working directory" },
-                { id: "clear", label: "clear", desc: "Clear terminal screen", always: true },
-                { id: "help", label: "help", desc: "Display allowed lab commands", always: true },
                 { id: "history", label: "history", desc: "List executed command history" }
             ]
         },
         {
-            name: "File Inspection & Permissions",
+            name: "File Operations & Permissions",
             commands: [
                 { id: "ls", label: "ls", desc: "List directory contents (-l, -la)" },
                 { id: "cat", label: "cat", desc: "Display file contents" },
+                { id: "touch", label: "touch", desc: "Create empty file or update timestamp" },
+                { id: "nano", label: "nano", desc: "Edit file in simulated terminal editor" },
                 { id: "grep", label: "grep", desc: "Search pattern inside file" },
                 { id: "chmod", label: "chmod", desc: "Change file access permissions" }
             ]
@@ -41,15 +48,6 @@
                 { id: "date", label: "date", desc: "Display system date and time" },
                 { id: "echo", label: "echo", desc: "Print text line to terminal" }
             ]
-        },
-        {
-            name: "Networking & Encoding Utilities",
-            commands: [
-                { id: "ping", label: "ping", desc: "Simulate ICMP ping request" },
-                { id: "nmap", label: "nmap", desc: "Simulate port scan of target hosts" },
-                { id: "curl", label: "curl", desc: "Simulate HTTP GET requests" },
-                { id: "base64", label: "base64", desc: "Encode or decode (-d) base64 data" }
-            ]
         }
     ];
 
@@ -58,7 +56,7 @@
         linux_standard: {
             name: "Linux Filesystem Template (Recommended)",
             description: "Standard Linux directories (/home/student, /etc, /tmp, /var, /var/log) with safe example files.",
-            allowedCommands: ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "whoami", "chmod"],
+            allowedCommands: ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "whoami", "chmod", "touch", "nano"],
             initialDirectory: "/home/student",
             fileSystem: {
                 "home": {
@@ -81,6 +79,7 @@
                     }
                 }
             },
+            customCommands: [],
             objectives: [
                 { id: "obj_nav_log", text: "Navigate to the /var/log directory using cd", type: "cwd", target: "/var/log", hint: "Run 'cd /var/log'" },
                 { id: "obj_read_auth", text: "Read auth.log using cat to find the secret token", type: "cat", target: "auth.log", hint: "Run 'cat auth.log'" }
@@ -96,42 +95,9 @@
                     "student": {}
                 }
             },
+            customCommands: [],
             objectives: [
                 { id: "obj_verify_pwd", text: "Check your initial location using pwd", type: "command", target: "pwd", hint: "Type 'pwd' and press Enter" }
-            ]
-        },
-        recon_web: {
-            name: "Web Reconnaissance Preset",
-            description: "Target inspection lab with network scanning utilities (nmap, curl).",
-            allowedCommands: ["help", "clear", "pwd", "ls", "cat", "ping", "nmap", "curl", "whoami"],
-            initialDirectory: "/home/student",
-            fileSystem: {
-                "home": {
-                    "student": {
-                        "targets.txt": "Target host: target.hackacad.local\nPort 8080 hosts the internal debug API."
-                    }
-                }
-            },
-            objectives: [
-                { id: "obj_scan", text: "Run nmap scan against the target host", type: "command", target: "nmap", hint: "Run 'nmap target.hackacad.local'" },
-                { id: "obj_curl", text: "Query the debug endpoint with curl", type: "command", target: "curl", hint: "Run 'curl http://localhost/debug'" }
-            ]
-        },
-        chmod_audit: {
-            name: "Permissions & Script Audit Preset",
-            description: "Practice file security modes and running chmod on shell scripts.",
-            allowedCommands: ["help", "clear", "pwd", "ls", "cd", "cat", "chmod", "whoami"],
-            initialDirectory: "/home/student",
-            fileSystem: {
-                "home": {
-                    "student": {
-                        "audit.sh": "#!/bin/bash\n# Audit script\necho 'Verification token: flag{chm0d_p3rm1ss10n_m4st3r}'"
-                    }
-                }
-            },
-            objectives: [
-                { id: "obj_chmod", text: "Set execute permission on audit.sh using chmod 755", type: "chmod", target: "audit.sh", mode: "755", hint: "Run 'chmod 755 audit.sh'" },
-                { id: "obj_cat", text: "Read the audit.sh script with cat", type: "cat", target: "audit.sh", hint: "Run 'cat audit.sh'" }
             ]
         }
     };
@@ -154,6 +120,7 @@
             fileSystem: {},
             allowedCommands: ["help", "clear", "pwd", "ls", "cd", "cat", "whoami"],
             initialDirectory: "/home/student",
+            customCommands: [],
             objectives: [],
             selectedPath: "/", // currently selected item in filesystem
             expandedPaths: new Set(["/", "/home", "/home/student", "/var"]),
@@ -173,6 +140,9 @@
                 if (parsed.initialDirectory && typeof parsed.initialDirectory === 'string') {
                     state.initialDirectory = normalizePath(parsed.initialDirectory);
                 }
+                if (Array.isArray(parsed.customCommands)) {
+                    state.customCommands = JSON.parse(JSON.stringify(parsed.customCommands));
+                }
                 if (Array.isArray(parsed.objectives)) {
                     state.objectives = JSON.parse(JSON.stringify(parsed.objectives));
                 }
@@ -191,6 +161,12 @@
         // Ensure mandatory commands are always present
         ensureMandatoryCommands();
 
+        // SVG icon helper
+        function svgIcon(name, extraClass = '', alt = '') {
+            const altAttr = alt ? `alt="${escapeHtml(alt)}"` : 'alt="" aria-hidden="true"';
+            return `<img src="/images/${name}.svg" class="sim-icon ${extraClass}" ${altAttr} />`;
+        }
+
         // Path utility functions
         function normalizePath(p) {
             if (!p || p === '/') return '/';
@@ -198,15 +174,23 @@
             return '/' + parts.join('/');
         }
 
-        function splitPath(p) {
-            return p.split('/').filter(Boolean);
+        function getNameFromPath(p) {
+            const parts = p.split('/').filter(Boolean);
+            return parts.length > 0 ? parts[parts.length - 1] : '/';
+        }
+
+        function getParentPath(p) {
+            const parts = p.split('/').filter(Boolean);
+            if (parts.length <= 1) return '/';
+            parts.pop();
+            return '/' + parts.join('/');
         }
 
         function getNode(fs, path) {
-            if (path === '/' || !path) return fs;
-            const parts = splitPath(path);
+            if (path === '/') return fs;
+            const parts = path.split('/').filter(Boolean);
             let curr = fs;
-            for (const part of parts) {
+            for (let part of parts) {
                 if (!curr || typeof curr !== 'object' || !Object.hasOwn(curr, part)) return null;
                 curr = curr[part];
             }
@@ -220,44 +204,36 @@
             return typeof node === 'object' ? 'dir' : 'file';
         }
 
-        function getParentPath(path) {
-            if (path === '/' || !path) return null;
-            const parts = splitPath(path);
-            parts.pop();
-            return parts.length === 0 ? '/' : '/' + parts.join('/');
-        }
+        function getAllDirectories(fs, basePath = '') {
+            const dirs = [];
+            if (basePath === '') dirs.push('/');
+            const currNode = basePath === '' ? fs : getNode(fs, basePath);
+            if (!currNode || typeof currNode !== 'object') return dirs;
 
-        function getNameFromPath(path) {
-            if (path === '/') return '/';
-            const parts = splitPath(path);
-            return parts[parts.length - 1] || '';
-        }
-
-        function getAllDirectories(fs, currentPath = '/', list = ['/']) {
-            const node = getNode(fs, currentPath);
-            if (!node || typeof node !== 'object') return list;
-            for (const key of Object.keys(node)) {
-                if (typeof node[key] === 'object' && node[key] !== null) {
-                    const subPath = currentPath === '/' ? `/${key}` : `${currentPath}/${key}`;
-                    list.push(subPath);
-                    getAllDirectories(fs, subPath, list);
+            for (const key of Object.keys(currNode)) {
+                if (typeof currNode[key] === 'object') {
+                    const fullPath = basePath === '' ? `/${key}` : `${basePath}/${key}`;
+                    dirs.push(fullPath);
+                    dirs.push(...getAllDirectories(fs, fullPath));
                 }
             }
-            return list;
+            return dirs;
         }
 
-        function getAllFiles(fs, currentPath = '/', list = []) {
-            const node = getNode(fs, currentPath);
-            if (!node || typeof node !== 'object') return list;
-            for (const key of Object.keys(node)) {
-                const subPath = currentPath === '/' ? `/${key}` : `${currentPath}/${key}`;
-                if (typeof node[key] === 'string') {
-                    list.push({ path: subPath, name: key, size: node[key].length });
-                } else if (typeof node[key] === 'object' && node[key] !== null) {
-                    getAllFiles(fs, subPath, list);
+        function getAllFiles(fs, basePath = '') {
+            const files = [];
+            const currNode = basePath === '' ? fs : getNode(fs, basePath);
+            if (!currNode || typeof currNode !== 'object') return files;
+
+            for (const key of Object.keys(currNode)) {
+                const fullPath = basePath === '' ? `/${key}` : `${basePath}/${key}`;
+                if (typeof currNode[key] === 'string') {
+                    files.push({ name: key, path: fullPath });
+                } else if (typeof currNode[key] === 'object') {
+                    files.push(...getAllFiles(fs, fullPath));
                 }
             }
-            return list;
+            return files;
         }
 
         function ensureMandatoryCommands() {
@@ -265,31 +241,21 @@
             if (!state.allowedCommands.includes("clear")) state.allowedCommands.push("clear");
         }
 
-        // Validation helpers
-        function validateItemName(name, parentPath, currentPath = null) {
-            const trimmed = (name || '').trim();
-            if (!trimmed) return "Name cannot be empty.";
-            if (trimmed.length > 255) return "Name cannot exceed 255 characters.";
-            if (trimmed === '.' || trimmed === '..') return "Name cannot be '.' or '..'.";
-            if (/[/\\:\0]/.test(trimmed)) return "Name cannot contain slashes or control characters.";
-            if (trimmed === '__proto__' || trimmed === 'constructor' || trimmed === 'prototype') return "Reserved name not permitted.";
-
-            const parent = getNode(state.fileSystem, parentPath);
-            if (!parent || typeof parent !== 'object') return "Parent folder not found.";
-            const oldName = currentPath ? getNameFromPath(currentPath) : null;
-            if (trimmed !== oldName && Object.hasOwn(parent, trimmed)) {
-                return `An item named "${trimmed}" already exists in this folder.`;
+        // Tree Operations
+        function createDirectory(parentPath, dirName) {
+            const safeName = dirName.trim();
+            if (!safeName || safeName.includes('/') || safeName.includes('\\')) {
+                return { success: false, error: "Directory name cannot be empty or contain slashes." };
             }
-            return null;
-        }
-
-        // Filesystem Mutation Methods
-        function createDirectory(parentPath, name) {
-            const err = validateItemName(name, parentPath);
-            if (err) return { success: false, error: err };
             const parent = getNode(state.fileSystem, parentPath);
-            parent[name.trim()] = {};
-            const newPath = parentPath === '/' ? `/${name.trim()}` : `${parentPath}/${name.trim()}`;
+            if (!parent || typeof parent !== 'object') {
+                return { success: false, error: "Parent directory does not exist." };
+            }
+            if (Object.hasOwn(parent, safeName)) {
+                return { success: false, error: `An item named "${safeName}" already exists in this folder.` };
+            }
+            parent[safeName] = {};
+            const newPath = parentPath === '/' ? `/${safeName}` : `${parentPath}/${safeName}`;
             state.expandedPaths.add(parentPath);
             state.expandedPaths.add(newPath);
             state.selectedPath = newPath;
@@ -298,12 +264,20 @@
             return { success: true, path: newPath };
         }
 
-        function createFile(parentPath, name, content = "") {
-            const err = validateItemName(name, parentPath);
-            if (err) return { success: false, error: err };
+        function createFile(parentPath, fileName, content = "") {
+            const safeName = fileName.trim();
+            if (!safeName || safeName.includes('/') || safeName.includes('\\')) {
+                return { success: false, error: "File name cannot be empty or contain slashes." };
+            }
             const parent = getNode(state.fileSystem, parentPath);
-            parent[name.trim()] = content;
-            const newPath = parentPath === '/' ? `/${name.trim()}` : `${parentPath}/${name.trim()}`;
+            if (!parent || typeof parent !== 'object') {
+                return { success: false, error: "Parent directory does not exist." };
+            }
+            if (Object.hasOwn(parent, safeName)) {
+                return { success: false, error: `An item named "${safeName}" already exists in this folder.` };
+            }
+            parent[safeName] = content;
+            const newPath = parentPath === '/' ? `/${safeName}` : `${parentPath}/${safeName}`;
             state.expandedPaths.add(parentPath);
             state.selectedPath = newPath;
             syncStateToInput();
@@ -311,138 +285,102 @@
             return { success: true, path: newPath };
         }
 
-        function renameItem(oldPath, newName) {
-            if (oldPath === '/') return { success: false, error: "Root directory cannot be renamed." };
-            const parentPath = getParentPath(oldPath);
-            const err = validateItemName(newName, parentPath, oldPath);
-            if (err) return { success: false, error: err };
-
-            const oldName = getNameFromPath(oldPath);
+        function renameItem(itemPath, newName) {
+            const safeName = newName.trim();
+            if (itemPath === '/') return { success: false, error: "Root directory cannot be renamed." };
+            if (!safeName || safeName.includes('/') || safeName.includes('\\')) {
+                return { success: false, error: "Name cannot be empty or contain slashes." };
+            }
+            const parentPath = getParentPath(itemPath);
+            const oldName = getNameFromPath(itemPath);
             const parent = getNode(state.fileSystem, parentPath);
-            const node = parent[oldName];
-            const cleanNewName = newName.trim();
+            if (!parent || typeof parent !== 'object') return { success: false, error: "Parent directory not found." };
+            if (safeName === oldName) return { success: true };
+            if (Object.hasOwn(parent, safeName)) {
+                return { success: false, error: `An item named "${safeName}" already exists in this folder.` };
+            }
+
+            parent[safeName] = parent[oldName];
             delete parent[oldName];
-            parent[cleanNewName] = node;
 
-            const newPath = parentPath === '/' ? `/${cleanNewName}` : `${parentPath}/${cleanNewName}`;
+            const newPath = parentPath === '/' ? `/${safeName}` : `${parentPath}/${safeName}`;
 
-            // Update expanded set
-            if (state.expandedPaths.has(oldPath)) {
-                state.expandedPaths.delete(oldPath);
-                state.expandedPaths.add(newPath);
-            }
-            for (const p of Array.from(state.expandedPaths)) {
-                if (p.startsWith(oldPath + '/')) {
-                    state.expandedPaths.delete(p);
-                    state.expandedPaths.add(p.replace(oldPath, newPath));
-                }
+            if (state.initialDirectory === itemPath) state.initialDirectory = newPath;
+            else if (state.initialDirectory.startsWith(itemPath + '/')) {
+                state.initialDirectory = newPath + state.initialDirectory.substring(itemPath.length);
             }
 
-            // Update selected path
-            if (state.selectedPath === oldPath) state.selectedPath = newPath;
-            else if (state.selectedPath.startsWith(oldPath + '/')) state.selectedPath = state.selectedPath.replace(oldPath, newPath);
-
-            // Update initial directory
-            if (state.initialDirectory === oldPath) state.initialDirectory = newPath;
-            else if (state.initialDirectory.startsWith(oldPath + '/')) state.initialDirectory = state.initialDirectory.replace(oldPath, newPath);
-
-            // Automatically update affected objectives
             state.objectives.forEach(obj => {
-                if (obj.target === oldPath) obj.target = newPath;
-                else if (obj.target.startsWith(oldPath + '/')) obj.target = obj.target.replace(oldPath, newPath);
-                else if (obj.target === oldName) obj.target = cleanNewName;
+                if (obj.target === itemPath || obj.target === oldName) {
+                    obj.target = obj.target === itemPath ? newPath : safeName;
+                }
             });
 
-            syncStateToInput();
-            render();
-            return { success: true, path: newPath };
-        }
+            const newExpanded = new Set();
+            state.expandedPaths.forEach(p => {
+                if (p === itemPath) newExpanded.add(newPath);
+                else if (p.startsWith(itemPath + '/')) newExpanded.add(newPath + p.substring(itemPath.length));
+                else newExpanded.add(p);
+            });
+            state.expandedPaths = newExpanded;
 
-        function deleteItem(path) {
-            if (path === '/') return { success: false, error: "Root directory cannot be deleted." };
-            const parentPath = getParentPath(path);
-            const parent = getNode(state.fileSystem, parentPath);
-            const name = getNameFromPath(path);
-            if (!parent || !Object.hasOwn(parent, name)) return { success: false, error: "Item not found." };
-
-            delete parent[name];
-
-            // Clean up selection and expanded paths
-            state.expandedPaths.delete(path);
-            for (const p of Array.from(state.expandedPaths)) {
-                if (p.startsWith(path + '/')) state.expandedPaths.delete(p);
-            }
-
-            if (state.selectedPath === path || state.selectedPath.startsWith(path + '/')) {
-                state.selectedPath = parentPath;
-            }
-
-            // Reset initial directory if it was deleted
-            if (state.initialDirectory === path || state.initialDirectory.startsWith(path + '/')) {
-                const available = getAllDirectories(state.fileSystem);
-                state.initialDirectory = available.includes('/home/student') ? '/home/student' : available[0] || '/';
-            }
-
+            state.selectedPath = newPath;
             syncStateToInput();
             render();
             return { success: true };
         }
 
-        function moveItem(srcPath, destDirPath) {
-            if (srcPath === '/') return { success: false, error: "Cannot move virtual root directory." };
-            if (getNodeType(state.fileSystem, destDirPath) !== 'dir') return { success: false, error: "Destination must be a directory." };
+        function deleteItem(itemPath) {
+            if (itemPath === '/') return { success: false, error: "Root directory cannot be deleted." };
+            const parentPath = getParentPath(itemPath);
+            const name = getNameFromPath(itemPath);
+            const parent = getNode(state.fileSystem, parentPath);
+            if (!parent || typeof parent !== 'object') return { success: false, error: "Parent directory not found." };
 
-            const srcParentPath = getParentPath(srcPath);
-            if (srcParentPath === destDirPath) return { success: false, error: "Item is already in this directory." };
+            delete parent[name];
 
-            // Prevent cycle: cannot move a folder into itself or a descendant
-            if (destDirPath === srcPath || destDirPath.startsWith(srcPath + '/')) {
-                return { success: false, error: "Cannot move a directory into itself or its subdirectories." };
+            if (state.initialDirectory === itemPath || state.initialDirectory.startsWith(itemPath + '/')) {
+                state.initialDirectory = parentPath;
             }
 
-            const name = getNameFromPath(srcPath);
-            const destDir = getNode(state.fileSystem, destDirPath);
-            if (Object.hasOwn(destDir, name)) {
-                return { success: false, error: `An item named "${name}" already exists in ${destDirPath}.` };
-            }
-
-            const srcParent = getNode(state.fileSystem, srcParentPath);
-            const node = srcParent[name];
-            delete srcParent[name];
-            destDir[name] = node;
-
-            const newPath = destDirPath === '/' ? `/${name}` : `${destDirPath}/${name}`;
-
-            // Update expanded set
-            if (state.expandedPaths.has(srcPath)) {
-                state.expandedPaths.delete(srcPath);
-                state.expandedPaths.add(newPath);
-            }
-            state.expandedPaths.add(destDirPath);
-            for (const p of Array.from(state.expandedPaths)) {
-                if (p.startsWith(srcPath + '/')) {
-                    state.expandedPaths.delete(p);
-                    state.expandedPaths.add(p.replace(srcPath, newPath));
-                }
-            }
-
-            // Update selection
-            if (state.selectedPath === srcPath) state.selectedPath = newPath;
-            else if (state.selectedPath.startsWith(srcPath + '/')) state.selectedPath = state.selectedPath.replace(srcPath, newPath);
-
-            // Update initial directory
-            if (state.initialDirectory === srcPath) state.initialDirectory = newPath;
-            else if (state.initialDirectory.startsWith(srcPath + '/')) state.initialDirectory = state.initialDirectory.replace(srcPath, newPath);
-
-            // Update objective targets
-            state.objectives.forEach(obj => {
-                if (obj.target === srcPath) obj.target = newPath;
-                else if (obj.target.startsWith(srcPath + '/')) obj.target = obj.target.replace(srcPath, newPath);
-            });
-
+            state.selectedPath = parentPath;
             syncStateToInput();
             render();
-            return { success: true, path: newPath };
+            return { success: true };
+        }
+
+        function moveItem(sourcePath, destDirPath) {
+            if (sourcePath === '/') return { success: false, error: "Root directory cannot be moved." };
+            if (destDirPath.startsWith(sourcePath + '/') || destDirPath === sourcePath) {
+                return { success: false, error: "Cannot move a directory into itself or its subdirectories." };
+            }
+            const srcParentPath = getParentPath(sourcePath);
+            const srcName = getNameFromPath(sourcePath);
+            const srcParent = getNode(state.fileSystem, srcParentPath);
+            const destNode = getNode(state.fileSystem, destDirPath);
+
+            if (!srcParent || !destNode || typeof destNode !== 'object') {
+                return { success: false, error: "Invalid move operation." };
+            }
+            if (Object.hasOwn(destNode, srcName)) {
+                return { success: false, error: `An item named "${srcName}" already exists in the destination folder.` };
+            }
+
+            destNode[srcName] = srcParent[srcName];
+            delete srcParent[srcName];
+
+            const newPath = destDirPath === '/' ? `/${srcName}` : `${destDirPath}/${srcName}`;
+
+            if (state.initialDirectory === sourcePath) state.initialDirectory = newPath;
+            else if (state.initialDirectory.startsWith(sourcePath + '/')) {
+                state.initialDirectory = newPath + state.initialDirectory.substring(sourcePath.length);
+            }
+
+            state.selectedPath = newPath;
+            state.expandedPaths.add(destDirPath);
+            syncStateToInput();
+            render();
+            return { success: true };
         }
 
         function updateFileContent(filePath, newContent) {
@@ -466,12 +404,57 @@
             state.fileSystem = JSON.parse(JSON.stringify(t.fileSystem));
             state.allowedCommands = [...t.allowedCommands];
             state.initialDirectory = t.initialDirectory;
+            state.customCommands = t.customCommands ? JSON.parse(JSON.stringify(t.customCommands)) : [];
             state.objectives = JSON.parse(JSON.stringify(t.objectives));
             ensureMandatoryCommands();
             state.selectedPath = t.initialDirectory && getNode(state.fileSystem, t.initialDirectory) ? t.initialDirectory : "/";
             state.expandedPaths = new Set(["/", "/home", "/home/student", "/var", "/var/log"]);
             syncStateToInput();
             render();
+        }
+
+        // Custom Command Management
+        function addCustomCommand() {
+            const nextIdx = state.customCommands.length + 1;
+            state.customCommands.push({
+                id: `cc_${Date.now().toString(36)}_${nextIdx}`,
+                command: "",
+                output: "",
+                description: "",
+                hint: "",
+                enabled: true
+            });
+            syncStateToInput();
+            render();
+        }
+
+        function removeCustomCommand(index) {
+            state.customCommands.splice(index, 1);
+            syncStateToInput();
+            render();
+        }
+
+        function moveCustomCommand(index, direction) {
+            const targetIdx = index + direction;
+            if (targetIdx < 0 || targetIdx >= state.customCommands.length) return;
+            const temp = state.customCommands[index];
+            state.customCommands[index] = state.customCommands[targetIdx];
+            state.customCommands[targetIdx] = temp;
+            syncStateToInput();
+            render();
+        }
+
+        function toggleCustomCommand(index) {
+            if (!state.customCommands[index]) return;
+            state.customCommands[index].enabled = !state.customCommands[index].enabled;
+            syncStateToInput();
+            render();
+        }
+
+        function updateCustomCommand(index, field, value) {
+            if (!state.customCommands[index]) return;
+            state.customCommands[index][field] = value;
+            syncStateToInput();
         }
 
         // Objective Management
@@ -512,7 +495,6 @@
             if (!state.objectives[index]) return;
             state.objectives[index][field] = value;
             syncStateToInput();
-            // Selective re-render or full render
             render();
         }
 
@@ -524,6 +506,7 @@
                 allowedCommands: state.allowedCommands,
                 initialDirectory: state.initialDirectory,
                 fileSystem: state.fileSystem,
+                customCommands: state.customCommands,
                 objectives: state.objectives
             };
         }
@@ -554,6 +537,33 @@
                 errors.push("Select at least one allowed command.");
             }
 
+            // Custom commands check
+            const seenCustomCommands = new Set();
+            const rootBuiltins = ALL_SUPPORTED_COMMANDS.map(c => c.toLowerCase());
+            state.customCommands.forEach((cc, idx) => {
+                const cmdStr = (cc.command || "").trim();
+                if (cc.enabled) {
+                    if (!cmdStr) {
+                        errors.push(`Custom Command #${idx + 1}: Command string cannot be empty.`);
+                    } else {
+                        if (cmdStr.length > 512) {
+                            errors.push(`Custom Command #${idx + 1}: Command string is too long (max 512 characters).`);
+                        }
+                        if (/[><|;&]/.test(cmdStr)) {
+                            errors.push(`Custom Command #${idx + 1}: "${cmdStr}" cannot contain redirection or shell operators (>, <, |, ;, &).`);
+                        }
+                        if (seenCustomCommands.has(cmdStr)) {
+                            errors.push(`Custom Command #${idx + 1}: Duplicate command string "${cmdStr}". Each enabled custom command must be unique.`);
+                        } else {
+                            seenCustomCommands.add(cmdStr);
+                        }
+                        if (rootBuiltins.includes(cmdStr.toLowerCase())) {
+                            errors.push(`Custom Command #${idx + 1}: "${cmdStr}" conflicts with the built-in system command of the same name.`);
+                        }
+                    }
+                }
+            });
+
             // Objectives check
             if (state.objectives.length === 0) {
                 errors.push("Define at least one student task objective.");
@@ -581,8 +591,10 @@
                             errors.push(`Objective #${idx + 1} requires a valid permission mode (e.g. 755).`);
                         }
                     } else if (obj.type === 'command') {
-                        if (!state.allowedCommands.includes(obj.target.toLowerCase().trim())) {
-                            errors.push(`Objective #${idx + 1} command "${obj.target}" is not in the allowed commands list.`);
+                        const isAllowed = state.allowedCommands.includes(obj.target.toLowerCase().trim())
+                            || state.customCommands.some(cc => cc.enabled && cc.command === obj.target);
+                        if (!isAllowed) {
+                            errors.push(`Objective #${idx + 1} command "${obj.target}" is not in the allowed or custom commands list.`);
                         }
                     }
                 }
@@ -629,12 +641,12 @@
                     <ul class="nav nav-pills" id="builderModeTabs">
                         <li class="nav-item">
                             <button type="button" class="nav-link ${state.activeTab === 'editor' ? 'active' : ''}" id="tabBtnEditor">
-                                <strong>🛠️ Visual Simulation Builder</strong>
+                                <strong>${svgIcon('terminal', 'me-1')} Visual Simulation Builder</strong>
                             </button>
                         </li>
                         <li class="nav-item">
                             <button type="button" class="nav-link ${state.activeTab === 'preview' ? 'active' : ''}" id="tabBtnPreview">
-                                <strong>▶ Live Terminal Preview</strong>
+                                <strong>${svgIcon('play', 'me-1')} Live Terminal Preview</strong>
                             </button>
                         </li>
                     </ul>
@@ -646,14 +658,14 @@
                 </div>
 
                 <!-- Raw JSON Drawer (collapsible) -->
-                <div id="rawJsonDrawer" class="mb-3 p-3 bg-light rounded border" style="display:none;">
+                <div id="rawJsonDrawer" class="mb-3 p-3 builder-well rounded border" style="display:none;">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <label class="form-label mb-0"><strong>Serialized Environment JSON</strong> (Auto-synced with visual editor)</label>
                         <button type="button" id="copyJsonBtn" class="btn btn-sm btn-outline-primary">Copy JSON</button>
                     </div>
                     <textarea id="rawJsonTextarea" class="form-control font-monospace" rows="8" spellcheck="false"></textarea>
                     <div class="d-flex justify-content-end mt-2">
-                        <button type="button" id="applyRawJsonBtn" class="btn btn-sm btn-secondary">Apply JSON Changes</button>
+                        <button type="button" id="applyRawJsonBtn" class="btn btn-sm btn-outline-secondary">Apply JSON Changes</button>
                     </div>
                 </div>
 
@@ -661,33 +673,29 @@
                 <div id="builderTabContent" style="${state.activeTab === 'editor' ? '' : 'display:none;'}">
 
                     <!-- Section A: Template Starter Bar -->
-                    <div class="card mb-4 border-0 shadow-sm" style="background:var(--ha-tint, #e3f1eb); border-radius:12px;">
-                        <div class="card-body p-3">
-                            <div class="row g-2 align-items-center">
-                                <div class="col-md-auto">
-                                    <strong class="d-flex align-items-center gap-1 text-dark">
-                                        📁 Filesystem Starting Preset:
-                                    </strong>
-                                </div>
-                                <div class="col-md">
-                                    <select id="presetTemplateSelect" class="form-select form-select-sm">
-                                        <option value="linux_standard">Option 1: Linux Filesystem Template (/home, /etc, /tmp, /var/log)</option>
-                                        <option value="scratch">Option 2: Start from Scratch (Empty Filesystem)</option>
-                                        <option value="recon_web">Preset: Web Recon Lab (nmap, curl, targets.txt)</option>
-                                        <option value="chmod_audit">Preset: Script Permission Audit (chmod 755 audit.sh)</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-auto">
-                                    <button type="button" id="loadPresetBtn" class="btn btn-sm btn-dark">Load Preset</button>
-                                </div>
+                    <div class="builder-well mb-4 p-3">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-auto">
+                                <strong class="d-flex align-items-center gap-1">
+                                    ${svgIcon('folder', 'me-1')} Filesystem Starting Preset:
+                                </strong>
+                            </div>
+                            <div class="col-md">
+                                <select id="presetTemplateSelect" class="form-select form-select-sm">
+                                    <option value="linux_standard">Option 1: Linux Filesystem Template (/home, /etc, /tmp, /var/log)</option>
+                                    <option value="scratch">Option 2: Start from Scratch (Empty Filesystem)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-auto">
+                                <button type="button" id="loadPresetBtn" class="btn btn-sm btn-outline-secondary">Load Preset</button>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Section B: Simulation Details -->
-                    <div class="card mb-4 border-0 shadow-sm" style="border-radius:12px;">
-                        <div class="card-header bg-white py-3 border-bottom">
-                            <h5 class="mb-0 text-dark">1. Simulation Details &amp; Objectives Description</h5>
+                    <!-- Section 1: Simulation Details -->
+                    <div class="builder-card mb-4">
+                        <div class="builder-card-header">
+                            <h5 class="mb-0">1. Simulation Details &amp; Objectives Description</h5>
                         </div>
                         <div class="card-body p-4">
                             <div class="row g-3">
@@ -717,16 +725,20 @@
                         </div>
                     </div>
 
-                    <!-- Section C: Visual Filesystem Editor (Two-Panel Layout) -->
-                    <div class="card mb-4 border-0 shadow-sm" style="border-radius:12px;">
-                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <!-- Section 2: Visual Filesystem Editor (Two-Panel Layout) -->
+                    <div class="builder-card mb-4">
+                        <div class="builder-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <div>
-                                <h5 class="mb-0 text-dark">2. Visual Filesystem Editor</h5>
+                                <h5 class="mb-0">2. Visual Filesystem Editor</h5>
                                 <small class="text-secondary">Click any item to inspect/edit. Drag and drop files/folders to move them between directories.</small>
                             </div>
                             <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="newFolderAtRootBtn">+ New Folder at /</button>
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="newFileAtRootBtn">+ New File at /</button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="newFolderAtRootBtn">
+                                    ${svgIcon('plus', 'me-1')} New Folder at /
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-primary" id="newFileAtRootBtn">
+                                    ${svgIcon('plus', 'me-1')} New File at /
+                                </button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary" id="expandAllBtn">Expand All</button>
                                 <button type="button" class="btn btn-sm btn-outline-secondary" id="collapseAllBtn">Collapse All</button>
                             </div>
@@ -734,28 +746,28 @@
                         <div class="card-body p-0">
                             <div class="row g-0" style="min-height: 480px;">
                                 <!-- Left Panel: Filesystem Tree -->
-                                <div class="col-md-6 border-end p-3 bg-light" id="fs-tree-container" style="max-height: 540px; overflow-y: auto;">
+                                <div class="col-md-6 border-end p-3 builder-tree-panel" id="fs-tree-container" style="max-height: 540px; overflow-y: auto;">
                                     <div class="fs-tree">
                                         ${renderTreeNode(state.fileSystem, '/', 0)}
                                     </div>
                                 </div>
                                 <!-- Right Panel: Item Properties Editor -->
-                                <div class="col-md-6 p-4 bg-white" id="fs-inspector-container">
+                                <div class="col-md-6 p-4 builder-inspector-panel" id="fs-inspector-container">
                                     ${renderInspector()}
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Section D: Terminal Configuration (Allowed Commands & Initial Directory) -->
-                    <div class="card mb-4 border-0 shadow-sm" style="border-radius:12px;">
-                        <div class="card-header bg-white py-3 border-bottom">
-                            <h5 class="mb-0 text-dark">3. Terminal Configuration &amp; Command Permissions</h5>
-                            <small class="text-secondary">Restrict student execution to pre-defined allowed commands. Set initial working directory.</small>
+                    <!-- Section 3: Terminal Configuration (Allowed Commands & Initial Directory) -->
+                    <div class="builder-card mb-4">
+                        <div class="builder-card-header">
+                            <h5 class="mb-0">3. Terminal Configuration &amp; Command Permissions</h5>
+                            <small class="text-secondary">Configure available commands and starting working directory.</small>
                         </div>
                         <div class="card-body p-4">
                             <!-- Initial Working Directory -->
-                            <div class="mb-4 p-3 bg-light rounded border">
+                            <div class="mb-4 p-3 builder-well rounded border">
                                 <label class="form-label"><strong>Initial Working Directory ($CWD)</strong> <span class="text-danger">*</span></label>
                                 <div class="row g-2 align-items-center">
                                     <div class="col-md-6">
@@ -769,9 +781,17 @@
                                 </div>
                             </div>
 
+                            <!-- Mandatory Commands Informational Note -->
+                            <div class="alert alert-secondary py-2 px-3 mb-3 d-flex align-items-center gap-2 small">
+                                ${svgIcon('settings', 'sim-icon-lg text-primary')}
+                                <div>
+                                    <strong>Mandatory Built-in Commands:</strong> <code>help</code> and <code>clear</code> are standard system commands permanently available in every terminal exercise and do not require configuration.
+                                </div>
+                            </div>
+
                             <!-- Command Selection Checkboxes -->
                             <div class="d-flex justify-content-between align-items-center mb-3">
-                                <label class="form-label mb-0"><strong>Allowed Shell Commands:</strong></label>
+                                <label class="form-label mb-0"><strong>Predefined Shell Commands:</strong></label>
                                 <div class="d-flex gap-2">
                                     <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" id="cmdSelectAllBtn">Select All</button>
                                     <span class="text-muted">|</span>
@@ -784,15 +804,14 @@
                             <div class="row g-3">
                                 ${COMMAND_CATEGORIES.map(cat => `
                                     <div class="col-md-6">
-                                        <div class="p-3 border rounded bg-white h-100">
+                                        <div class="p-3 border rounded builder-item-card h-100">
                                             <h6 class="text-primary mb-2">${cat.name}</h6>
                                             <div class="d-flex flex-column gap-2">
                                                 ${cat.commands.map(cmd => {
-                                                    const isChecked = state.allowedCommands.includes(cmd.id) || cmd.always;
-                                                    const isDisabled = cmd.always ? 'disabled' : '';
+                                                    const isChecked = state.allowedCommands.includes(cmd.id);
                                                     return `
                                                         <div class="form-check">
-                                                            <input class="form-check-input cmd-checkbox" type="checkbox" id="cmd_${cmd.id}" value="${cmd.id}" ${isChecked ? 'checked' : ''} ${isDisabled} />
+                                                            <input class="form-check-input cmd-checkbox" type="checkbox" id="cmd_${cmd.id}" value="${cmd.id}" ${isChecked ? 'checked' : ''} />
                                                             <label class="form-check-label d-flex justify-content-between" for="cmd_${cmd.id}">
                                                                 <span class="font-monospace fw-bold">${cmd.label}</span>
                                                                 <span class="text-muted small">${cmd.desc}</span>
@@ -808,14 +827,38 @@
                         </div>
                     </div>
 
-                    <!-- Section E: Objective Builder -->
-                    <div class="card mb-4 border-0 shadow-sm" style="border-radius:12px;">
-                        <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
+                    <!-- Section 4: Exact-Match Custom Commands -->
+                    <div class="builder-card mb-4">
+                        <div class="builder-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                             <div>
-                                <h5 class="mb-0 text-dark">4. Automated Lab Objectives</h5>
+                                <h5 class="mb-0">4. Exact-Match Custom Commands</h5>
+                                <small class="text-secondary">Define exact command-response pairs for Cisco / CCNA labs or specialized cybersecurity exercises. Supported commands execute on exact match and can redirect output to virtual files.</small>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-primary" id="addCustomCommandBtn">
+                                ${svgIcon('plus', 'me-1')} Add Custom Command
+                            </button>
+                        </div>
+                        <div class="card-body p-4">
+                            <div id="customCommandsListContainer" class="d-flex flex-column gap-2">
+                                ${state.customCommands.length === 0 ? `
+                                    <div class="text-center py-4 text-muted border border-dashed rounded">
+                                        No custom commands defined yet. Click "<strong>+ Add Custom Command</strong>" to configure NetAcad / CCNA-style exact-match commands (e.g. <code>show ip interface brief</code>).
+                                    </div>
+                                ` : state.customCommands.map((cc, idx) => renderCustomCommandCard(cc, idx)).join('')}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Section 5: Objective Builder -->
+                    <div class="builder-card mb-4">
+                        <div class="builder-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <h5 class="mb-0">5. Lab Objectives</h5>
                                 <small class="text-secondary">Define verification steps tracked automatically as students execute commands.</small>
                             </div>
-                            <button type="button" class="btn btn-sm btn-primary" id="addObjectiveBtn">+ Add Task Objective</button>
+                            <button type="button" class="btn btn-sm btn-primary" id="addObjectiveBtn">
+                                ${svgIcon('plus', 'me-1')} Add Task Objective
+                            </button>
                         </div>
                         <div class="card-body p-4">
                             <div id="objectivesListContainer" class="d-flex flex-column gap-3">
@@ -828,10 +871,10 @@
                         </div>
                     </div>
 
-                    <!-- Section F: Reward & Publish Settings -->
-                    <div class="card mb-4 border-0 shadow-sm" style="border-radius:12px;">
-                        <div class="card-header bg-white py-3 border-bottom">
-                            <h5 class="mb-0 text-dark">5. Completion Reward &amp; Publishing</h5>
+                    <!-- Section 6: Reward & Publish Settings -->
+                    <div class="builder-card mb-4">
+                        <div class="builder-card-header">
+                            <h5 class="mb-0">6. Completion Reward &amp; Publishing</h5>
                         </div>
                         <div class="card-body p-4">
                             <div class="mb-3">
@@ -840,7 +883,7 @@
                                 <div class="form-text">Revealed to the student when all lab objectives are successfully finished.</div>
                             </div>
 
-                            <div class="form-check form-switch p-3 bg-light rounded border">
+                            <div class="form-check form-switch p-3 builder-well rounded border">
                                 <input class="form-check-input" type="checkbox" id="builderIsPublished" ${isPublishedChecked} style="margin-left: 0; margin-right: 0.75rem;" />
                                 <label class="form-check-label fw-bold" for="builderIsPublished">
                                     Publish this lab exercise in the course curriculum
@@ -854,13 +897,13 @@
                     <div id="validationAlertContainer"></div>
                     <div class="d-flex gap-3 align-items-center mt-3 pt-3 border-top">
                         <button type="button" id="saveDraftActionBtn" class="btn btn-outline-secondary">
-                            💾 Save Draft
+                            ${svgIcon('save', 'me-1')} Save Draft
                         </button>
                         <button type="button" id="livePreviewActionBtn" class="btn btn-outline-primary">
-                            ▶ Live Preview
+                            ${svgIcon('play', 'me-1')} Live Preview
                         </button>
                         <button type="button" id="publishActionBtn" class="btn btn-success">
-                            🚀 Publish Simulation Lab
+                            ${svgIcon('publish', 'me-1')} Publish Simulation Lab
                         </button>
                         <a href="${options.cancelUrl || '#'}" class="btn btn-link text-secondary text-decoration-none">Cancel</a>
                     </div>
@@ -870,23 +913,27 @@
                 <div id="previewTabContent" style="${state.activeTab === 'preview' ? '' : 'display:none;'}">
                     <div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
                         <div>
-                            <strong>🔬 Live Sandbox Preview Mode</strong>: Test filesystem navigation, commands, and objectives completion right now.
+                            <strong>${svgIcon('terminal', 'me-1')} Live Sandbox Preview Mode</strong>: Test filesystem navigation, commands, and objectives completion right now.
                             <div class="small text-secondary">Activity in preview mode is completely isolated and does not save student progress records.</div>
                         </div>
                         <div class="d-flex gap-2">
-                            <button type="button" id="resetPreviewBtn" class="btn btn-sm btn-outline-dark">🔄 Reset Environment</button>
+                            <button type="button" id="resetPreviewBtn" class="btn btn-sm btn-outline-secondary">
+                                ${svgIcon('reset', 'me-1')} Reset Environment
+                            </button>
                             <button type="button" id="backToEditorBtn" class="btn btn-sm btn-primary">← Back to Visual Editor</button>
                         </div>
                     </div>
 
                     <div id="sim-builder-preview-success" class="alert alert-success" style="display:none;">
-                        🎉 <strong>Preview Verified!</strong> All lab objectives have been satisfied!
+                        ${svgIcon('check', 'me-2')} <strong>Preview Verified!</strong> All lab objectives have been satisfied!
                     </div>
 
                     <!-- Objectives Checklist -->
-                    <div class="card mb-3 border-0 shadow-sm" style="border-radius:12px;">
+                    <div class="builder-card mb-3">
+                        <div class="builder-card-header py-2">
+                            <h6 class="mb-0">Lab Objectives:</h6>
+                        </div>
                         <div class="card-body p-3">
-                            <h6 class="mb-2">Lab Objectives:</h6>
                             <ul class="objectives-list mb-0" id="simulation-objectives-list"></ul>
                         </div>
                     </div>
@@ -926,8 +973,8 @@
                          data-type="dir"
                          draggable="${!isRoot}"
                          style="padding-left: ${paddingLeft}px;">
-                        <span class="tree-caret" data-path="${escapeHtml(path)}">${isExpanded ? '▾' : '▸'}</span>
-                        <span class="tree-icon">${isExpanded ? '📂' : '📁'}</span>
+                        <span class="tree-caret" data-path="${escapeHtml(path)}">${svgIcon(isExpanded ? 'chevron-down' : 'chevron-right', 'sim-icon-sm')}</span>
+                        <span class="tree-icon">${svgIcon(isExpanded ? 'folder-open' : 'folder')}</span>
                         <span class="tree-label">${escapeHtml(name)}</span>
                         <span class="tree-badge">${childCount}</span>
                     </div>
@@ -935,7 +982,6 @@
 
                 if (isExpanded && childCount > 0) {
                     html += `<div class="tree-children">`;
-                    // Sort directories first, then files
                     const sorted = [...childrenKeys].sort((a, b) => {
                         const aIsDir = typeof node[a] === 'object';
                         const bIsDir = typeof node[b] === 'object';
@@ -950,17 +996,15 @@
                     html += `</div>`;
                 }
             } else {
-                const content = getNode(fs, path) || "";
                 html += `
                     <div class="tree-item tree-file ${isSelected ? 'selected' : ''}" 
                          data-path="${escapeHtml(path)}" 
                          data-type="file"
                          draggable="true"
                          style="padding-left: ${paddingLeft}px;">
-                        <span class="tree-caret-placeholder">&nbsp;&nbsp;</span>
-                        <span class="tree-icon">📄</span>
+                        <span class="tree-caret-placeholder"></span>
+                        <span class="tree-icon">${svgIcon('file')}</span>
                         <span class="tree-label">${escapeHtml(name)}</span>
-                        <span class="tree-size">${content.length} B</span>
                     </div>
                 `;
             }
@@ -976,7 +1020,7 @@
             if (!type) {
                 return `
                     <div class="text-center py-5 text-muted">
-                        <div style="font-size: 2.5rem;">📁</div>
+                        <div class="mb-2">${svgIcon('folder', 'sim-icon-lg')}</div>
                         <p class="mt-2">Select a file or folder from the tree to edit its properties.</p>
                     </div>
                 `;
@@ -995,14 +1039,14 @@
                     <div class="inspector-panel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="badge bg-primary">Directory</span>
-                            <span class="badge ${isInitialCwd ? 'bg-success' : 'bg-light text-dark border'}">
-                                ${isInitialCwd ? '★ Initial Working Directory' : 'Subfolder'}
+                            <span class="badge ${isInitialCwd ? 'bg-success' : 'bg-secondary'}">
+                                ${isInitialCwd ? 'Initial Working Directory' : 'Subfolder'}
                             </span>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label text-muted small mb-1">Absolute Path</label>
-                            <div class="font-monospace p-2 bg-light rounded border">${escapeHtml(path)}</div>
+                            <div class="font-monospace p-2 builder-well rounded border">${escapeHtml(path)}</div>
                         </div>
 
                         ${isRoot ? `
@@ -1024,13 +1068,19 @@
                         </div>
 
                         <div class="d-flex flex-wrap gap-2 pt-3 border-top">
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="addFolderInsideBtn">+ Add Subfolder</button>
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="addFileInsideBtn">+ Add File</button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="addFolderInsideBtn">
+                                ${svgIcon('plus', 'me-1')} Add Subfolder
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="addFileInsideBtn">
+                                ${svgIcon('plus', 'me-1')} Add File
+                            </button>
                             ${!isInitialCwd ? `
                                 <button type="button" class="btn btn-sm btn-outline-success" id="setAsInitialCwdBtn">Set as Initial $CWD</button>
                             ` : ''}
                             ${!isRoot ? `
-                                <button type="button" class="btn btn-sm btn-outline-danger ms-auto" id="deleteCurrentItemBtn">Delete Folder</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger ms-auto" id="deleteCurrentItemBtn">
+                                    ${svgIcon('trash', 'me-1')} Delete Folder
+                                </button>
                             ` : ''}
                         </div>
                     </div>
@@ -1043,12 +1093,12 @@
                     <div class="inspector-panel">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="badge bg-secondary">Text File</span>
-                            <span class="badge bg-light text-dark border">${content.length} bytes • ${lines} lines</span>
+                            <span class="badge bg-secondary">${content.length} bytes • ${lines} line(s)</span>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label text-muted small mb-1">Absolute Path</label>
-                            <div class="font-monospace p-2 bg-light rounded border">${escapeHtml(path)}</div>
+                            <div class="font-monospace p-2 builder-well rounded border">${escapeHtml(path)}</div>
                         </div>
 
                         <div class="mb-3">
@@ -1069,12 +1119,90 @@
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center pt-3 border-top">
-                            <button type="button" class="btn btn-sm btn-primary" id="saveFileContentBtn">Save File Content</button>
-                            <button type="button" class="btn btn-sm btn-outline-danger" id="deleteCurrentItemBtn">Delete File</button>
+                            <button type="button" class="btn btn-sm btn-primary" id="saveFileContentBtn">
+                                ${svgIcon('save', 'me-1')} Save Content
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="deleteCurrentItemBtn">
+                                ${svgIcon('trash', 'me-1')} Delete File
+                            </button>
                         </div>
                     </div>
                 `;
             }
+        }
+
+        // Render Custom Command Card
+        function renderCustomCommandCard(cc, idx) {
+            const isFirst = idx === 0;
+            const isLast = idx === state.customCommands.length - 1;
+            const cmdStr = (cc.command || '').trim();
+
+            let warningMsg = '';
+            if (cc.enabled) {
+                if (!cmdStr) {
+                    warningMsg = `<span class="badge-builder-warning">${svgIcon('warning', 'me-1')} Command required</span>`;
+                } else if (/[><|;&]/.test(cmdStr)) {
+                    warningMsg = `<span class="badge-builder-warning">${svgIcon('warning', 'me-1')} Contains reserved syntax (>, <, |, ;, &)</span>`;
+                } else if (ALL_SUPPORTED_COMMANDS.includes(cmdStr.toLowerCase())) {
+                    warningMsg = `<span class="badge-builder-warning">${svgIcon('warning', 'me-1')} Conflicts with built-in command '${escapeHtml(cmdStr)}'</span>`;
+                } else {
+                    const duplicates = state.customCommands.filter((c, i) => i !== idx && c.enabled && (c.command || '').trim() === cmdStr);
+                    if (duplicates.length > 0) {
+                        warningMsg = `<span class="badge-builder-warning">${svgIcon('warning', 'me-1')} Duplicate command definition</span>`;
+                    }
+                }
+            }
+
+            return `
+                <div class="custom-cmd-card p-3 rounded mb-3 ${cc.enabled ? '' : 'opacity-75'}" data-idx="${idx}">
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge ${cc.enabled ? 'bg-primary' : 'bg-secondary'}">#${idx + 1}</span>
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input cc-enable-toggle" type="checkbox" id="cc_enable_${idx}" data-idx="${idx}" ${cc.enabled ? 'checked' : ''} />
+                                <label class="form-check-label small fw-bold" for="cc_enable_${idx}">${cc.enabled ? 'Enabled' : 'Disabled'}</label>
+                            </div>
+                            <span class="font-monospace text-muted small ms-2">ID: ${escapeHtml(cc.id)}</span>
+                            ${warningMsg}
+                        </div>
+                        <div class="d-flex gap-1 align-items-center">
+                            <button type="button" class="btn btn-sm btn-outline-secondary cc-move-up" data-idx="${idx}" ${isFirst ? 'disabled' : ''} title="Move Up" aria-label="Move Up">
+                                ${svgIcon('arrow-up')}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary cc-move-down" data-idx="${idx}" ${isLast ? 'disabled' : ''} title="Move Down" aria-label="Move Down">
+                                ${svgIcon('arrow-down')}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger cc-delete" data-idx="${idx}" title="Delete Custom Command" aria-label="Delete Custom Command">
+                                ${svgIcon('trash')}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-12">
+                            <label class="form-label small text-muted mb-1">Exact Command String <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm font-monospace cc-command-input" data-idx="${idx}" value="${escapeHtml(cc.command)}" placeholder="e.g. nmap -sV 192.168.1.0/24" maxlength="512" required />
+                            <div class="form-text small">Must be matched exactly by the student (case-sensitive, order of arguments preserved).</div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label small text-muted mb-1">Predefined Simulated Output <span class="text-danger">*</span></label>
+                            <textarea class="form-control form-control-sm font-monospace cc-output-input" data-idx="${idx}" rows="4" placeholder="Simulated CLI response returned when this exact command is submitted...">${escapeHtml(cc.output)}</textarea>
+                            <div class="form-text small">This simulated text is printed to the terminal or written to file when redirection (>) is used.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted mb-1">Teacher Description (Optional)</label>
+                            <input type="text" class="form-control form-control-sm cc-desc-input" data-idx="${idx}" value="${escapeHtml(cc.description || '')}" placeholder="e.g. Use nmap to scan the network" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted mb-1">Student Hint (Optional)</label>
+                            <input type="text" class="form-control form-control-sm cc-hint-input" data-idx="${idx}" value="${escapeHtml(cc.hint || '')}" placeholder="e.g. Use 'network enumerator'" />
+                        </div>
+                    </div>
+                </div>
+            `;
         }
 
         // Render Objective Card
@@ -1082,35 +1210,42 @@
             const isFirst = idx === 0;
             const isLast = idx === state.objectives.length - 1;
 
-            // Target validity check
             let targetWarning = '';
             if (obj.type === 'cwd') {
                 if (!allDirs.includes(normalizePath(obj.target))) {
-                    targetWarning = `<span class="badge bg-danger">⚠️ Target directory does not exist</span>`;
+                    targetWarning = `<span class="badge bg-danger">${svgIcon('warning', 'me-1')} Target directory does not exist</span>`;
                 }
             } else if (obj.type === 'cat' || obj.type === 'chmod') {
                 const fileExists = allFiles.some(f => f.name === obj.target || f.path === normalizePath(obj.target));
                 if (!fileExists) {
-                    targetWarning = `<span class="badge bg-danger">⚠️ Target file does not exist</span>`;
+                    targetWarning = `<span class="badge bg-danger">${svgIcon('warning', 'me-1')} Target file does not exist</span>`;
                 }
             } else if (obj.type === 'command') {
-                if (!state.allowedCommands.includes(obj.target.toLowerCase().trim())) {
-                    targetWarning = `<span class="badge bg-danger">⚠️ Command not in allowed commands</span>`;
+                const isAllowed = state.allowedCommands.includes(obj.target.toLowerCase().trim())
+                    || state.customCommands.some(cc => cc.command === obj.target);
+                if (!isAllowed) {
+                    targetWarning = `<span class="badge bg-danger">${svgIcon('warning', 'me-1')} Command not in allowed or custom commands</span>`;
                 }
             }
 
             return `
-                <div class="card border p-3 rounded bg-white objective-card" data-idx="${idx}">
+                <div class="objective-card p-3 rounded mb-3" data-idx="${idx}">
                     <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="badge bg-dark">Step #${idx + 1}</span>
+                            <span class="badge bg-secondary">Step #${idx + 1}</span>
                             <span class="font-monospace text-muted small">ID: ${escapeHtml(obj.id)}</span>
                             ${targetWarning}
                         </div>
                         <div class="d-flex gap-1 align-items-center">
-                            <button type="button" class="btn btn-sm btn-outline-secondary obj-move-up" data-idx="${idx}" ${isFirst ? 'disabled' : ''} title="Move Up">↑</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary obj-move-down" data-idx="${idx}" ${isLast ? 'disabled' : ''} title="Move Down">↓</button>
-                            <button type="button" class="btn btn-sm btn-outline-danger obj-delete" data-idx="${idx}" title="Delete Objective">🗑️</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary obj-move-up" data-idx="${idx}" ${isFirst ? 'disabled' : ''} title="Move Up" aria-label="Move Up">
+                                ${svgIcon('arrow-up')}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary obj-move-down" data-idx="${idx}" ${isLast ? 'disabled' : ''} title="Move Down" aria-label="Move Down">
+                                ${svgIcon('arrow-down')}
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-danger obj-delete" data-idx="${idx}" title="Delete Objective" aria-label="Delete Objective">
+                                ${svgIcon('trash')}
+                            </button>
                         </div>
                     </div>
 
@@ -1151,6 +1286,7 @@
             `;
         }
 
+        // Render Target Input selector depending on objective type
         function renderTargetInput(obj, idx, allDirs, allFiles) {
             if (obj.type === 'cwd') {
                 return `
@@ -1165,9 +1301,18 @@
                     </select>
                 `;
             } else if (obj.type === 'command') {
+                const builtins = state.allowedCommands.filter(c => c !== 'help' && c !== 'clear');
+                const customs = state.customCommands.filter(c => c.enabled && (c.command || '').trim()).map(c => c.command.trim());
                 return `
                     <select class="form-select form-select-sm font-monospace obj-target-input" data-idx="${idx}">
-                        ${state.allowedCommands.map(c => `<option value="${c}" ${c === obj.target ? 'selected' : ''}>${c}</option>`).join('')}
+                        <optgroup label="Built-in Allowed Commands">
+                            ${builtins.map(c => `<option value="${escapeHtml(c)}" ${c === obj.target ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+                        </optgroup>
+                        ${customs.length > 0 ? `
+                            <optgroup label="Custom Scenario Commands">
+                                ${customs.map(c => `<option value="${escapeHtml(c)}" ${c === obj.target ? 'selected' : ''}>${escapeHtml(c)}</option>`).join('')}
+                            </optgroup>
+                        ` : ''}
                     </select>
                 `;
             }
@@ -1229,6 +1374,7 @@
                     if (parsed.fileSystem && typeof parsed.fileSystem === 'object') state.fileSystem = parsed.fileSystem;
                     if (Array.isArray(parsed.allowedCommands)) state.allowedCommands = parsed.allowedCommands;
                     if (parsed.initialDirectory) state.initialDirectory = parsed.initialDirectory;
+                    if (Array.isArray(parsed.customCommands)) state.customCommands = parsed.customCommands;
                     if (Array.isArray(parsed.objectives)) state.objectives = parsed.objectives;
                     ensureMandatoryCommands();
                     syncStateToInput();
@@ -1431,7 +1577,7 @@
             });
 
             document.getElementById("cmdSelectRecommendedBtn")?.addEventListener("click", () => {
-                state.allowedCommands = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "whoami", "chmod"];
+                state.allowedCommands = ["help", "clear", "pwd", "ls", "cd", "cat", "touch", "nano", "grep", "whoami", "chmod"];
                 ensureMandatoryCommands();
                 syncStateToInput();
                 render();
@@ -1441,6 +1587,67 @@
                 state.allowedCommands = ["help", "clear"];
                 syncStateToInput();
                 render();
+            });
+
+            // Custom Commands Controls
+            document.getElementById("addCustomCommandBtn")?.addEventListener("click", () => {
+                addCustomCommand();
+            });
+
+            rootContainer.querySelectorAll(".cc-move-up").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const idx = parseInt(btn.getAttribute("data-idx"), 10);
+                    moveCustomCommand(idx, -1);
+                });
+            });
+
+            rootContainer.querySelectorAll(".cc-move-down").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const idx = parseInt(btn.getAttribute("data-idx"), 10);
+                    moveCustomCommand(idx, 1);
+                });
+            });
+
+            rootContainer.querySelectorAll(".cc-delete").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const idx = parseInt(btn.getAttribute("data-idx"), 10);
+                    if (confirm("Delete this custom command?")) removeCustomCommand(idx);
+                });
+            });
+
+            rootContainer.querySelectorAll(".cc-enable-toggle").forEach(toggle => {
+                toggle.addEventListener("change", () => {
+                    const idx = parseInt(toggle.getAttribute("data-idx"), 10);
+                    toggleCustomCommand(idx);
+                });
+            });
+
+            rootContainer.querySelectorAll(".cc-command-input").forEach(inp => {
+                inp.addEventListener("input", () => {
+                    const idx = parseInt(inp.getAttribute("data-idx"), 10);
+                    updateCustomCommand(idx, "command", inp.value);
+                });
+            });
+
+            rootContainer.querySelectorAll(".cc-output-input").forEach(inp => {
+                inp.addEventListener("input", () => {
+                    const idx = parseInt(inp.getAttribute("data-idx"), 10);
+                    updateCustomCommand(idx, "output", inp.value);
+                });
+            });
+
+            rootContainer.querySelectorAll(".cc-desc-input").forEach(inp => {
+                inp.addEventListener("input", () => {
+                    const idx = parseInt(inp.getAttribute("data-idx"), 10);
+                    updateCustomCommand(idx, "description", inp.value);
+                });
+            });
+
+            rootContainer.querySelectorAll(".cc-hint-input").forEach(inp => {
+                inp.addEventListener("input", () => {
+                    const idx = parseInt(inp.getAttribute("data-idx"), 10);
+                    updateCustomCommand(idx, "hint", inp.value);
+                });
             });
 
             // Objective Builder Controls
@@ -1534,7 +1741,6 @@
         }
 
         function submitForm(forPublish) {
-            // Sync all fields into standard ASP.NET form inputs
             syncStateToInput();
 
             const titleInput = document.getElementById("Title");
@@ -1576,7 +1782,6 @@
                     return;
                 }
             } else {
-                // Draft minimum validation
                 if (!state.title.trim()) {
                     alert("Please provide at least a simulation title to save a draft.");
                     return;

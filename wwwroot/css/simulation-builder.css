@@ -229,8 +229,37 @@ html[data-theme="dark"] .tree-badge {
     color: var(--ha-muted, #aec4bf);
 }
 
-html[data-theme="dark"] .sim-icon {
-    filter: brightness(1.2);
+html[data-theme="dark"] img.sim-icon {
+    filter: brightness(0) invert(0.85);
+}
+
+html[data-theme="dark"] svg.sim-icon {
+    filter: none;
+}
+
+.tree-item.selected img.sim-icon {
+    filter: brightness(0) invert(1) !important;
+}
+
+.btn-outline-danger img.sim-icon {
+    filter: invert(34%) sepia(85%) saturate(3015%) hue-rotate(334deg) brightness(90%) contrast(92%);
+}
+
+.btn-outline-danger:hover img.sim-icon {
+    filter: brightness(0) invert(1) !important;
+}
+
+html[data-theme="dark"] .btn-outline-danger img.sim-icon {
+    filter: invert(65%) sepia(45%) saturate(3000%) hue-rotate(320deg) brightness(105%) contrast(100%);
+}
+
+html[data-theme="dark"] .btn-outline-danger:hover img.sim-icon {
+    filter: brightness(0) invert(1) !important;
+}
+
+.badge.bg-danger img.sim-icon,
+.badge-builder-warning img.sim-icon {
+    filter: none;
 }
 
 /* Simulated Nano Editor */

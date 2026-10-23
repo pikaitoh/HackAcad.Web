@@ -123,10 +123,29 @@ assert(parsed.allowedCommands.includes('cd'));
 assert(parsed.allowedCommands.includes('cat'));
 assert(parsed.allowedCommands.includes('clear'));
 assert(parsed.allowedCommands.includes('help'));
+assert(parsed.allowedCommands.includes('touch'), 'Template should include touch in allowed commands');
+assert(parsed.allowedCommands.includes('nano'), 'Template should include nano in allowed commands');
+
+// Verify custom commands array is initialized
+assert(Array.isArray(parsed.customCommands), 'customCommands must be an array');
 
 // Verify objectives
 assert(parsed.objectives.length >= 2, 'Template must have objectives');
 assert(parsed.objectives.some(o => o.type === 'cwd' && o.target === '/var/log'));
 assert(parsed.objectives.some(o => o.type === 'cat' && o.target === 'auth.log'));
 
-console.log('PASS Visual Simulation Builder initialization and Linux template structure');
+// Verify no emoji icons exist in rendered HTML
+const mountHtml = elements['simulation-builder-mount'].innerHTML;
+const emojiRegex = /[\u{1F300}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u;
+assert(!emojiRegex.test(mountHtml), 'Builder interface must not contain emoji icons');
+assert(mountHtml.includes('/images/folder.svg'), 'Builder should use folder.svg');
+assert(mountHtml.includes('/images/terminal.svg'), 'Builder should use terminal.svg');
+assert(mountHtml.includes('/images/settings.svg'), 'Builder should use settings.svg');
+
+// Verify help and clear are NOT rendered as configurable checkboxes
+assert(!mountHtml.includes('id="cmd_help"'), 'help must not be a configurable checkbox');
+assert(!mountHtml.includes('id="cmd_clear"'), 'clear must not be a configurable checkbox');
+assert(mountHtml.includes('id="cmd_touch"'), 'touch must be a configurable checkbox');
+assert(mountHtml.includes('id="cmd_nano"'), 'nano must be a configurable checkbox');
+
+console.log('PASS Visual Simulation Builder initialization, SVG icons, touch/nano commands and Linux template structure');
