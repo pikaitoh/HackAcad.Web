@@ -103,8 +103,17 @@ const termWrapper = new Element('terminal-wrapper');
 termWrapper.classes.add('terminal-wrapper');
 elements['terminal'].children.push(termWrapper);
 
+const mockSessionStorage = {};
+const sessionStorage = {
+    getItem: (k) => mockSessionStorage[k] || null,
+    setItem: (k, v) => { mockSessionStorage[k] = String(v); },
+    removeItem: (k) => { delete mockSessionStorage[k]; },
+    clear: () => { Object.keys(mockSessionStorage).forEach(k => delete mockSessionStorage[k]); }
+};
+
 const context = vm.createContext({
     window: {},
+    sessionStorage,
     document: {
         getElementById: id => elements[id] || null,
         createElement: (tag) => {
@@ -116,6 +125,7 @@ const context = vm.createContext({
     atob: val => Buffer.from(val, 'base64').toString('binary'),
     btoa: val => Buffer.from(val, 'binary').toString('base64')
 });
+context.window.sessionStorage = sessionStorage;
 
 const terminalCode = fs.readFileSync(path.join(__dirname, '../wwwroot/js/simulation-terminal.js'), 'utf8');
 vm.runInContext(terminalCode, context);
@@ -128,6 +138,7 @@ let completionHistory = [];
 const labConfig = {
     allowedCommands: ['help', 'clear', 'pwd', 'ls', 'cd', 'cat', 'touch', 'nano', 'echo', 'whoami'],
     initialDirectory: '/home/student',
+    sequentialObjectives: true,
     fileSystem: {
         home: {
             student: {
@@ -141,21 +152,21 @@ const labConfig = {
     customCommands: [
         {
             id: 'cc_1',
-            command: 'show ip interface brief',
-            output: 'Interface IP-Address OK? Method Status Protocol\nFa0/1 192.168.1.1 YES manual up up',
+            command: 'whois example.com',
+            output: 'Domain Name: EXAMPLE.COM\nRegistry Domain ID: 2336799_DOMAIN_COM-VRSN',
             enabled: true
         },
         {
             id: 'cc_2',
-            command: 'show running-config',
-            output: 'hostname Router-Core\nversion 15.1',
+            command: 'service audit status',
+            output: 'audit.service: active (running)',
             enabled: false // Disabled
         }
     ],
     objectives: [
-        { id: 'obj_touch', text: 'Create flag.txt with touch', type: 'command', target: 'touch' },
-        { id: 'obj_custom', text: 'Run show ip interface brief', type: 'command', target: 'show ip interface brief' },
-        { id: 'obj_read_redir', text: 'Read redirected output', type: 'cat', target: 'netscan.txt' }
+        { id: 'obj_touch', text: 'Create flag.txt with touch', command: 'touch flag.txt', hint: 'Type touch flag.txt' },
+        { id: 'obj_custom', text: 'Run whois example.com', command: 'whois example.com', hint: 'Type whois example.com' },
+        { id: 'obj_read_redir', text: 'Read redirected output', command: 'cat netscan.txt', hint: 'Type cat netscan.txt' }
     ]
 };
 
@@ -174,9 +185,14 @@ function getLatestOutput() {
     return elements['term-output'].children.map(n => n.innerHTML).join('\n');
 }
 
-// 1. Test touch command
-enterCommand('touch myfile.txt');
+// 1. Verify initial hint display for step 1
 let out = getLatestOutput();
+assert(out.includes('💡 Hint (Step #1)'), 'Initial Step #1 hint must be printed on startup');
+assert(out.includes('Type touch flag.txt'), 'Step #1 hint content must be displayed');
+
+// 2. Test touch command
+enterCommand('touch myfile.txt');
+out = getLatestOutput();
 assert(!out.includes('term-error'), 'touch myfile.txt should succeed');
 enterCommand('ls');
 out = getLatestOutput();
@@ -198,7 +214,7 @@ enterCommand('touch /nonexistent/dir/file.txt');
 out = getLatestOutput();
 assert(out.includes('No such file or directory'), 'touch with missing parent directory must fail');
 
-// 2. Test Output Redirection with >
+// 3. Test Output Redirection with >
 enterCommand('echo hello_world > hello.txt');
 enterCommand('cat hello.txt');
 out = getLatestOutput();
@@ -222,36 +238,37 @@ enterCommand('echo test > file1.txt file2.txt');
 out = getLatestOutput();
 assert(out.includes('ambiguous redirect'), 'ambiguous redirect must be rejected');
 
-// 3. Test Exact-Match Custom Commands
-enterCommand('show ip interface brief');
+// 4. Test Exact-Match Custom Commands
+// Test premature execution of Step 2 (whois example.com) while Step 1 is incomplete
+enterCommand('whois example.com');
 out = getLatestOutput();
-assert(out.includes('Fa0/1 192.168.1.1'), 'Exact custom command must output configured text');
+assert(out.includes('Domain Name: EXAMPLE.COM'), 'Custom command executes and produces output');
+assert(out.includes('Sequential Step Required'), 'Attempting Step 2 prematurely warns user in sequential mode');
 
 // Partial match must NOT execute custom command
-enterCommand('show ip interface');
+enterCommand('whois example');
 out = getLatestOutput();
 assert(out.includes('command not found'), 'Partial command must return command not found');
 
 // Extra arguments must NOT execute custom command
-enterCommand('show ip interface brief extra');
+enterCommand('whois example.com extra');
 out = getLatestOutput();
 assert(out.includes('command not found'), 'Extra arguments must return command not found');
 
 // Case sensitive: incorrect case must NOT match
-enterCommand('SHOW IP INTERFACE BRIEF');
+enterCommand('WHOIS EXAMPLE.COM');
 out = getLatestOutput();
 assert(out.includes('command not found'), 'Uppercase command must not match case-sensitive custom command');
 
 // Disabled custom command must NOT execute
-enterCommand('show running-config');
+enterCommand('service audit status');
 out = getLatestOutput();
 assert(out.includes('command not found'), 'Disabled custom command must not execute');
 
-// 4. Test Custom Command Output Redirection
-enterCommand('show ip interface brief > netscan.txt');
-enterCommand('cat netscan.txt');
+// Obsolete command must not execute
+enterCommand('ping 127.0.0.1');
 out = getLatestOutput();
-assert(out.includes('Fa0/1 192.168.1.1'), 'Redirected custom command output must be readable via cat');
+assert(out.includes('command not found'), 'Obsolete ping command must return command not found');
 
 // 5. Test Simulated nano Editor
 enterCommand('nano new_notes.txt');
@@ -266,10 +283,29 @@ enterCommand('cat new_notes.txt');
 out = getLatestOutput();
 assert(out.includes('Simulated nano content 123'), 'Saved nano content must be readable with cat');
 
-// 6. Test Objectives Completion
+// 6. Test Sequential Objectives Completion
+assert.equal(completionCalled, 0, 'Lab must not be completed yet');
+
+// Complete Step 1
 enterCommand('touch flag.txt');
-assert.equal(completionCalled, 1, 'All 3 objectives satisfied must trigger verification callback once');
-assert(completionHistory.includes('show ip interface brief'), 'Command history must include exact custom command');
+out = getLatestOutput();
+assert(out.includes('✓ Completed Step #1'), 'Step 1 must be marked completed');
+assert(out.includes('💡 Hint (Step #2)'), 'Step 2 hint must be printed when Step 1 is completed');
+
+// Complete Step 2 with redirection
+enterCommand('whois example.com > netscan.txt');
+out = getLatestOutput();
+assert(out.includes('✓ Completed Step #2'), 'Step 2 must be marked completed');
+assert(out.includes('💡 Hint (Step #3)'), 'Step 3 hint must be printed when Step 2 is completed');
+
+// Complete Step 3
+enterCommand('cat netscan.txt');
+out = getLatestOutput();
+assert(out.includes('✓ Completed Step #3'), 'Step 3 must be marked completed');
+
+// Assert verification callback invoked
+assert.equal(completionCalled, 1, 'All 3 sequential objectives satisfied must trigger verification callback once');
+assert(completionHistory.includes('whois example.com > netscan.txt') || completionHistory.includes('whois example.com'), 'Command history must include exact custom command');
 assert(completionHistory.includes('cat netscan.txt'), 'Command history must include cat command');
 
 // 7. Test Objectives rendering SVG icons
@@ -277,4 +313,10 @@ const objHtml = elements['simulation-objectives-list'].innerHTML;
 assert(!/[\u{1F300}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u.test(objHtml), 'Objectives list must not contain emojis');
 assert(objHtml.includes('<svg class="sim-icon"'), 'Objectives list must use SVG icons');
 
-console.log('PASS Simulated Terminal: touch, nano editor, output redirection (>), exact-match custom commands, and SVG icons');
+// 8. Test Reset Simulation Attempt
+assert(typeof context.window.resetSimulationAttempt === 'function', 'resetSimulationAttempt must be exposed');
+context.window.resetSimulationAttempt();
+const remainingStorageKeys = Object.keys(mockSessionStorage).filter(k => k.includes('hackacad_introduced_hints'));
+assert.equal(remainingStorageKeys.length, 0, 'resetSimulationAttempt should clear session storage hints');
+
+console.log('PASS Simulated Terminal: touch, nano editor, output redirection (>), exact-match custom commands, sequential objectives, and SVG icons');

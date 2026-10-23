@@ -66,7 +66,6 @@ const elements = {
     'Description': new Element('Description', 'input'),
     'Difficulty': new Element('Difficulty', 'input'),
     'Instructions': new Element('Instructions', 'textarea'),
-    'RewardFlag': new Element('RewardFlag', 'input'),
     'isPublishedCheck': new Element('isPublishedCheck', 'input')
 };
 
@@ -98,7 +97,6 @@ context.window.initSimulationBuilder({
     initialDescription: "Lab test description",
     initialDifficulty: "Beginner",
     initialInstructions: "Follow instructions",
-    initialRewardFlag: "flag{test_123}",
     initialIsPublished: true
 });
 
@@ -117,7 +115,7 @@ assert(parsed.fileSystem.var.log, 'Template must have /var/log');
 // Verify initial directory
 assert.equal(parsed.initialDirectory, '/home/student');
 
-// Verify allowed commands
+// Verify allowed commands contain 13 configurable + mandatory
 assert(parsed.allowedCommands.includes('pwd'));
 assert(parsed.allowedCommands.includes('cd'));
 assert(parsed.allowedCommands.includes('cat'));
@@ -126,13 +124,22 @@ assert(parsed.allowedCommands.includes('help'));
 assert(parsed.allowedCommands.includes('touch'), 'Template should include touch in allowed commands');
 assert(parsed.allowedCommands.includes('nano'), 'Template should include nano in allowed commands');
 
+// Obsolete commands must NOT be in allowedCommands
+assert(!parsed.allowedCommands.includes('ping'), 'ping must not be in allowed commands');
+assert(!parsed.allowedCommands.includes('nmap'), 'nmap must not be in allowed commands');
+assert(!parsed.allowedCommands.includes('curl'), 'curl must not be in allowed commands');
+assert(!parsed.allowedCommands.includes('base64'), 'base64 must not be in allowed commands');
+
 // Verify custom commands array is initialized
 assert(Array.isArray(parsed.customCommands), 'customCommands must be an array');
 
-// Verify objectives
+// Verify sequentialObjectives setting
+assert.equal(parsed.sequentialObjectives, true, 'Default sequentialObjectives should be true');
+
+// Verify objectives use Run Command with expected command
 assert(parsed.objectives.length >= 2, 'Template must have objectives');
-assert(parsed.objectives.some(o => o.type === 'cwd' && o.target === '/var/log'));
-assert(parsed.objectives.some(o => o.type === 'cat' && o.target === 'auth.log'));
+assert(parsed.objectives.some(o => o.command === 'cd /var/log'), 'Template has cd /var/log objective');
+assert(parsed.objectives.some(o => o.command === 'cat auth.log' && o.executionDirectory === '/var/log'), 'Template has cat auth.log with executionDirectory');
 
 // Verify no emoji icons exist in rendered HTML
 const mountHtml = elements['simulation-builder-mount'].innerHTML;
@@ -148,4 +155,22 @@ assert(!mountHtml.includes('id="cmd_clear"'), 'clear must not be a configurable 
 assert(mountHtml.includes('id="cmd_touch"'), 'touch must be a configurable checkbox');
 assert(mountHtml.includes('id="cmd_nano"'), 'nano must be a configurable checkbox');
 
-console.log('PASS Visual Simulation Builder initialization, SVG icons, touch/nano commands and Linux template structure');
+// Verify obsolete networking commands are NOT rendered
+assert(!mountHtml.includes('id="cmd_ping"'), 'ping checkbox must be removed');
+assert(!mountHtml.includes('id="cmd_nmap"'), 'nmap checkbox must be removed');
+assert(!mountHtml.includes('id="cmd_curl"'), 'curl checkbox must be removed');
+assert(!mountHtml.includes('id="cmd_base64"'), 'base64 checkbox must be removed');
+assert(!mountHtml.includes('Networking &amp; Encoding Utilities'), 'Networking section must be removed');
+
+// Verify Completion Reward section is removed while publication checkbox is retained
+assert(!mountHtml.includes('builderRewardFlag'), 'builderRewardFlag field must be removed');
+assert(mountHtml.includes('Publish this lab exercise in the course curriculum'), 'Publication checkbox label must be retained');
+assert(mountHtml.includes('If unchecked, this simulation will be saved as a private Draft'), 'Publication checkbox description must be retained');
+
+// Verify Lab Objectives simplified UI
+assert(!mountHtml.includes('data-field="type"'), 'Verification type dropdown must be removed');
+assert(mountHtml.includes('Expected Command'), 'Expected Command label must be present');
+assert(mountHtml.includes('Required Execution Directory'), 'Required Execution Directory label must be present');
+assert(mountHtml.includes('id="builderSequentialObjectives"'), 'Sequential objectives toggle must be present');
+
+console.log('PASS Visual Simulation Builder initialization, SVG icons, touch/nano commands, clean commands, and simplified objectives');

@@ -7,7 +7,9 @@ namespace HackAcad.Web.Services;
 // Replay virtual commands only. This never accesses the real filesystem, shell or network.
 public static class SimulationVerifier
 {
-    private static readonly HashSet<string> Supported = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "chmod", "whoami", "id", "echo", "base64", "ping", "nmap", "curl", "history", "date", "touch", "nano"];
+    private static readonly HashSet<string> Supported = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "chmod", "whoami", "id", "echo", "history", "date", "touch", "nano"];
+    private static readonly HashSet<string> ObsoleteCommands = ["ping", "nmap", "curl", "base64"];
+
     private static string Text(JsonElement item, string name, string fallback = "") =>
         item.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString()! : fallback;
 
@@ -24,9 +26,18 @@ public static class SimulationVerifier
                 || fs.ValueKind != JsonValueKind.Object || !ValidTree(fs)
                 || !value.TryGetProperty("objectives", out var goals) || goals.ValueKind != JsonValueKind.Array
                 || goals.GetArrayLength() is 0 or > 64) return false;
-            if (value.TryGetProperty("allowedCommands", out var commands)
-                && (commands.ValueKind != JsonValueKind.Array || commands.EnumerateArray().Any(c =>
-                    c.ValueKind != JsonValueKind.String || !Supported.Contains(c.GetString()!.Trim().ToLowerInvariant())))) return false;
+
+            if (value.TryGetProperty("allowedCommands", out var commands))
+            {
+                if (commands.ValueKind != JsonValueKind.Array) return false;
+                foreach (var c in commands.EnumerateArray())
+                {
+                    if (c.ValueKind != JsonValueKind.String) return false;
+                    var cName = c.GetString()!.Trim().ToLowerInvariant();
+                    if (ObsoleteCommands.Contains(cName)) continue; // Obsolete commands are safely ignored
+                    if (!Supported.Contains(cName)) return false;
+                }
+            }
 
             // Validate custom commands if present
             var customCommandNames = new HashSet<string>(StringComparer.Ordinal);
@@ -54,15 +65,28 @@ public static class SimulationVerifier
             foreach (var goal in goals.EnumerateArray())
             {
                 if (goal.ValueKind != JsonValueKind.Object || string.IsNullOrWhiteSpace(Text(goal, "id"))
-                    || !ids.Add(Text(goal, "id")) || string.IsNullOrWhiteSpace(Text(goal, "target"))) return false;
-                var type = Text(goal, "type");
-                if (type is not ("cwd" or "cat" or "chmod" or "command")) return false;
-                if (type == "command")
+                    || !ids.Add(Text(goal, "id"))) return false;
+
+                // Extract and validate expected command
+                var cmd = Text(goal, "command").Trim();
+                if (string.IsNullOrWhiteSpace(cmd))
                 {
-                    var target = Text(goal, "target");
-                    if (!Supported.Contains(target) && !customCommandNames.Contains(target)) return false;
+                    // Backward-compatibility fallback to target
+                    cmd = Text(goal, "target").Trim();
+                    var legacyType = Text(goal, "type");
+                    if (legacyType == "cwd") cmd = "cd " + cmd;
+                    else if (legacyType == "cat") cmd = "cat " + cmd;
+                    else if (legacyType == "chmod") cmd = $"chmod {Text(goal, "mode", "755")} " + cmd;
                 }
-                if (type == "chmod" && !Regex.IsMatch(Text(goal, "mode", "755"), "^[0-7]{3,4}$")) return false;
+                if (string.IsNullOrWhiteSpace(cmd)) return false;
+
+                // Validate optional required execution directory
+                var execDir = Text(goal, "executionDirectory").Trim();
+                if (!string.IsNullOrEmpty(execDir))
+                {
+                    var normDir = Normalize(execDir, "/");
+                    if (Node(fs, normDir)?.ValueKind != JsonValueKind.Object) return false;
+                }
             }
             root = value.Clone();
             error = "";
@@ -104,8 +128,13 @@ public static class SimulationVerifier
         if (commands is null || commands.Count is 0 or > 256 || !TryConfiguration(json, out var config, out _)) return false;
         var fs = config.GetProperty("fileSystem");
         var goals = config.GetProperty("objectives").EnumerateArray().ToArray();
+        var isSequential = config.TryGetProperty("sequentialObjectives", out var seqProp) && seqProp.ValueKind == JsonValueKind.True;
         var allowed = config.TryGetProperty("allowedCommands", out var permitted)
-            ? permitted.EnumerateArray().Select(c => c.GetString()!.Trim().ToLowerInvariant()).ToHashSet() : Supported;
+            ? permitted.EnumerateArray()
+                .Where(c => c.ValueKind == JsonValueKind.String)
+                .Select(c => c.GetString()!.Trim().ToLowerInvariant())
+                .Where(c => Supported.Contains(c))
+                .ToHashSet() : Supported;
 
         // Collect enabled custom commands
         var customCommands = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -127,11 +156,32 @@ public static class SimulationVerifier
         }
 
         var cwd = Normalize(Text(config, "initialDirectory", "/home/student"), "/");
-        var completed = new HashSet<string>(StringComparer.Ordinal);
         var dynamicFiles = new Dictionary<string, string>(StringComparer.Ordinal);
 
         bool DirExists(string path) => Node(fs, path)?.ValueKind == JsonValueKind.Object;
         bool FileExists(string path) => dynamicFiles.ContainsKey(path) || Node(fs, path)?.ValueKind == JsonValueKind.String;
+
+        // Parse goals into structured expected objectives
+        var parsedGoals = new List<(string Id, string Command, string ExecDir)>();
+        foreach (var goal in goals)
+        {
+            var id = Text(goal, "id");
+            var cmd = Text(goal, "command").Trim();
+            if (string.IsNullOrEmpty(cmd))
+            {
+                cmd = Text(goal, "target").Trim();
+                var lType = Text(goal, "type");
+                if (lType == "cwd") cmd = "cd " + cmd;
+                else if (lType == "cat") cmd = "cat " + cmd;
+                else if (lType == "chmod") cmd = $"chmod {Text(goal, "mode", "755")} " + cmd;
+            }
+            var execDir = Text(goal, "executionDirectory").Trim();
+            if (!string.IsNullOrEmpty(execDir)) execDir = Normalize(execDir, "/");
+            parsedGoals.Add((id, cmd, execDir));
+        }
+
+        var completedIds = new HashSet<string>(StringComparer.Ordinal);
+        int nextSequentialIndex = 0;
 
         foreach (var rawInput in commands)
         {
@@ -156,119 +206,132 @@ public static class SimulationVerifier
                 redirectDest = rightParts[0];
             }
 
+            var directoryBeforeCommand = cwd;
+            bool commandSuccess = false;
+            string generatedOutput = "";
+
             // 1. Check exact-match custom commands (case-sensitive)
             if (customCommands.TryGetValue(commandToRun, out var customOutput))
             {
+                commandSuccess = true;
+                generatedOutput = customOutput;
                 if (!string.IsNullOrEmpty(redirectDest))
                 {
                     var destPath = Normalize(redirectDest, cwd);
                     var pPath = destPath.Contains('/') ? destPath.Substring(0, destPath.LastIndexOf('/')) : "";
                     if (string.IsNullOrEmpty(pPath)) pPath = "/";
-                    if (!DirExists(pPath) || DirExists(destPath)) continue; // destination invalid
-                    dynamicFiles[destPath] = customOutput;
+                    if (!DirExists(pPath) || DirExists(destPath)) commandSuccess = false;
+                    else dynamicFiles[destPath] = customOutput;
                 }
-                foreach (var goal in goals)
+            }
+            else
+            {
+                // 2. Built-in command processing
+                var parts = Regex.Split(commandToRun, @"\s+");
+                var cmd = parts[0].ToLowerInvariant();
+                var args = parts.Skip(1).ToArray();
+                if (!Supported.Contains(cmd) || (!allowed.Contains(cmd) && cmd is not ("help" or "clear"))) continue;
+
+                commandSuccess = true;
+                string? operatedPath = null;
+                switch (cmd)
                 {
-                    var type = Text(goal, "type");
-                    var target = Text(goal, "target");
-                    if (type == "command" && commandToRun == target)
-                        completed.Add(Text(goal, "id"));
-                }
-                continue;
-            }
-
-            // 2. Built-in command processing
-            var parts = Regex.Split(commandToRun, @"\s+");
-            var cmd = parts[0].ToLowerInvariant();
-            var args = parts.Skip(1).ToArray();
-            if (!Supported.Contains(cmd) || !allowed.Contains(cmd) && cmd is not ("help" or "clear")) continue;
-            string? operatedPath = null;
-            var success = true;
-            string generatedOutput = "";
-            switch (cmd)
-            {
-                case "cd":
-                    var destination = Normalize(args.FirstOrDefault() ?? "/home/student", cwd);
-                    success = DirExists(destination);
-                    if (success) cwd = destination;
-                    break;
-                case "cat": case "chmod": case "grep":
-                    var index = cmd == "cat" ? 0 : 1;
-                    if (args.Length <= index) { success = false; break; }
-                    operatedPath = Normalize(args[index], cwd);
-                    success = FileExists(operatedPath);
-                    if (cmd == "chmod") success &= Regex.IsMatch(args[0], "^[0-7]{3,4}$");
-                    if (success && cmd == "cat")
-                    {
-                        generatedOutput = dynamicFiles.TryGetValue(operatedPath, out var fContent)
-                            ? fContent : (Node(fs, operatedPath)?.GetString() ?? "");
-                    }
-                    break;
-                case "touch": case "nano":
-                    if (args.Length == 0) { success = false; break; }
-                    operatedPath = Normalize(args[0], cwd);
-                    var parentPath = operatedPath.Contains('/') ? operatedPath.Substring(0, operatedPath.LastIndexOf('/')) : "";
-                    if (string.IsNullOrEmpty(parentPath)) parentPath = "/";
-                    success = DirExists(parentPath) && !DirExists(operatedPath);
-                    if (success && !dynamicFiles.ContainsKey(operatedPath))
-                    {
-                        dynamicFiles[operatedPath] = "";
-                    }
-                    break;
-                case "echo":
-                    generatedOutput = string.Join(' ', args);
-                    break;
-                case "pwd":
-                    generatedOutput = cwd;
-                    break;
-                case "nmap":
-                    generatedOutput = "nmap done";
-                    break;
-                case "curl":
-                    generatedOutput = "curl output";
-                    break;
-                case "base64":
-                    if (args.Contains("-d"))
-                    {
-                        var index64 = Array.IndexOf(args, "-d") + 1;
-                        if (index64 >= args.Length) { success = false; break; }
-                        try {
-                            var b64Bytes = Convert.FromBase64String(args[index64]);
-                            generatedOutput = Encoding.UTF8.GetString(b64Bytes);
+                    case "cd":
+                        var destination = Normalize(args.FirstOrDefault() ?? "/home/student", cwd);
+                        commandSuccess = DirExists(destination);
+                        if (commandSuccess) cwd = destination;
+                        break;
+                    case "cat": case "chmod": case "grep":
+                        var index = cmd == "cat" ? 0 : 1;
+                        if (args.Length <= index) { commandSuccess = false; break; }
+                        operatedPath = Normalize(args[index], cwd);
+                        commandSuccess = FileExists(operatedPath);
+                        if (cmd == "chmod") commandSuccess &= Regex.IsMatch(args[0], "^[0-7]{3,4}$");
+                        if (commandSuccess && cmd == "cat")
+                        {
+                            generatedOutput = dynamicFiles.TryGetValue(operatedPath, out var fContent)
+                                ? fContent : (Node(fs, operatedPath)?.GetString() ?? "");
                         }
-                        catch (FormatException) { success = false; }
-                    }
-                    else
+                        break;
+                    case "touch": case "nano":
+                        if (args.Length == 0) { commandSuccess = false; break; }
+                        operatedPath = Normalize(args[0], cwd);
+                        var parentPath = operatedPath.Contains('/') ? operatedPath.Substring(0, operatedPath.LastIndexOf('/')) : "";
+                        if (string.IsNullOrEmpty(parentPath)) parentPath = "/";
+                        commandSuccess = DirExists(parentPath) && !DirExists(operatedPath);
+                        if (commandSuccess && !dynamicFiles.ContainsKey(operatedPath))
+                        {
+                            dynamicFiles[operatedPath] = "";
+                        }
+                        break;
+                    case "echo":
+                        generatedOutput = string.Join(' ', args);
+                        break;
+                    case "pwd":
+                        generatedOutput = cwd;
+                        break;
+                    case "whoami":
+                        generatedOutput = "student";
+                        break;
+                    case "id":
+                        generatedOutput = "uid=1000(student) gid=1000(student) groups=1000(student)";
+                        break;
+                    case "date":
+                        generatedOutput = DateTime.UtcNow.ToString();
+                        break;
+                    case "history":
+                    case "help":
+                    case "clear":
+                    case "ls":
+                        break;
+                    default:
+                        commandSuccess = false;
+                        break;
+                }
+
+                if (commandSuccess && !string.IsNullOrEmpty(redirectDest))
+                {
+                    var destPath = Normalize(redirectDest, directoryBeforeCommand);
+                    var pPath = destPath.Contains('/') ? destPath.Substring(0, destPath.LastIndexOf('/')) : "";
+                    if (string.IsNullOrEmpty(pPath)) pPath = "/";
+                    if (!DirExists(pPath) || DirExists(destPath)) commandSuccess = false;
+                    else dynamicFiles[destPath] = generatedOutput;
+                }
+            }
+
+            if (!commandSuccess) continue;
+
+            // Objective completion check
+            if (isSequential)
+            {
+                if (nextSequentialIndex < parsedGoals.Count)
+                {
+                    var targetGoal = parsedGoals[nextSequentialIndex];
+                    bool matchesCmd = (commandToRun == targetGoal.Command || input == targetGoal.Command);
+                    bool matchesDir = string.IsNullOrEmpty(targetGoal.ExecDir) || directoryBeforeCommand == targetGoal.ExecDir;
+                    if (matchesCmd && matchesDir)
                     {
-                        var target = args.FirstOrDefault() ?? "";
-                        generatedOutput = Convert.ToBase64String(Encoding.UTF8.GetBytes(target));
+                        completedIds.Add(targetGoal.Id);
+                        nextSequentialIndex++;
                     }
-                    break;
+                }
             }
-            if (!success) continue;
-
-            if (!string.IsNullOrEmpty(redirectDest))
+            else
             {
-                var destPath = Normalize(redirectDest, cwd);
-                var pPath = destPath.Contains('/') ? destPath.Substring(0, destPath.LastIndexOf('/')) : "";
-                if (string.IsNullOrEmpty(pPath)) pPath = "/";
-                if (!DirExists(pPath) || DirExists(destPath)) continue;
-                dynamicFiles[destPath] = generatedOutput;
-            }
-
-            foreach (var goal in goals)
-            {
-                var type = Text(goal, "type");
-                var target = Text(goal, "target");
-                var matchPath = operatedPath is not null && (target.Contains('/')
-                    ? operatedPath == Normalize(target, cwd) : operatedPath.Split('/').Last() == target);
-                if (type == "cwd" && cwd == Normalize(target, "/")
-                    || type == "cat" && cmd == "cat" && matchPath
-                    || type == "chmod" && cmd == "chmod" && matchPath && args[0] == Text(goal, "mode", "755")
-                    || type == "command" && (cmd == target || commandToRun == target))
-                    completed.Add(Text(goal, "id"));
+                for (int i = 0; i < parsedGoals.Count; i++)
+                {
+                    var goal = parsedGoals[i];
+                    if (completedIds.Contains(goal.Id)) continue;
+                    bool matchesCmd = (commandToRun == goal.Command || input == goal.Command);
+                    bool matchesDir = string.IsNullOrEmpty(goal.ExecDir) || directoryBeforeCommand == goal.ExecDir;
+                    if (matchesCmd && matchesDir)
+                    {
+                        completedIds.Add(goal.Id);
+                    }
+                }
             }
         }
-        return completed.Count == goals.Length;
+
+        return completedIds.Count == parsedGoals.Count;
     }
 }

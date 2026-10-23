@@ -25,34 +25,32 @@ const string baseConfig = """
   "customCommands": [
     {
       "id": "cc_1",
-      "command": "show ip interface brief",
-      "output": "Fa0/1 192.168.1.1 up up",
+      "command": "whois example.com",
+      "output": "Domain Name: EXAMPLE.COM\nRegistry Domain ID: 2336799_DOMAIN_COM-VRSN",
       "enabled": true
     },
     {
       "id": "cc_2",
-      "command": "show running-config",
-      "output": "hostname Router1",
+      "command": "service audit status",
+      "output": "audit.service: active (running)",
       "enabled": false
     }
   ],
   "objectives": [
     {
       "id": "obj_cmd",
-      "type": "command",
-      "target": "show ip interface brief"
+      "command": "whois example.com"
     },
     {
       "id": "obj_cat",
-      "type": "cat",
-      "target": "net.txt"
+      "command": "cat net.txt"
     }
   ]
 }
 """;
 
 // 1. TryConfiguration Validation Tests
-Check(SimulationVerifier.TryConfiguration(baseConfig, out _, out _), "Valid configuration with customCommands accepted");
+Check(SimulationVerifier.TryConfiguration(baseConfig, out _, out _), "Valid configuration with customCommands and command objectives accepted");
 
 // Reject duplicate custom command
 const string dupConfig = """
@@ -61,10 +59,10 @@ const string dupConfig = """
   "initialDirectory": "/home/student",
   "fileSystem": { "home": { "student": {} } },
   "customCommands": [
-    { "command": "show vlan", "output": "vlan 1", "enabled": true },
-    { "command": "show vlan", "output": "vlan 2", "enabled": true }
+    { "command": "netstat -tuln", "output": "tcp 0.0.0.0:80", "enabled": true },
+    { "command": "netstat -tuln", "output": "tcp 0.0.0.0:443", "enabled": true }
   ],
-  "objectives": [{ "id": "1", "type": "command", "target": "show vlan" }]
+  "objectives": [{ "id": "1", "command": "netstat -tuln" }]
 }
 """;
 Check(!SimulationVerifier.TryConfiguration(dupConfig, out _, out _), "Duplicate enabled custom command rejected");
@@ -78,7 +76,7 @@ const string conflictConfig = """
   "customCommands": [
     { "command": "ls", "output": "fake ls", "enabled": true }
   ],
-  "objectives": [{ "id": "1", "type": "command", "target": "ls" }]
+  "objectives": [{ "id": "1", "command": "ls" }]
 }
 """;
 Check(!SimulationVerifier.TryConfiguration(conflictConfig, out _, out _), "Custom command conflicting with built-in 'ls' rejected");
@@ -90,41 +88,52 @@ const string reservedConfig = """
   "initialDirectory": "/home/student",
   "fileSystem": { "home": { "student": {} } },
   "customCommands": [
-    { "command": "ping 8.8.8.8 > output.txt", "output": "ok", "enabled": true }
+    { "command": "echo secret > output.txt", "output": "ok", "enabled": true }
   ],
-  "objectives": [{ "id": "1", "type": "command", "target": "pwd" }]
+  "objectives": [{ "id": "1", "command": "pwd" }]
 }
 """;
 Check(!SimulationVerifier.TryConfiguration(reservedConfig, out _, out _), "Custom command containing '>' rejected");
+
+// Obsolete commands (ping, nmap, curl, base64) are safely handled and ignored in TryConfiguration
+const string obsoleteCommandsConfig = """
+{
+  "allowedCommands": ["pwd", "ping", "nmap", "curl", "base64", "cat"],
+  "initialDirectory": "/home/student",
+  "fileSystem": { "home": { "student": {} } },
+  "objectives": [{ "id": "1", "command": "pwd" }]
+}
+""";
+Check(SimulationVerifier.TryConfiguration(obsoleteCommandsConfig, out _, out _), "Configuration containing obsolete commands is accepted safely without errors");
 
 // 2. IsComplete: Exact-Match Execution & Redirection
 Check(!SimulationVerifier.IsComplete(baseConfig, null), "Null history rejected");
 Check(!SimulationVerifier.IsComplete(baseConfig, Array.Empty<string>()), "Empty history rejected");
 
 // Exact match satisfies custom command objective
-Check(!SimulationVerifier.IsComplete(baseConfig, new[] { "show ip interface brief" }), "Incomplete when second objective not met");
+Check(!SimulationVerifier.IsComplete(baseConfig, new[] { "whois example.com" }), "Incomplete when second objective not met");
 
 // Redirection of custom command into net.txt satisfies cat objective
 Check(SimulationVerifier.IsComplete(baseConfig, new[] {
-    "show ip interface brief > net.txt",
+    "whois example.com > net.txt",
     "cat net.txt"
 }), "Exact custom command with redirection creates file and completes lab");
 
 // Partial custom command does NOT match
 Check(!SimulationVerifier.IsComplete(baseConfig, new[] {
-    "show ip interface > net.txt",
+    "whois example > net.txt",
     "cat net.txt"
 }), "Partial custom command does not match");
 
 // Extra arguments do NOT match
 Check(!SimulationVerifier.IsComplete(baseConfig, new[] {
-    "show ip interface brief extra > net.txt",
+    "whois example.com extra > net.txt",
     "cat net.txt"
 }), "Custom command with extra arguments does not match");
 
 // Incorrect casing does NOT match
 Check(!SimulationVerifier.IsComplete(baseConfig, new[] {
-    "SHOW IP INTERFACE BRIEF > net.txt",
+    "WHOIS EXAMPLE.COM > net.txt",
     "cat net.txt"
 }), "Uppercase custom command does not match");
 
@@ -135,12 +144,12 @@ const string disabledGoalConfig = """
   "initialDirectory": "/home/student",
   "fileSystem": { "home": { "student": {} } },
   "customCommands": [
-    { "command": "show running-config", "output": "hostname R1", "enabled": false }
+    { "command": "service audit status", "output": "active", "enabled": false }
   ],
-  "objectives": [{ "id": "1", "type": "cat", "target": "out.txt" }]
+  "objectives": [{ "id": "1", "command": "cat out.txt" }]
 }
 """;
-Check(!SimulationVerifier.IsComplete(disabledGoalConfig, new[] { "show running-config > out.txt", "cat out.txt" }),
+Check(!SimulationVerifier.IsComplete(disabledGoalConfig, new[] { "service audit status > out.txt", "cat out.txt" }),
     "Disabled custom command cannot execute redirection or create files");
 
 const string disabledCommandGoalConfig = """
@@ -149,23 +158,121 @@ const string disabledCommandGoalConfig = """
   "initialDirectory": "/home/student",
   "fileSystem": { "home": { "student": {} } },
   "customCommands": [
-    { "command": "show running-config", "output": "hostname R1", "enabled": false }
+    { "command": "service audit status", "output": "active", "enabled": false }
   ],
-  "objectives": [{ "id": "1", "type": "command", "target": "show running-config" }]
+  "objectives": [{ "id": "1", "command": "service audit status" }]
 }
 """;
-Check(!SimulationVerifier.IsComplete(disabledCommandGoalConfig, new[] { "show running-config" }),
+Check(!SimulationVerifier.IsComplete(disabledCommandGoalConfig, new[] { "service audit status" }),
     "Disabled custom command cannot satisfy command objective");
 
-// 3. File Operations: touch and nano
+// 3. Exact Command and Argument Matching
+const string exactArgConfig = """
+{
+  "allowedCommands": ["cd", "cat", "pwd"],
+  "initialDirectory": "/home/student",
+  "fileSystem": {
+    "home": { "student": {} },
+    "var": { "secret": {} }
+  },
+  "objectives": [
+    { "id": "nav_secret", "command": "cd /var/secret" }
+  ]
+}
+""";
+Check(!SimulationVerifier.IsComplete(exactArgConfig, new[] { "cd /home/student" }), "Different argument 'cd /home/student' does not satisfy 'cd /var/secret'");
+Check(!SimulationVerifier.IsComplete(exactArgConfig, new[] { "cd" }), "'cd' with no argument does not satisfy 'cd /var/secret'");
+Check(SimulationVerifier.IsComplete(exactArgConfig, new[] { "cd /var/secret" }), "Exact command 'cd /var/secret' satisfies objective");
+
+// 4. Optional Required Execution Directory
+const string execDirConfig = """
+{
+  "allowedCommands": ["cd", "cat", "pwd"],
+  "initialDirectory": "/home/student",
+  "fileSystem": {
+    "home": { "student": {} },
+    "var": { "secret": { "flag.txt": "FLAG{123}" } }
+  },
+  "objectives": [
+    { "id": "read_flag", "command": "cat flag.txt", "executionDirectory": "/var/secret" }
+  ]
+}
+""";
+// Running 'cat flag.txt' from /home/student must fail because executionDirectory is /var/secret
+Check(!SimulationVerifier.IsComplete(execDirConfig, new[] { "cat flag.txt" }), "Command executed in wrong directory fails objective with executionDirectory constraint");
+Check(SimulationVerifier.IsComplete(execDirConfig, new[] { "cd /var/secret", "cat flag.txt" }), "Command executed in required directory satisfies objective");
+
+// Invalid executionDirectory in config is rejected by TryConfiguration
+const string invalidExecDirConfig = """
+{
+  "allowedCommands": ["cd"],
+  "initialDirectory": "/home/student",
+  "fileSystem": { "home": { "student": {} } },
+  "objectives": [
+    { "id": "invalid_dir", "command": "pwd", "executionDirectory": "/non/existent/path" }
+  ]
+}
+""";
+Check(!SimulationVerifier.TryConfiguration(invalidExecDirConfig, out _, out _), "Objective with non-existent executionDirectory is rejected during validation");
+
+// 5. Sequential vs Non-Sequential Objective Completion
+const string sequentialConfig = """
+{
+  "allowedCommands": ["cd", "cat", "pwd"],
+  "initialDirectory": "/home/student",
+  "sequentialObjectives": true,
+  "fileSystem": {
+    "home": { "student": {} },
+    "var": { "secret": { "token.txt": "tok" } }
+  },
+  "objectives": [
+    { "id": "step1", "command": "cd /var/secret" },
+    { "id": "step2", "command": "cat token.txt" }
+  ]
+}
+""";
+// Executing step 2 before step 1 fails sequential completion
+Check(!SimulationVerifier.IsComplete(sequentialConfig, new[] {
+    "cat token.txt",
+    "cd /var/secret"
+}), "Executing future step prematurely fails sequential objective completion");
+
+// Executing in correct order succeeds
+Check(SimulationVerifier.IsComplete(sequentialConfig, new[] {
+    "cd /var/secret",
+    "cat token.txt"
+}), "Executing steps in sequential order completes lab");
+
+// Non-sequential configuration allows out-of-order execution
+const string nonSequentialConfig = """
+{
+  "allowedCommands": ["cd", "cat", "pwd"],
+  "initialDirectory": "/home/student",
+  "sequentialObjectives": false,
+  "fileSystem": {
+    "home": { "student": {} },
+    "var": { "secret": { "token.txt": "tok" } }
+  },
+  "objectives": [
+    { "id": "step1", "command": "cd /var/secret" },
+    { "id": "step2", "command": "pwd" }
+  ]
+}
+""";
+Check(SimulationVerifier.IsComplete(nonSequentialConfig, new[] {
+    "pwd",
+    "cd /var/secret"
+}), "Non-sequential lab allows completing objectives in any order");
+
+// 6. File Operations: touch and nano
 const string touchLabConfig = """
 {
   "allowedCommands": ["touch", "cat", "pwd"],
   "initialDirectory": "/home/student",
   "fileSystem": { "home": { "student": {} } },
   "objectives": [
-    { "id": "1", "type": "command", "target": "touch" },
-    { "id": "2", "type": "cat", "target": "created.txt" }
+    { "id": "1", "command": "touch created.txt" },
+    { "id": "2", "command": "cat created.txt" }
   ]
 }
 """;
@@ -180,7 +287,7 @@ Check(!SimulationVerifier.IsComplete(touchLabConfig, new[] {
     "cat created.txt"
 }), "Touch in non-existent directory fails");
 
-// 4. Backward Compatibility: Existing configs without customCommands
+// 7. Backward Compatibility: Existing configs using legacy type/target
 const string legacyConfig = """
 {
   "allowedCommands": ["cd", "cat", "chmod", "ls"],

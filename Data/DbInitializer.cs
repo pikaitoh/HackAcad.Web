@@ -184,10 +184,11 @@ grep 'Failed password' /var/log/auth.log | awk '{print $11}' | sort | uniq -c
       }
     }
   },
+  ""sequentialObjectives"": true,
   ""objectives"": [
-    { ""id"": ""nav_secret"", ""text"": ""Navigate to /var/secret directory"", ""type"": ""cwd"", ""target"": ""/var/secret"" },
-    { ""id"": ""chmod_audit"", ""text"": ""Change permissions of audit.sh to 755"", ""type"": ""chmod"", ""target"": ""audit.sh"" },
-    { ""id"": ""read_audit"", ""text"": ""Inspect audit.sh with cat to reveal token"", ""type"": ""cat"", ""target"": ""audit.sh"" }
+    { ""id"": ""nav_secret"", ""text"": ""Navigate to /var/secret directory"", ""command"": ""cd /var/secret"", ""executionDirectory"": """", ""hint"": ""Run 'cd /var/secret'"" },
+    { ""id"": ""chmod_audit"", ""text"": ""Change permissions of audit.sh to 755"", ""command"": ""chmod 755 audit.sh"", ""executionDirectory"": ""/var/secret"", ""hint"": ""Run 'chmod 755 audit.sh' while in /var/secret"" },
+    { ""id"": ""read_audit"", ""text"": ""Inspect audit.sh with cat to reveal token"", ""command"": ""cat audit.sh"", ""executionDirectory"": ""/var/secret"", ""hint"": ""Run 'cat audit.sh'"" }
   ]
 }";
             var c1Sim = new SimulationTask
@@ -272,27 +273,29 @@ Cross-Site Scripting happens when an application includes untrusted data in a we
             db.Challenges.Add(c2Challenge);
 
             var c2SimJson = @"{
-  ""allowedCommands"": [""help"", ""clear"", ""ping"", ""nmap"", ""curl"", ""whoami"", ""pwd""],
+  ""allowedCommands"": [""help"", ""clear"", ""pwd"", ""ls"", ""cd"", ""cat"", ""grep"", ""whoami"", ""touch""],
   ""initialDirectory"": ""/home/student"",
   ""fileSystem"": {
     ""home"": {
       ""student"": {
-        ""readme.txt"": ""Mission: Discover services on target.hackacad.local with nmap, then query the debug endpoint with curl.""
+        ""readme.txt"": ""Mission: Inspect web access logs in /var/log, then create a forensic report file with touch."",
+        ""auth.log"": ""192.168.1.100 - GET /api/v1/debug HTTP/1.1 200 - token=flag{web_forensics_master}""
       }
     }
   },
+  ""sequentialObjectives"": true,
   ""objectives"": [
-    { ""id"": ""scan"", ""text"": ""Scan target with nmap"", ""type"": ""command"", ""target"": ""nmap"" },
-    { ""id"": ""curl_api"", ""text"": ""Query debug API with curl"", ""type"": ""command"", ""target"": ""curl"" }
+    { ""id"": ""grep_log"", ""text"": ""Search for token in auth.log using grep"", ""command"": ""grep token auth.log"", ""executionDirectory"": ""/home/student"", ""hint"": ""Run 'grep token auth.log'"" },
+    { ""id"": ""touch_report"", ""text"": ""Create report.txt using touch"", ""command"": ""touch report.txt"", ""executionDirectory"": ""/home/student"", ""hint"": ""Run 'touch report.txt'"" }
   ]
 }";
             var c2Sim = new SimulationTask
             {
                 CourseId = course2.CourseId,
-                Title = "Web Reconnaissance with cURL & Nmap",
-                Instructions = "Use the simulated network exploration tools to scan the host and make an HTTP request to query the debug API.",
+                Title = "Web Access Log Analysis & Forensics",
+                Instructions = "Analyze server access logs using grep and record findings by creating a report file with touch.",
                 VirtualFileSystemJson = c2SimJson,
-                RewardFlagHash = "flag{w3b_r3c0n_curl_m4st3r}",
+                RewardFlagHash = "flag{web_forensics_master}",
                 IsPublished = true
             };
             db.SimulationTasks.Add(c2Sim);

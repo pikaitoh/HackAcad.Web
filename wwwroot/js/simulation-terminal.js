@@ -1,6 +1,6 @@
 /**
  * HackAcad Simulated Terminal Engine
- * NetAcad-style client-side CLI simulation environment.
+ * Client-side CLI simulation environment.
  * Executes allowed commands inside a virtual filesystem and tracks lab objectives.
  */
 (function () {
@@ -31,15 +31,26 @@
             }
         };
 
-        let allowedCommands = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "whoami", "chmod", "echo", "base64", "ping", "nmap", "curl", "history", "date", "id", "touch", "nano"];
+        const allBuiltins = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "whoami", "id", "echo", "history", "date", "touch", "nano", "chmod"];
+        const obsoleteBuiltins = ["ping", "nmap", "curl", "base64"];
+
+        let allowedCommands = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "whoami", "chmod", "echo", "history", "date", "id", "touch", "nano"];
         let customCommands = [];
         let currentPath = ["home", "student"];
-        let filePermissions = {}; // e.g. "audit.sh": "755"
+        let filePermissions = {};
         let objectives = [];
+        let isSequential = true;
         let commandHistory = [];
         let historyIndex = -1;
         let isTaskCompleted = false;
         let commandSucceeded = true;
+
+        const hintStorageKey = 'hackacad_introduced_hints_' + containerId;
+        const introducedHints = new Set();
+        try {
+            const stored = JSON.parse(sessionStorage.getItem(hintStorageKey) || '[]');
+            stored.forEach(k => introducedHints.add(k));
+        } catch (e) { }
 
         function decodeHtmlEntities(str) {
             return String(str || '')
@@ -56,7 +67,7 @@
         }
 
         function resolvePath(path) {
-            if (path === '~') path = '/home/student';
+            if (!path || path === '~') path = '/home/student';
             const resolved = path.startsWith('/') ? [] : [...currentPath];
             for (const part of path.split('/').filter(Boolean)) {
                 if (part === '.') continue;
@@ -73,16 +84,14 @@
             return directory && Object.hasOwn(directory, name) && typeof directory[name] === 'string' ? directory[name] : null;
         }
 
-        function matchesFile(path, target) {
-            return target.includes('/') ? resolvePath(path).join('/') === resolvePath(target).join('/') : resolvePath(path).at(-1) === target;
-        }
-
         // Parse instructor config
         if (config) {
             try {
                 const parsed = typeof config === 'string' ? JSON.parse(config) : config;
                 if (parsed.allowedCommands && Array.isArray(parsed.allowedCommands)) {
-                    allowedCommands = parsed.allowedCommands.map(c => c.toLowerCase().trim());
+                    allowedCommands = parsed.allowedCommands
+                        .map(c => c.toLowerCase().trim())
+                        .filter(c => allBuiltins.includes(c)); // discard obsolete/removed commands safely
                 }
                 // Permanently enabled built-in system commands
                 if (!allowedCommands.includes("help")) allowedCommands.push("help");
@@ -92,9 +101,30 @@
                 if (parsed.initialDirectory) {
                     currentPath = parsed.initialDirectory.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
                 }
+
+                isSequential = parsed.sequentialObjectives === true;
+
                 if (parsed.objectives && Array.isArray(parsed.objectives)) {
-                    objectives = parsed.objectives.map(o => ({ ...o, completed: false }));
+                    objectives = parsed.objectives.map((o, idx) => {
+                        let cmd = (o.command || o.expectedCommand || '').trim();
+                        // Backward-compatibility fallback for legacy objectives
+                        if (!cmd && o.target) {
+                            if (o.type === 'cwd') cmd = `cd ${o.target}`;
+                            else if (o.type === 'cat') cmd = `cat ${o.target}`;
+                            else if (o.type === 'chmod') cmd = `chmod ${o.mode || '755'} ${o.target}`;
+                            else cmd = o.target;
+                        }
+                        return {
+                            id: o.id || `obj_${idx + 1}`,
+                            text: o.text || '',
+                            command: cmd,
+                            executionDirectory: o.executionDirectory ? '/' + o.executionDirectory.replace(/^\/+|\/+$/g, '') : '',
+                            hint: (o.hint || '').trim(),
+                            completed: false
+                        };
+                    });
                 }
+
                 if (parsed.customCommands && Array.isArray(parsed.customCommands)) {
                     customCommands = parsed.customCommands.filter(c => c && c.enabled !== false && typeof c.command === 'string' && c.command.trim());
                 }
@@ -105,8 +135,8 @@
 
         if (objectives.length === 0) {
             objectives = [
-                { id: "explore", text: "Explore the filesystem using cd and ls", completed: false },
-                { id: "find_flag", text: "Locate and read the secret file using cat", completed: false }
+                { id: "explore", text: "Explore the filesystem with pwd", command: "pwd", executionDirectory: "", hint: "Type 'pwd' and press Enter", completed: false },
+                { id: "find_flag", text: "Locate and read notes.txt using cat", command: "cat notes.txt", executionDirectory: "/home/student", hint: "Run 'cat notes.txt'", completed: false }
             ];
         }
 
@@ -129,7 +159,7 @@
  | |__| | __ _  ___| | __  / _ \\   ___ __ _   __| |
  |  __  |/ _\` |/ __| |/ / / ___ \\ / __/ _\` | / _\` |
  |_|  |_|\\__,_|\\___|_|\\_\\/_/   \\_\\___\\__,_|\\__,_|
-  Virtual Security Sandbox • NetAcad Engine v2.0</pre>
+  Virtual Security Sandbox • Terminal Engine v2.0</pre>
                     </div>
                     <div class="term-line text-muted">Type <span class="term-highlight">help</span> to view allowed lab commands. Tab to auto-complete.</div>
                     <div class="term-line text-muted">Type <span class="term-highlight">clear</span> to reset screen.</div>
@@ -182,34 +212,112 @@
             printLine(escaped, className);
         }
 
+        function printHint(idx, hintText) {
+            if (!hintText || !hintText.trim()) return;
+            const cleanHint = hintText.trim();
+            const hintKey = `step_${idx}_${cleanHint}`;
+            if (introducedHints.has(hintKey)) return;
+            introducedHints.add(hintKey);
+            try {
+                const stored = JSON.parse(sessionStorage.getItem(hintStorageKey) || '[]');
+                if (!stored.includes(hintKey)) {
+                    stored.push(hintKey);
+                    sessionStorage.setItem(hintStorageKey, JSON.stringify(stored));
+                }
+            } catch (e) { }
+
+            const stepLabel = isSequential ? `Step #${idx + 1}` : `Objective`;
+            printLine(`<div class="term-line" style="color: #38bdf8; margin: 4px 0;"><span class="term-highlight">💡 Hint (${stepLabel}):</span> ${escapeHtml(cleanHint)}</div>`);
+        }
+
+        function introduceAvailableHints() {
+            if (isSequential) {
+                const nextIdx = objectives.findIndex(o => !o.completed);
+                if (nextIdx !== -1 && objectives[nextIdx].hint) {
+                    printHint(nextIdx, objectives[nextIdx].hint);
+                }
+            } else {
+                objectives.forEach((obj, idx) => {
+                    if (!obj.completed && obj.hint) {
+                        printHint(idx, obj.hint);
+                    }
+                });
+            }
+        }
+
         function renderObjectives() {
             const listEl = document.getElementById('simulation-objectives-list');
             if (!listEl) return;
             const checkSvg = '<svg class="sim-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
             const pendingSvg = '<svg class="sim-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle></svg>';
-            listEl.innerHTML = objectives.map(obj => `
+            listEl.innerHTML = objectives.map((obj, idx) => `
                 <li class="objective-item ${obj.completed ? 'completed' : 'pending'}">
                     <span class="obj-icon">${obj.completed ? checkSvg : pendingSvg}</span>
-                    <span class="obj-text">${escapeHtml(obj.text)}</span>
+                    <span class="obj-text">${isSequential ? `<strong>Step ${idx + 1}:</strong> ` : ''}${escapeHtml(obj.text)}</span>
                 </li>
             `).join('');
         }
 
-        function checkObjectives(cmd, args, outputResult) {
+        function checkObjectives(submittedCommand, commandToRun, dirBeforeCommand) {
             if (!commandSucceeded) return;
-            objectives.forEach(obj => {
-                if (obj.completed) return;
-                if (obj.type === 'cwd' && getPathString() === '/' + resolvePath(obj.target).join('/')) obj.completed = true;
-                if (obj.type === 'cat' && cmd === 'cat' && args && args[0] && matchesFile(args[0], obj.target)) obj.completed = true;
-                if (obj.type === 'chmod' && cmd === 'chmod' && args && args[1] && matchesFile(args[1], obj.target) && args[0] === (obj.mode || '755')) obj.completed = true;
-                if (obj.type === 'command') {
-                    if (cmd === obj.target || cmd.toLowerCase() === obj.target.toLowerCase()) obj.completed = true;
+            const cleanSubmitted = (submittedCommand || '').trim();
+            const cleanRun = (commandToRun || '').trim();
+
+            if (isSequential) {
+                const nextIdx = objectives.findIndex(o => !o.completed);
+                if (nextIdx === -1) return;
+
+                const targetObj = objectives[nextIdx];
+                const expectedCmd = (targetObj.command || '').trim();
+                const matchCmd = (expectedCmd === cleanSubmitted || expectedCmd === cleanRun);
+                const reqDir = targetObj.executionDirectory ? '/' + resolvePath(targetObj.executionDirectory).join('/') : '';
+                const matchDir = !reqDir || dirBeforeCommand === reqDir;
+
+                if (matchCmd && matchDir) {
+                    targetObj.completed = true;
+                    renderObjectives();
+                    printLine(`<div class="term-line" style="color: #4ade80;"><strong>✓ Completed Step #${nextIdx + 1}:</strong> ${escapeHtml(targetObj.text)}</div>`);
+
+                    // Introduce hint for next available objective
+                    const nextIncompleteIdx = objectives.findIndex(o => !o.completed);
+                    if (nextIncompleteIdx !== -1) {
+                        if (objectives[nextIncompleteIdx].hint) {
+                            printHint(nextIncompleteIdx, objectives[nextIncompleteIdx].hint);
+                        }
+                    } else if (!isTaskCompleted) {
+                        isTaskCompleted = true;
+                        triggerSuccess();
+                    }
+                } else {
+                    // Check if student attempted a later objective before completing the current one
+                    const futureIdx = objectives.findIndex((o, i) => i > nextIdx && !o.completed && ((o.command || '').trim() === cleanSubmitted || (o.command || '').trim() === cleanRun));
+                    if (futureIdx !== -1) {
+                        printLine(`<div class="term-line" style="color: #fbbf24;"><strong>[!] Sequential Step Required:</strong> Complete Step #${nextIdx + 1} ("${escapeHtml(targetObj.text)}") before Step #${futureIdx + 1}.</div>`);
+                    }
                 }
-            });
-            renderObjectives();
-            if (!isTaskCompleted && objectives.every(o => o.completed)) {
-                isTaskCompleted = true;
-                triggerSuccess();
+            } else {
+                // Non-sequential mode: any incomplete objective can be completed
+                let newlyCompleted = false;
+                objectives.forEach((obj, idx) => {
+                    if (obj.completed) return;
+                    const expectedCmd = (obj.command || '').trim();
+                    const matchCmd = (expectedCmd === cleanSubmitted || expectedCmd === cleanRun);
+                    const reqDir = obj.executionDirectory ? '/' + resolvePath(obj.executionDirectory).join('/') : '';
+                    const matchDir = !reqDir || dirBeforeCommand === reqDir;
+                    if (matchCmd && matchDir) {
+                        obj.completed = true;
+                        newlyCompleted = true;
+                        printLine(`<div class="term-line" style="color: #4ade80;"><strong>✓ Completed Objective:</strong> ${escapeHtml(obj.text)}</div>`);
+                    }
+                });
+
+                if (newlyCompleted) {
+                    renderObjectives();
+                    if (!isTaskCompleted && objectives.every(o => o.completed)) {
+                        isTaskCompleted = true;
+                        triggerSuccess();
+                    }
+                }
             }
         }
 
@@ -305,7 +413,7 @@
                     parentDir[filename] = content;
                     const lineCount = content ? content.split('\n').length : 0;
                     printLine(`[ Wrote ${lineCount} line(s) to ${escapeHtml(filename)} ]`);
-                    checkObjectives('nano', [filepath, filename], content);
+                    checkObjectives(`nano ${filepath}`, `nano ${filepath}`, getPathString());
                 } else {
                     printLine(`[ nano: closed without saving ]`);
                 }
@@ -337,6 +445,7 @@
             commandHistory.push(trimmed);
             historyIndex = commandHistory.length;
 
+            const dirBeforeCommand = getPathString();
             printLine(`<span class="term-prompt">${escapeHtml(promptEl.textContent)}</span> <span class="term-cmd">${escapeHtml(trimmed)}</span>`);
 
             // Output Redirection Detection & Parsing
@@ -379,11 +488,11 @@
                 if (redirectDest) {
                     const writeOk = writeOutputFile(redirectDest, matchedCustom.output);
                     if (writeOk) {
-                        checkObjectives(commandToRun, [], matchedCustom.output);
+                        checkObjectives(trimmed, commandToRun, dirBeforeCommand);
                     }
                 } else {
                     printOutput(matchedCustom.output);
-                    checkObjectives(commandToRun, [], matchedCustom.output);
+                    checkObjectives(trimmed, commandToRun, dirBeforeCommand);
                 }
                 return;
             }
@@ -393,7 +502,12 @@
             const cmd = parts[0].toLowerCase();
             const args = parts.slice(1);
 
-            const allBuiltins = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "whoami", "id", "echo", "base64", "ping", "nmap", "curl", "history", "date", "touch", "nano", "chmod"];
+            // Obsolete networking utilities rejected with command not found
+            if (obsoleteBuiltins.includes(cmd)) {
+                printLine(`hackacad-sh: ${escapeHtml(cmd)}: command not found`, 'term-error');
+                return;
+            }
+
             if (!allBuiltins.includes(cmd)) {
                 printLine(`hackacad-sh: ${escapeHtml(cmd)}: command not found`, 'term-error');
                 return;
@@ -409,7 +523,6 @@
             let capturedOutput = '';
             let captureLines = [];
 
-            // Helper to route command output depending on redirection
             function emitOutput(text) {
                 capturedOutput = text;
                 if (!redirectDest) {
@@ -419,7 +532,6 @@
 
             function emitLine(html) {
                 if (redirectDest) {
-                    // Extract plain text for redirected file
                     const plain = decodeHtmlEntities(html.replace(/<[^>]*>/g, ''));
                     captureLines.push(plain);
                 } else {
@@ -446,10 +558,6 @@
                             case 'whoami': desc = 'Display current user identity'; break;
                             case 'id': desc = 'Display user and group IDs'; break;
                             case 'echo': desc = 'Print text to terminal'; break;
-                            case 'base64': desc = 'Base64 encode or decode (-d)'; break;
-                            case 'ping': desc = 'Simulate ICMP ping to a remote host'; break;
-                            case 'nmap': desc = 'Network exploration and port scan'; break;
-                            case 'curl': desc = 'Simulate HTTP request to a URL'; break;
                             case 'history': desc = 'Display command history'; break;
                             case 'date': desc = 'Display current system time'; break;
                             default: desc = 'Lab utility'; break;
@@ -640,68 +748,6 @@
                     break;
                 }
 
-                case 'base64': {
-                    if (args.includes('-d')) {
-                        const target = args[args.indexOf('-d') + 1];
-                        if (!target) {
-                            printLine('base64: missing argument to decode', 'term-error');
-                            break;
-                        }
-                        try {
-                            const decoded = atob(target);
-                            emitOutput(decoded);
-                        } catch (e) {
-                            printLine('base64: invalid input', 'term-error');
-                        }
-                    } else {
-                        const target = args[0] || '';
-                        emitOutput(btoa(target));
-                    }
-                    break;
-                }
-
-                case 'ping': {
-                    const host = args[args.length - 1] || 'localhost';
-                    emitLine(`PING ${escapeHtml(host)} (127.0.0.1) 56(84) bytes of data.`);
-                    emitLine(`64 bytes from ${escapeHtml(host)} (127.0.0.1): icmp_seq=1 ttl=64 time=0.035 ms`);
-                    emitLine(`64 bytes from ${escapeHtml(host)} (127.0.0.1): icmp_seq=2 ttl=64 time=0.041 ms`);
-                    emitLine(`64 bytes from ${escapeHtml(host)} (127.0.0.1): icmp_seq=3 ttl=64 time=0.038 ms`);
-                    emitLine(`--- ${escapeHtml(host)} ping statistics ---`);
-                    emitLine(`3 packets transmitted, 3 received, 0% packet loss, time 2004ms`);
-                    break;
-                }
-
-                case 'nmap': {
-                    const target = args[args.length - 1] || 'target.hackacad.local';
-                    emitLine(`Starting Nmap 7.94 ( https://nmap.org ) at 2026-10-18 10:00 UTC`);
-                    emitLine(`Nmap scan report for ${escapeHtml(target)} (10.10.10.50)`);
-                    emitLine(`Host is up (0.00045s latency).`);
-                    emitLine(`Not shown: 997 closed tcp ports (reset)`);
-                    emitLine(`PORT     STATE SERVICE VERSION`);
-                    emitLine(`22/tcp   open  ssh     OpenSSH 8.9p1 Ubuntu`);
-                    emitLine(`80/tcp   open  http    nginx 1.18.0`);
-                    emitLine(`8080/tcp open  http    HackAcad Internal Auth API`);
-                    emitLine(`Nmap done: 1 IP address (1 host up) scanned in 1.42 seconds`);
-                    capturedOutput = 'nmap done';
-                    break;
-                }
-
-                case 'curl': {
-                    const url = args[0] || 'http://localhost';
-                    emitLine(`&gt; GET ${escapeHtml(url)} HTTP/1.1`);
-                    emitLine(`&lt; HTTP/1.1 200 OK`);
-                    emitLine(`&lt; Content-Type: application/json`);
-                    emitLine(`&lt; Server: HackAcad-Sandbox/1.0`);
-                    emitLine(`&lt; `);
-                    if (url.includes('secret') || url.includes('flag') || url.includes('debug')) {
-                        capturedOutput = '{"status":"success","data":{"token":"flag{w3b_r3c0n_curl_m4st3r}"}}';
-                    } else {
-                        capturedOutput = '{"status":"active","message":"HackAcad endpoint is operational."}';
-                    }
-                    emitOutput(capturedOutput);
-                    break;
-                }
-
                 default:
                     printLine(`hackacad-sh: ${escapeHtml(cmd)}: command not found`, 'term-error');
                     break;
@@ -714,7 +760,7 @@
                 if (!ok) commandSucceeded = false;
             }
 
-            checkObjectives(cmd, args, capturedOutput);
+            checkObjectives(trimmed, commandToRun, dirBeforeCommand);
         }
 
         // Key Listeners
@@ -740,7 +786,6 @@
                 }
             } else if (e.key === 'Tab') {
                 e.preventDefault();
-                // Autocomplete
                 const val = inputEl.value;
                 const tokens = val.split(' ');
                 const lastToken = tokens[tokens.length - 1];
@@ -764,5 +809,14 @@
 
         // Initial render of objectives
         renderObjectives();
+
+        // Print initial hint(s) once on startup
+        introduceAvailableHints();
+
+        // Expose reset attempt function
+        window.resetSimulationAttempt = function () {
+            try { sessionStorage.removeItem(hintStorageKey); } catch (e) { }
+            introducedHints.clear();
+        };
     };
 })();

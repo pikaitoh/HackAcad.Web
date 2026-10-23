@@ -91,7 +91,7 @@ Use one primary action per section. Use links for navigation and buttons for sub
 
 ## Learning patterns and module handoff
 
-The learning patterns draw on TryHackMe's clear next-step hierarchy, Cisco NetAcad's course information and outlines, and HTB Academy's content structure. They inherit the same Figtree family, mint/teal palette and yellow primary controls as the rest of HackAcad.
+The learning patterns draw on TryHackMe's clear next-step hierarchy and HTB Academy's content structure. They inherit the same Figtree family, mint/teal palette and yellow primary controls as the rest of HackAcad.
 
 | Pattern | Existing classes / reference | Integration requirement |
 | --- | --- | --- |

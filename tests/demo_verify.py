@@ -98,7 +98,7 @@ def test_flow():
     assert "Server Recon" in sim_html and "Permission Audit" in sim_html, "Simulation task title missing"
     assert "sim-terminal-container" in sim_html, "Terminal container missing"
     assert "simulation-terminal.js" in sim_html, "Terminal script missing"
-    print("[PASS] 8. NetAcad-style Simulated Terminal environment configured.")
+    print("[PASS] 8. Simulated Terminal environment configured.")
 
     # 8. Instructor Flow
     instructor_client = create_client()

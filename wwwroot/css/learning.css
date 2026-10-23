@@ -130,7 +130,7 @@
 .ctf-flag-input-group { display: flex; gap: 0.5rem; max-width: 38rem; margin-top: 1.25rem; }
 .ctf-flag-input { font-family: monospace; font-size: 0.95rem; font-weight: 600; letter-spacing: 0.05em; }
 
-/* --- Simulated Terminal UI (NetAcad Engine) --- */
+/* --- Simulated Terminal UI --- */
 .terminal-wrapper { background: #0f172a; border-radius: 12px; overflow: hidden; box-shadow: 0 12px 30px rgba(0,0,0,0.3); font-family: 'Courier New', Courier, monospace; margin-block: 1.5rem; border: 1px solid #334155; }
 .terminal-header { background: #1e293b; padding: 0.65rem 1rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #334155; }
 .terminal-buttons { display: flex; gap: 6px; }
