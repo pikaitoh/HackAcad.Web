@@ -226,11 +226,18 @@
             <section class="mb-5">
                 <div class="section-heading mb-3">
                     <h2>Badges &amp; Achievements</h2>
-                    <span class="text-secondary">Earn badges by completing courses, CTFs, and CLI labs</span>
+                    <a asp-action="Badges" class="btn btn-outline-secondary btn-sm">View all badges</a>
                 </div>
 
-                <div class="badges-grid">
-                    @foreach (var b in Model.Badges)
+                @{ var earnedBadges = Model.Badges.Where(b => b.IsUnlocked).Take(3).ToList(); }
+                @if (earnedBadges.Count == 0)
+                {
+                    <p class="text-secondary">No badges earned yet. Complete a lesson, solve a CTF, or finish a lab to get started.</p>
+                }
+                else
+                {
+                <div class="badges-grid dashboard-earned-badges">
+                    @foreach (var b in earnedBadges)
                     {
                         var icon = b.Id switch
                         {
@@ -251,19 +258,11 @@
                             </div>
                             <div class="badge-title">@b.Title</div>
                             <div class="badge-desc">@b.Description</div>
-                            <div class="badge-status">
-                                @if (b.IsUnlocked)
-                                {
-                                    <span>UNLOCKED ✓</span>
-                                }
-                                else
-                                {
-                                    <span>@(b.CurrentProgress)/@(b.TargetProgress)</span>
-                                }
-                            </div>
+                            <div class="badge-status"><span>UNLOCKED ✓</span></div>
                         </div>
                     }
                 </div>
+                }
             </section>
 
             <!-- Recent CTF Submissions -->

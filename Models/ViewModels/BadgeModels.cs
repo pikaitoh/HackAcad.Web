@@ -6,12 +6,25 @@ public class BadgeItem
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty; // e.g., "Enrollment", "CTF", "Terminal", "Mastery"
+    public string Rarity { get; set; } = "Common";
     public string IconSvg { get; set; } = string.Empty;
     public string ColorHex { get; set; } = "#33796e";
     public bool IsUnlocked { get; set; }
     public DateTime? UnlockedDate { get; set; }
     public int CurrentProgress { get; set; }
     public int TargetProgress { get; set; }
+}
+
+public class BadgesPageViewModel
+{
+    public List<BadgeItem> Badges { get; set; } = [];
+    public string StatusFilter { get; set; } = "all";
+    public string CategoryFilter { get; set; } = "";
+    public string RarityFilter { get; set; } = "";
+    public List<string> Categories { get; set; } = [];
+    public List<string> Rarities { get; set; } = [];
+    public int UnlockedCount { get; set; }
+    public int TotalCount { get; set; }
 }
 
 public class UserBadgesViewModel

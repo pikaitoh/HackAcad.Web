@@ -153,6 +153,38 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     }
 
     [HttpGet]
+    public async Task<IActionResult> Badges(string? status, string? category, string? rarity)
+    {
+        if (User.IsInRole(AccountRoles.Admin)) return RedirectToAction("Index", "Admin");
+
+        var allBadges = await badges.GetUserBadgesAsync(users.GetUserId(User)!);
+        var categories = allBadges.Select(b => b.Category).Distinct().OrderBy(x => x).ToList();
+        var rarities = allBadges.Select(b => b.Rarity).Distinct()
+            .OrderBy(r => r switch { "Common" => 0, "Uncommon" => 1, "Rare" => 2, "Epic" => 3, _ => 4 })
+            .ToList();
+        var selectedStatus = status?.ToLowerInvariant() is "earned" or "locked" ? status.ToLowerInvariant() : "all";
+        var selectedCategory = categories.FirstOrDefault(x => string.Equals(x, category, StringComparison.OrdinalIgnoreCase)) ?? "";
+        var selectedRarity = rarities.FirstOrDefault(x => string.Equals(x, rarity, StringComparison.OrdinalIgnoreCase)) ?? "";
+        var filteredBadges = allBadges
+            .Where(b => selectedStatus == "all" || b.IsUnlocked == (selectedStatus == "earned"))
+            .Where(b => selectedCategory.Length == 0 || b.Category == selectedCategory)
+            .Where(b => selectedRarity.Length == 0 || b.Rarity == selectedRarity)
+            .ToList();
+
+        return View(new BadgesPageViewModel
+        {
+            Badges = filteredBadges,
+            StatusFilter = selectedStatus,
+            CategoryFilter = selectedCategory,
+            RarityFilter = selectedRarity,
+            Categories = categories,
+            Rarities = rarities,
+            UnlockedCount = allBadges.Count(b => b.IsUnlocked),
+            TotalCount = allBadges.Count
+        });
+    }
+
+    [HttpGet]
     public async Task<IActionResult> Dashboard(int? activityYear)
     {
         if (User.IsInRole(AccountRoles.Admin)) return RedirectToAction("Index", "Admin");

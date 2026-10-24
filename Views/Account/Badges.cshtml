@@ -1,0 +1,97 @@
+@model BadgesPageViewModel
+@{
+    Layout = "_WorkspaceLayout";
+    ViewData["Title"] = "Badges";
+}
+
+<div class="container module-shell badges-page">
+    <div class="badges-page-heading">
+        <div>
+            <a asp-action="Dashboard" class="text-decoration-none">← Dashboard</a>
+            <h1 class="mt-2">Badges &amp; achievements</h1>
+            <p class="text-secondary">@Model.UnlockedCount of @Model.TotalCount badges earned. Keep learning to unlock more.</p>
+        </div>
+    </div>
+
+    <form asp-action="Badges" method="get" class="badges-filter-form surface-panel" aria-label="Filter badges">
+        <div>
+            <label for="badge-status" class="form-label">Status</label>
+            <select id="badge-status" name="status" class="form-select">
+                <option value="all" selected="@(Model.StatusFilter == "all" ? "selected" : null)">All badges</option>
+                <option value="earned" selected="@(Model.StatusFilter == "earned" ? "selected" : null)">Earned</option>
+                <option value="locked" selected="@(Model.StatusFilter == "locked" ? "selected" : null)">Locked</option>
+            </select>
+        </div>
+        <div>
+            <label for="badge-category" class="form-label">Category</label>
+            <select id="badge-category" name="category" class="form-select">
+                <option value="">All categories</option>
+                @foreach (var category in Model.Categories)
+                {
+                    <option value="@category" selected="@(Model.CategoryFilter == category ? "selected" : null)">@category</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="badge-rarity" class="form-label">Rarity</label>
+            <select id="badge-rarity" name="rarity" class="form-select">
+                <option value="">All rarities</option>
+                @foreach (var rarity in Model.Rarities)
+                {
+                    <option value="@rarity" selected="@(Model.RarityFilter == rarity ? "selected" : null)">@rarity</option>
+                }
+            </select>
+        </div>
+        <div class="badges-filter-actions">
+            <button type="submit" class="btn btn-primary">Apply filters</button>
+            <a asp-action="Badges" class="btn btn-outline-secondary">Clear</a>
+        </div>
+    </form>
+
+    @if (Model.Badges.Count == 0)
+    {
+        <div class="surface-panel badges-empty-state">
+            <h2>No badges match these filters</h2>
+            <p class="text-secondary mb-0">Try a different status, category, or rarity.</p>
+        </div>
+    }
+    else
+    {
+        <div class="badges-grid badges-page-grid">
+            @foreach (var badge in Model.Badges)
+            {
+                var icon = badge.Id switch
+                {
+                    "cyber_recruit" => "🛡️",
+                    "first_step" => "📖",
+                    "diligent_learner" => "📚",
+                    "first_blood" => "🚩",
+                    "flag_hunter" => "🎯",
+                    "century_club" => "💎",
+                    "terminal_novice" => "⚡",
+                    "academy_graduate" => "🏆",
+                    _ => "⭐"
+                };
+                var progressPercent = badge.TargetProgress > 0
+                    ? Math.Clamp((int)Math.Round((double)badge.CurrentProgress / badge.TargetProgress * 100), 0, 100)
+                    : 0;
+                var displayedProgress = Math.Min(badge.CurrentProgress, badge.TargetProgress);
+
+                <article class="badge-card @(badge.IsUnlocked ? "unlocked" : "locked") badge-detail-card">
+                    <div class="badge-detail-topline">
+                        <span class="badge-rarity" data-rarity="@badge.Rarity.ToLowerInvariant()">@badge.Rarity</span>
+                        <span class="badge-category">@badge.Category</span>
+                    </div>
+                    <div class="badge-icon-box" style="background:@(badge.IsUnlocked ? badge.ColorHex + "20" : "#f1f5f9"); color:@(badge.IsUnlocked ? badge.ColorHex : "#94a3b8");">
+                        <span aria-hidden="true">@icon</span>
+                    </div>
+                    <h2 class="badge-title">@badge.Title</h2>
+                    <p class="badge-desc">@badge.Description</p>
+                    <div class="badge-progress-heading"><span>@(badge.IsUnlocked ? "Earned" : "Progress")</span><strong>@displayedProgress / @badge.TargetProgress</strong></div>
+                    <progress class="badge-progress-bar" value="@progressPercent" max="100" aria-label="@progressPercent percent complete">@progressPercent%</progress>
+                    <div class="badge-progress-caption">@(badge.IsUnlocked ? "EARNED ✓" : $"{progressPercent}% complete")</div>
+                </article>
+            }
+        </div>
+    }
+</div>

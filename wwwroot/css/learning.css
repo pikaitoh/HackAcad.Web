@@ -212,6 +212,41 @@ html[data-appearance="dark"] .activity-day[data-level="4"],html[data-appearance=
 @media (max-width: 600px) { .activity-calendar-heading { align-items: flex-start; flex-direction: column; } .activity-year-form { width: 100%; } .activity-year-form .form-select { flex: 1; } }
 
 .badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr)); gap: 1.25rem; margin-top: 1rem; }
+.dashboard-earned-badges { grid-template-columns: repeat(auto-fill, minmax(12rem, 15rem)); }
+.badges-page { padding-block: 2rem 4rem; }
+.badges-page-heading { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 1.25rem; }
+.badges-page-heading h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 750; }
+.badges-page-heading p { margin-bottom: 0; }
+.badges-filter-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 1rem; align-items: end; padding: 1rem; margin-bottom: 1.25rem; }
+.badges-filter-form .form-label { font-size: .8rem; font-weight: 650; margin-bottom: .35rem; }
+.badges-filter-actions { display: flex; gap: .5rem; }
+.badges-page-grid { margin-top: 0; }
+.badge-detail-card { min-height: 18rem; }
+.badge-detail-topline { width: 100%; display: flex; justify-content: space-between; gap: .5rem; align-items: center; margin-bottom: .75rem; }
+.badge-rarity,.badge-category { border-radius: 999px; padding: .2rem .55rem; font-size: .68rem; font-weight: 700; white-space: nowrap; }
+.badge-rarity { background: #e9eef5; color: #34445a; }
+.badge-rarity[data-rarity="uncommon"] { background: #e0f2e8; color: #17623c; }
+.badge-rarity[data-rarity="rare"] { background: #e5e9ff; color: #3e4cb3; }
+.badge-rarity[data-rarity="epic"] { background: #f1e4ff; color: #7536a8; }
+.badge-category { background: var(--ha-tint); color: var(--ha-primary); }
+.badge-detail-card .badge-title { font-size: 1.05rem; }
+.badge-detail-card .badge-desc { min-height: 3.5rem; }
+.badge-unlocked-status { color: var(--ha-success); font-size: .78rem; font-weight: 750; margin-top: auto; }
+.badge-progress-heading { width: 100%; display: flex; justify-content: space-between; color: var(--ha-muted); font-size: .75rem; margin-top: auto; }
+.badge-progress-heading strong { color: var(--ha-ink); }
+.badge-progress-bar { appearance: none; width: 100%; height: .55rem; border: 0; border-radius: 999px; overflow: hidden; background: #e6edf0; margin: .45rem 0 .25rem; }
+.badge-progress-bar::-webkit-progress-bar { background: #e6edf0; border-radius: 999px; }
+.badge-progress-bar::-webkit-progress-value { background: var(--ha-primary); border-radius: 999px; }
+.badge-progress-bar::-moz-progress-bar { background: var(--ha-primary); border-radius: 999px; }
+.badge-progress-caption { color: var(--ha-muted); font-size: .68rem; text-align: right; width: 100%; }
+.badges-empty-state { padding: 2rem; text-align: center; }
+.badges-empty-state h2 { font-size: 1.1rem; }
+html[data-appearance="dark"] .badge-rarity { background: #34424d; color: #e2e8f0; }
+html[data-appearance="dark"] .badge-rarity[data-rarity="uncommon"] { background: #153d2a; color: #9be9b7; }
+html[data-appearance="dark"] .badge-rarity[data-rarity="rare"] { background: #282d60; color: #c5caff; }
+html[data-appearance="dark"] .badge-rarity[data-rarity="epic"] { background: #482663; color: #e2c1ff; }
+@media (max-width: 760px) { .badges-filter-form { grid-template-columns: 1fr 1fr; } .badges-filter-actions { grid-column: 1 / -1; } }
+@media (max-width: 480px) { .badges-filter-form { grid-template-columns: 1fr; } .badges-filter-actions { grid-column: auto; } .badges-filter-actions .btn { flex: 1; } }
 .badge-card { background: white; border: 1px solid var(--ha-line); border-radius: var(--ha-radius); padding: 1.25rem; text-align: center; display: flex; flex-direction: column; align-items: center; position: relative; transition: all 0.2s ease; }
 .badge-card.unlocked { border-color: #cbd5e1; box-shadow: 0 4px 15px rgba(0,0,0,0.04); }
 .badge-card.unlocked:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
