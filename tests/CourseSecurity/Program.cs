@@ -159,19 +159,29 @@ try
     var savedByInstructor=await Post(t2,"/Courses/SaveCourse",Fields("id",publicId.ToString()));
     Check(savedByInstructor.StatusCode==HttpStatusCode.Redirect&&savedByInstructor.Headers.Location?.OriginalString.Contains("/Courses/Details/"+publicId)==true,"Instructor can save another instructor's course");
     Check((await t2.GetStringAsync("/Courses/Saved")).Contains(prefix+" public"),"Instructor can view saved courses");
+    using(var scope=factory.Services.CreateScope())
+    {
+        var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var enrollment=await db.Enrollments.SingleAsync(e=>e.UserId==otherInstructor.Id&&e.CourseId==publicId);
+        var award=await db.UserBadgeAwards.SingleOrDefaultAsync(a=>a.UserId==otherInstructor.Id&&a.BadgeId=="cyber_recruit");
+        Check(award is not null&&award.AwardedUtc==enrollment.EnrolledDate,"first enrollment creates one permanent badge award with its enrollment date");
+    }
     Check((await Post(t2,"/Courses/CompleteLesson",Fields("courseId",publicId.ToString(),"lessonId",lessonId.ToString()))).StatusCode==HttpStatusCode.Redirect,"Instructor can save lesson progress");
     DateTime? firstLessonCompletion;
     using(var scope=factory.Services.CreateScope())
     {
         var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         firstLessonCompletion=await db.ProgressRecords.Where(p=>p.EnrollmentId==db.Enrollments.Where(e=>e.UserId==otherInstructor.Id&&e.CourseId==publicId).Select(e=>e.EnrollmentId).Single()&&p.LessonId==lessonId).Select(p=>p.CompletedUtc).SingleAsync();
+        var award=await db.UserBadgeAwards.SingleOrDefaultAsync(a=>a.UserId==otherInstructor.Id&&a.BadgeId=="first_step");
+        Check(award is not null&&award.AwardedUtc==firstLessonCompletion,"lesson completion persists the badge's first qualifying completion date");
     }
     await Post(t2,"/Courses/CompleteLesson",Fields("courseId",publicId.ToString(),"lessonId",lessonId.ToString()));
     using(var scope=factory.Services.CreateScope())
     {
         var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var repeatedLessonCompletion=await db.ProgressRecords.Where(p=>p.EnrollmentId==db.Enrollments.Where(e=>e.UserId==otherInstructor.Id&&e.CourseId==publicId).Select(e=>e.EnrollmentId).Single()&&p.LessonId==lessonId).Select(p=>p.CompletedUtc).SingleAsync();
-        Check(firstLessonCompletion==repeatedLessonCompletion,"reviewing a completed lesson keeps its original activity date");
+        var awardDates=await db.UserBadgeAwards.Where(a=>a.UserId==otherInstructor.Id&&a.BadgeId=="first_step").Select(a=>a.AwardedUtc).ToListAsync();
+        Check(firstLessonCompletion==repeatedLessonCompletion&&awardDates.Count==1&&awardDates[0]==firstLessonCompletion,"reviewing a completed lesson keeps its original activity and badge award dates");
     }
     Check((await Post(t2,"/Courses/SubmitFlag",Fields("courseId",publicId.ToString(),"challengeId",challengeId.ToString(),"flag",flag))).StatusCode==HttpStatusCode.Redirect,"Instructor can submit a challenge flag");
     await Post(t2,"/Courses/SubmitFlag",Fields("courseId",publicId.ToString(),"challengeId",challengeId.ToString(),"flag",flag));
@@ -181,6 +191,8 @@ try
     await Post(t2,"/Courses/FinishCourse",Fields("courseId",publicId.ToString()));
     var learnerDashboard=await t2.GetStringAsync("/Identity/Account/Dashboard");
     Check(learnerDashboard.Contains("Academy Graduate")&&learnerDashboard.Contains("Congratulations! You completed"),"Instructor dashboard shows earned badges and course completion message");
+    var badgePage=await t2.GetStringAsync("/Identity/Account/Badges?status=earned&category=CTF&rarity=Common");
+    Check(badgePage.Contains("First Blood")&&badgePage.Contains("Earned on")&&!badgePage.Contains("Flag Hunter"),"earned badge page displays the persisted date and applies status, category, and rarity filters");
     Check(learnerDashboard.Contains("4 events in ")&&learnerDashboard.Contains("1 CTF solve")&&learnerDashboard.Contains("1 course finished"),"activity calendar counts one lesson, one solved CTF, one lab, and one course finish despite repeats");
     Check(!(await t2.GetStringAsync("/Courses/Learn/"+publicId)).Contains("Finish Course"),"Instructor does not see the finish action again after acknowledgement");
     using(var scope=factory.Services.CreateScope())

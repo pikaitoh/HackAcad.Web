@@ -89,7 +89,16 @@
                     <p class="badge-desc">@badge.Description</p>
                     <div class="badge-progress-heading"><span>@(badge.IsUnlocked ? "Earned" : "Progress")</span><strong>@displayedProgress / @badge.TargetProgress</strong></div>
                     <progress class="badge-progress-bar" value="@progressPercent" max="100" aria-label="@progressPercent percent complete">@progressPercent%</progress>
-                    <div class="badge-progress-caption">@(badge.IsUnlocked ? "EARNED ✓" : $"{progressPercent}% complete")</div>
+                    <div class="badge-progress-caption">
+                        @if (badge.IsUnlocked && badge.UnlockedDate is { } awardedUtc)
+                        {
+                            <time datetime="@DateTime.SpecifyKind(awardedUtc, DateTimeKind.Utc).ToString("O")">Earned on @UserTime.Format(awardedUtc, "dd MMM yyyy")</time>
+                        }
+                        else
+                        {
+                            <span>@progressPercent% complete</span>
+                        }
+                    </div>
                 </article>
             }
         </div>

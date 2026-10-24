@@ -22,6 +22,7 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
     public DbSet<Lesson> Lessons => Set<Lesson>();
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     public DbSet<SavedCourse> SavedCourses => Set<SavedCourse>();
+    public DbSet<UserBadgeAward> UserBadgeAwards => Set<UserBadgeAward>();
     public DbSet<Progress> ProgressRecords => Set<Progress>();
     public DbSet<Challenge> Challenges => Set<Challenge>();
     public DbSet<ChallengeSubmission> ChallengeSubmissions => Set<ChallengeSubmission>();
@@ -56,6 +57,7 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
         builder.Entity<Lesson>().ToTable("lessons");
         builder.Entity<Enrollment>().ToTable("enrollments");
         builder.Entity<SavedCourse>().ToTable("saved_courses");
+        builder.Entity<UserBadgeAward>().ToTable("user_badge_awards");
         builder.Entity<Progress>().ToTable("progress_records");
         builder.Entity<Challenge>().ToTable("challenges");
         builder.Entity<ChallengeSubmission>().ToTable("challenge_submissions");
@@ -171,6 +173,14 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
             .WithMany()
             .HasForeignKey(e => e.LastLessonId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        // Badge awards are permanent per-user history, independent of enrollment data.
+        builder.Entity<UserBadgeAward>().HasIndex(a => new { a.UserId, a.BadgeId }).IsUnique();
+        builder.Entity<UserBadgeAward>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(a => a.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // --- Progress: exactly one of Lesson/Challenge/SimulationTask per row ---
         builder.Entity<Progress>()

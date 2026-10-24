@@ -2,10 +2,11 @@ using HackAcad.Web.Data;
 using HackAcad.Web.Models.Entities;
 using HackAcad.Web.Models.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 
 namespace HackAcad.Web.Services;
 
-public class BadgeService(ApplicationDbContext db)
+public class BadgeService(ApplicationDbContext db, TimeProvider clock)
 {
     public async Task<List<BadgeItem>> GetUserBadgesAsync(string userId)
     {
@@ -23,39 +24,76 @@ public class BadgeService(ApplicationDbContext db)
             .Where(p => enrollmentIds.Contains(p.EnrollmentId) && p.IsCompleted)
             .ToListAsync();
 
-        var completedLessons = progress.Count(p => p.ContentType == ProgressContentType.Lesson);
+        var lessonProgress = progress.Where(p => p.ContentType == ProgressContentType.Lesson).ToList();
+        var completedLessons = lessonProgress.Count;
         var completedChallenges = progress.Count(p => p.ContentType == ProgressContentType.Challenge);
-        var completedSimulations = progress.Count(p => p.ContentType == ProgressContentType.Simulation);
+        var simulationProgress = progress.Where(p => p.ContentType == ProgressContentType.Simulation).ToList();
+        var completedSimulations = simulationProgress.Count;
 
-        // 3. Points from unique solved challenges
-        var solvedChallengeIds = await db.ChallengeSubmissions
+        // A challenge counts once, at the first correct submission for that challenge.
+        var correctSubmissions = await db.ChallengeSubmissions
             .Where(s => s.UserId == userId && s.IsCorrect)
-            .Select(s => s.ChallengeId)
-            .Distinct()
             .ToListAsync();
+        var solvedAt = correctSubmissions
+            .GroupBy(s => s.ChallengeId)
+            .ToDictionary(group => group.Key, group => group.Min(s => AsUtc(s.SubmittedDate)));
+        var solvedChallengeIds = solvedAt.Keys.ToList();
 
-        var totalPoints = await db.Challenges
+        var pointsByChallenge = await db.Challenges
             .Where(c => solvedChallengeIds.Contains(c.ChallengeId))
-            .SumAsync(c => (int?)c.Points) ?? 0;
+            .ToDictionaryAsync(c => c.ChallengeId, c => c.Points);
+        var totalPoints = pointsByChallenge.Values.Sum();
 
         // 4. Course completions (100% completed)
         var completedCoursesCount = 0;
+        var courseCompletionDates = new List<DateTime>();
         foreach (var enrollment in enrollments)
         {
-            var totalCourseLessons = await db.Lessons.CountAsync(l => l.CourseId == enrollment.CourseId);
-            var totalCourseChallenges = await db.Challenges.CountAsync(c => c.CourseId == enrollment.CourseId && c.IsPublished);
-            var totalCourseSimulations = await db.SimulationTasks.CountAsync(s => s.CourseId == enrollment.CourseId && s.IsPublished);
-            var totalItems = totalCourseLessons + totalCourseChallenges + totalCourseSimulations;
+            var lessonIds = await db.Lessons.Where(l => l.CourseId == enrollment.CourseId)
+                .Select(l => l.LessonId).ToListAsync();
+            var challengeIds = await db.Challenges.Where(c => c.CourseId == enrollment.CourseId && c.IsPublished)
+                .Select(c => c.ChallengeId).ToListAsync();
+            var simulationIds = await db.SimulationTasks.Where(s => s.CourseId == enrollment.CourseId && s.IsPublished)
+                .Select(s => s.TaskId).ToListAsync();
+            var totalItems = lessonIds.Count + challengeIds.Count + simulationIds.Count;
 
             if (totalItems > 0)
             {
-                var completedInThisCourse = progress.Count(p => p.EnrollmentId == enrollment.EnrollmentId);
-                if (completedInThisCourse >= totalItems)
+                var courseProgress = progress.Where(p => p.EnrollmentId == enrollment.EnrollmentId).ToList();
+                var completedLessonIds = courseProgress.Where(p => p.ContentType == ProgressContentType.Lesson && p.LessonId.HasValue)
+                    .Select(p => p.LessonId!.Value).Intersect(lessonIds).Distinct().ToHashSet();
+                var completedChallengeIds = courseProgress.Where(p => p.ContentType == ProgressContentType.Challenge && p.ChallengeId.HasValue)
+                    .Select(p => p.ChallengeId!.Value).Intersect(challengeIds).Distinct().ToHashSet();
+                var completedSimulationIds = courseProgress.Where(p => p.ContentType == ProgressContentType.Simulation && p.SimulationTaskId.HasValue)
+                    .Select(p => p.SimulationTaskId!.Value).Intersect(simulationIds).Distinct().ToHashSet();
+                var completedCount = completedLessonIds.Count + completedChallengeIds.Count + completedSimulationIds.Count;
+                if (completedCount >= totalItems)
                 {
                     completedCoursesCount++;
+                    var requiredProgress = courseProgress.Where(p =>
+                        p.ContentType == ProgressContentType.Lesson && p.LessonId.HasValue && completedLessonIds.Contains(p.LessonId.Value)
+                        || p.ContentType == ProgressContentType.Challenge && p.ChallengeId.HasValue && completedChallengeIds.Contains(p.ChallengeId.Value)
+                        || p.ContentType == ProgressContentType.Simulation && p.SimulationTaskId.HasValue && completedSimulationIds.Contains(p.SimulationTaskId.Value));
+                    courseCompletionDates.Add(requiredProgress.Max(CompletionDateUtc));
                 }
             }
         }
+
+        var lessonDates = lessonProgress.Select(CompletionDateUtc).OrderBy(date => date).ToList();
+        var challengeDates = solvedAt.Values.OrderBy(date => date).ToList();
+        var simulationDates = simulationProgress.Select(CompletionDateUtc).OrderBy(date => date).ToList();
+        var pointThresholdDate = GetPointThresholdDate(solvedAt, pointsByChallenge, 100);
+        var awardDates = new Dictionary<string, DateTime?>
+        {
+            ["cyber_recruit"] = enrollments.Count == 0 ? null : enrollments.Min(e => AsUtc(e.EnrolledDate)),
+            ["first_step"] = lessonDates.Count > 0 ? lessonDates[0] : null,
+            ["diligent_learner"] = lessonDates.Count >= 5 ? lessonDates[4] : null,
+            ["first_blood"] = challengeDates.Count > 0 ? challengeDates[0] : null,
+            ["flag_hunter"] = challengeDates.Count >= 3 ? challengeDates[2] : null,
+            ["century_club"] = pointThresholdDate,
+            ["terminal_novice"] = simulationDates.Count > 0 ? simulationDates[0] : null,
+            ["academy_graduate"] = courseCompletionDates.Count == 0 ? null : courseCompletionDates.Min()
+        };
 
         // 5. Definitions
         var badges = new List<BadgeItem>
@@ -158,6 +196,73 @@ public class BadgeService(ApplicationDbContext db)
             }
         };
 
+        // Synchronize any newly-earned badges. The unique index makes this an
+        // idempotent operation even when two requests finish at the same time.
+        var existingAwards = await db.UserBadgeAwards.Where(a => a.UserId == userId)
+            .ToDictionaryAsync(a => a.BadgeId);
+        var newAwards = badges
+            .Where(b => b.IsUnlocked && !existingAwards.ContainsKey(b.Id))
+            .Select(b => new UserBadgeAward
+            {
+                UserId = userId,
+                BadgeId = b.Id,
+                AwardedUtc = AsUtc(awardDates[b.Id] ?? clock.GetUtcNow().UtcDateTime)
+            })
+            .ToList();
+
+        if (newAwards.Count > 0)
+        {
+            db.UserBadgeAwards.AddRange(newAwards);
+            try
+            {
+                await db.SaveChangesAsync();
+            }
+            catch (DbUpdateException exception) when (IsDuplicateAward(exception))
+            {
+                // A parallel request already inserted one or more of these awards.
+                foreach (var entry in db.ChangeTracker.Entries<UserBadgeAward>().Where(e => e.State == EntityState.Added))
+                    entry.State = EntityState.Detached;
+            }
+        }
+
+        var awardMap = await db.UserBadgeAwards.AsNoTracking().Where(a => a.UserId == userId)
+            .ToDictionaryAsync(a => a.BadgeId, a => a.AwardedUtc);
+        foreach (var badge in badges)
+        {
+            if (!awardMap.TryGetValue(badge.Id, out var awardedUtc)) continue;
+            badge.IsUnlocked = true;
+            badge.UnlockedDate = AsUtc(awardedUtc);
+            badge.CurrentProgress = Math.Max(badge.CurrentProgress, badge.TargetProgress);
+        }
+
         return badges;
+    }
+
+    private static DateTime CompletionDateUtc(Progress progress) =>
+        AsUtc(progress.CompletedUtc ?? progress.LastUpdatedDate);
+
+    private static DateTime AsUtc(DateTime value) => DateTime.SpecifyKind(value, DateTimeKind.Utc);
+
+    private static DateTime? GetPointThresholdDate(
+        IReadOnlyDictionary<int, DateTime> solvedAt,
+        IReadOnlyDictionary<int, int> pointsByChallenge,
+        int target)
+    {
+        var points = 0;
+        foreach (var solved in solvedAt.OrderBy(pair => pair.Value))
+        {
+            if (!pointsByChallenge.TryGetValue(solved.Key, out var challengePoints)) continue;
+            points += challengePoints;
+            if (points >= target) return solved.Value;
+        }
+
+        return null;
+    }
+
+    private static bool IsDuplicateAward(DbUpdateException exception)
+    {
+        for (var current = exception.InnerException; current is not null; current = current.InnerException)
+            if (current is MySqlException { Number: 1062 }) return true;
+        return false;
     }
 }

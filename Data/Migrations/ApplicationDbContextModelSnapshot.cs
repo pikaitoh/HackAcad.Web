@@ -1070,6 +1070,35 @@ namespace HackAcad.Web.Data.Migrations
                     b.ToTable("support_tickets", (string)null);
                 });
 
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.UserBadgeAward", b =>
+                {
+                    b.Property<int>("UserBadgeAwardId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("UserBadgeAwardId"));
+
+                    b.Property<DateTime>("AwardedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("BadgeId")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("varchar(450)");
+
+                    b.HasKey("UserBadgeAwardId");
+
+                    b.HasIndex("UserId", "BadgeId")
+                        .IsUnique();
+
+                    b.ToTable("user_badge_awards", (string)null);
+                });
+
             modelBuilder.Entity("HackAcad.Web.Models.Entities.UserNotification", b =>
                 {
                     b.Property<long>("Id")
@@ -1378,6 +1407,15 @@ namespace HackAcad.Web.Data.Migrations
                         .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.UserBadgeAward", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

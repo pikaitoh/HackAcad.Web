@@ -14,7 +14,7 @@ namespace HackAcad.Web.Controllers;
 
 public class CoursesController(
     ApplicationDbContext db,
-    IWebHostEnvironment environment, Personalization personalization) : Controller
+    IWebHostEnvironment environment, Personalization personalization, BadgeService badges) : Controller
 {
     // ==========================================
     // 1. PUBLIC / STUDENT CATALOGUE
@@ -289,6 +289,7 @@ public class CoursesController(
 
             db.Enrollments.Add(newEnrollment);
             await db.SaveChangesAsync();
+            await badges.GetUserBadgesAsync(currentUserId);
             TempData["Success"] = $"Enrolled in {course.Title}! Welcome to your training.";
         }
 
@@ -464,6 +465,7 @@ public class CoursesController(
 
         enrollment.FinishedUtc = DateTime.UtcNow;
         await db.SaveChangesAsync();
+        await badges.GetUserBadgesAsync(currentUserId);
         TempData["Success"] = $"Congratulations! You completed {course.Title}. Keep up the great work!";
         return RedirectToAction("Dashboard", "Account");
     }
@@ -723,6 +725,7 @@ public class CoursesController(
         enrollment.Status = await IsCourseCompleteAsync(enrollment, courseId) ? "Completed" : "InProgress";
         await db.SaveChangesAsync();
         await personalization.SyncRewards(enrollment.UserId);
+        await badges.GetUserBadgesAsync(enrollment.UserId);
         await transaction.CommitAsync();
     }
 

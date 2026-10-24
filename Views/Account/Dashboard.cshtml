@@ -258,7 +258,16 @@
                             </div>
                             <div class="badge-title">@b.Title</div>
                             <div class="badge-desc">@b.Description</div>
-                            <div class="badge-status"><span>UNLOCKED ✓</span></div>
+                            <div class="badge-status">
+                                @if (b.UnlockedDate is { } awardedUtc)
+                                {
+                                    <span>Earned @UserTime.Format(awardedUtc, "dd MMM yyyy") ✓</span>
+                                }
+                                else
+                                {
+                                    <span>UNLOCKED ✓</span>
+                                }
+                            </div>
                         </div>
                     }
                 </div>
