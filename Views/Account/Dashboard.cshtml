@@ -3,6 +3,10 @@
     Layout = "_WorkspaceLayout";
     ViewData["Title"] = "Dashboard";
     var isInstructor = User.IsInRole(AccountRoles.Instructor);
+    var activityDays = Model.ActivityCalendar.Weeks.SelectMany(week => week.Days)
+        .Where(day => day.IsInActivityRange && day.TotalEvents > 0)
+        .OrderBy(day => day.Date)
+        .ToList();
 }
 
 <div class="container module-shell">
@@ -136,6 +140,86 @@
                         }
                     </div>
                 }
+            </section>
+
+            <section class="activity-calendar-panel surface-panel mb-5" aria-labelledby="activity-calendar-title">
+                <div class="activity-calendar-heading">
+                    <div>
+                        <h2 id="activity-calendar-title">Learning activity</h2>
+                        <p class="text-secondary mb-0">@Model.ActivityCalendar.TotalEvents event@(Model.ActivityCalendar.TotalEvents == 1 ? "" : "s") in @Model.ActivityCalendar.SelectedYear · @Model.ActivityCalendar.TimeZoneId</p>
+                    </div>
+                    <form asp-action="Dashboard" method="get" class="activity-year-form">
+                        <label for="activity-year" class="form-label">Year</label>
+                        <select id="activity-year" name="activityYear" class="form-select">
+                            @foreach (var year in Model.ActivityCalendar.AvailableYears)
+                            {
+                                <option value="@year" selected="@(year == Model.ActivityCalendar.SelectedYear ? "selected" : null)">@year</option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn-outline-secondary">Show</button>
+                    </form>
+                </div>
+
+                @if (activityDays.Count == 0)
+                {
+                    <p class="activity-calendar-empty">No learning events recorded in @Model.ActivityCalendar.SelectedYear yet.</p>
+                }
+                <div class="activity-calendar-scroll" aria-label="Daily learning activity for @Model.ActivityCalendar.SelectedYear">
+                    <div class="activity-calendar-layout">
+                        <div class="activity-weekday-labels" aria-hidden="true">
+                            <span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span>
+                        </div>
+                        <div class="activity-calendar-body">
+                            <div class="activity-month-labels" style="--activity-weeks:@Model.ActivityCalendar.Weeks.Count">
+                                @foreach (var month in Model.ActivityCalendar.Months)
+                                {
+                                    <span style="grid-column-start:@month.WeekColumn">@month.Label</span>
+                                }
+                            </div>
+                            <div class="activity-weeks" role="group" aria-label="Contribution calendar. Each square represents one local date. Hover over a square for its event count and types.">
+                                @foreach (var week in Model.ActivityCalendar.Weeks)
+                                {
+                                    <div class="activity-week">
+                                        @foreach (var day in week.Days)
+                                        {
+                                            if (day.IsInActivityRange)
+                                            {
+                                                <span class="activity-day" role="img" data-level="@day.IntensityLevel" title="@day.AccessibleDescription" aria-label="@day.AccessibleDescription"></span>
+                                            }
+                                            else
+                                            {
+                                                <span class="activity-day activity-day-empty" aria-hidden="true"></span>
+                                            }
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="activity-calendar-legend" aria-hidden="true"><span>Less</span><i data-level="0"></i><i data-level="1"></i><i data-level="2"></i><i data-level="3"></i><i data-level="4"></i><span>More</span></div>
+
+                <details class="activity-calendar-details">
+                    <summary>View daily event details</summary>
+                    @if (activityDays.Count > 0)
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle module-table">
+                                <thead><tr><th scope="col">Date (@Model.ActivityCalendar.TimeZoneId)</th><th scope="col">Events</th><th scope="col">Breakdown</th></tr></thead>
+                                <tbody>
+                                    @foreach (var day in activityDays)
+                                    {
+                                        <tr><td>@day.Date.ToString("ddd, dd MMM", System.Globalization.CultureInfo.InvariantCulture)</td><td>@day.TotalEvents</td><td>@day.AccessibleDescription</td></tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-secondary mb-0">Complete a lesson, solve a CTF, or finish a lab to record your first event.</p>
+                    }
+                </details>
             </section>
 
             <!-- Badges & Achievements Showcase -->

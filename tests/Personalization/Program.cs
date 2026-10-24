@@ -168,7 +168,7 @@ try
  {
   var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
   Check(!await db.BannerRewards.AnyAsync(r=>r.UserId==student.Id&&r.CourseId==courseId),"enrolment or forged Completed status alone never unlocks a reward");
-  db.ProgressRecords.AddRange(new Progress{EnrollmentId=enrollmentId,ContentType=ProgressContentType.Challenge,ChallengeId=challengeId,IsCompleted=true},new Progress{EnrollmentId=enrollmentId,ContentType=ProgressContentType.Simulation,SimulationTaskId=labId,IsCompleted=true});await db.SaveChangesAsync();
+  db.ProgressRecords.AddRange(new Progress{EnrollmentId=enrollmentId,ContentType=ProgressContentType.Challenge,ChallengeId=challengeId,IsCompleted=true,CompletedUtc=DateTime.UtcNow},new Progress{EnrollmentId=enrollmentId,ContentType=ProgressContentType.Simulation,SimulationTaskId=labId,IsCompleted=true,CompletedUtc=DateTime.UtcNow});await db.SaveChangesAsync();
  }
  await s.GetAsync("/Identity/Account/Profile");
  using(var scope=factory.Services.CreateScope())Check(!await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().BannerRewards.AnyAsync(r=>r.UserId==student.Id&&r.CourseId==courseId),"unfinished required lesson still prevents a reward");
@@ -185,7 +185,7 @@ try
  using(var scope=factory.Services.CreateScope())
  {
   var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();var old=new Enrollment{UserId=other.Id,CourseId=courseId};db.Enrollments.Add(old);await db.SaveChangesAsync();
-  db.ProgressRecords.AddRange(new Progress{EnrollmentId=old.EnrollmentId,ContentType=ProgressContentType.Lesson,LessonId=lessonId,IsCompleted=true},new Progress{EnrollmentId=old.EnrollmentId,ContentType=ProgressContentType.Challenge,ChallengeId=challengeId,IsCompleted=true},new Progress{EnrollmentId=old.EnrollmentId,ContentType=ProgressContentType.Simulation,SimulationTaskId=labId,IsCompleted=true});await db.SaveChangesAsync();
+  db.ProgressRecords.AddRange(new Progress{EnrollmentId=old.EnrollmentId,ContentType=ProgressContentType.Lesson,LessonId=lessonId,IsCompleted=true,CompletedUtc=DateTime.UtcNow},new Progress{EnrollmentId=old.EnrollmentId,ContentType=ProgressContentType.Challenge,ChallengeId=challengeId,IsCompleted=true,CompletedUtc=DateTime.UtcNow},new Progress{EnrollmentId=old.EnrollmentId,ContentType=ProgressContentType.Simulation,SimulationTaskId=labId,IsCompleted=true,CompletedUtc=DateTime.UtcNow});await db.SaveChangesAsync();
  }
  await o.GetAsync("/Identity/Account/Profile");
  using(var scope=factory.Services.CreateScope())Check(await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().BannerRewards.AnyAsync(r=>r.UserId==other.Id&&r.CourseId==courseId),"historical completed records are backfilled on the next signed-in visit");

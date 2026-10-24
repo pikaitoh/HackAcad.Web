@@ -182,6 +182,8 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
         builder.Entity<Progress>()
             .HasIndex(p => new { p.EnrollmentId, p.SimulationTaskId })
             .IsUnique();
+        builder.Entity<Progress>()
+            .HasIndex(p => new { p.EnrollmentId, p.CompletedUtc });
 
         builder.Entity<Progress>()
             .HasOne<Enrollment>()

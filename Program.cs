@@ -89,6 +89,7 @@ builder.Services.AddAuthentication().AddCookie(SupportAccessService.Scheme, opti
 builder.Services.AddScoped<AccountConnections>();
 builder.Services.AddScoped<AccountSessions>();
 builder.Services.AddScoped<BadgeService>();
+builder.Services.AddScoped<ActivityCalendarService>();
 builder.Services.AddScoped<InstructorApplications>();
  builder.Services.AddScoped<Personalization>();
 builder.Services.AddSingleton<PhoneVerification>();

@@ -488,6 +488,7 @@ public class CoursesController(
 
         var existingProgress = await db.ProgressRecords
             .FirstOrDefaultAsync(p => p.EnrollmentId == enrollment.EnrollmentId && p.LessonId == lessonId);
+        var completedUtc = DateTime.UtcNow;
 
         if (existingProgress == null)
         {
@@ -497,13 +498,15 @@ public class CoursesController(
                 ContentType = ProgressContentType.Lesson,
                 LessonId = lessonId,
                 IsCompleted = true,
-                LastUpdatedDate = DateTime.UtcNow
+                CompletedUtc = completedUtc,
+                LastUpdatedDate = completedUtc
             });
         }
         else
         {
+            existingProgress.CompletedUtc ??= completedUtc;
             existingProgress.IsCompleted = true;
-            existingProgress.LastUpdatedDate = DateTime.UtcNow;
+            existingProgress.LastUpdatedDate = completedUtc;
         }
 
         enrollment.LastLessonId = lessonId;
@@ -567,6 +570,7 @@ public class CoursesController(
 
         if (isCorrect)
         {
+            var completedUtc = DateTime.UtcNow;
             var existingProgress = await db.ProgressRecords
                 .FirstOrDefaultAsync(p => p.EnrollmentId == enrollment.EnrollmentId && p.ChallengeId == challengeId);
 
@@ -578,13 +582,15 @@ public class CoursesController(
                     ContentType = ProgressContentType.Challenge,
                     ChallengeId = challengeId,
                     IsCompleted = true,
-                    LastUpdatedDate = DateTime.UtcNow
+                    CompletedUtc = completedUtc,
+                    LastUpdatedDate = completedUtc
                 });
             }
             else
             {
+                existingProgress.CompletedUtc ??= completedUtc;
                 existingProgress.IsCompleted = true;
-                existingProgress.LastUpdatedDate = DateTime.UtcNow;
+                existingProgress.LastUpdatedDate = completedUtc;
             }
 
             await SaveProgressAndStatus(enrollment, courseId);
@@ -654,6 +660,7 @@ public class CoursesController(
 
         var existingProgress = await db.ProgressRecords
             .FirstOrDefaultAsync(p => p.EnrollmentId == enrollment.EnrollmentId && p.SimulationTaskId == taskId);
+        var completedUtc = DateTime.UtcNow;
 
         if (existingProgress == null)
         {
@@ -663,13 +670,15 @@ public class CoursesController(
                 ContentType = ProgressContentType.Simulation,
                 SimulationTaskId = taskId,
                 IsCompleted = true,
-                LastUpdatedDate = DateTime.UtcNow
+                CompletedUtc = completedUtc,
+                LastUpdatedDate = completedUtc
             });
         }
         else
         {
+            existingProgress.CompletedUtc ??= completedUtc;
             existingProgress.IsCompleted = true;
-            existingProgress.LastUpdatedDate = DateTime.UtcNow;
+            existingProgress.LastUpdatedDate = completedUtc;
         }
 
         await SaveProgressAndStatus(enrollment, courseId);

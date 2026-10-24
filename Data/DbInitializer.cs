@@ -369,6 +369,7 @@ Shift each letter backwards by 3 to recover the plaintext flag.",
                 ContentType = ProgressContentType.Lesson,
                 LessonId = c1l1.LessonId,
                 IsCompleted = true,
+                CompletedUtc = DateTime.UtcNow.AddDays(-2),
                 LastUpdatedDate = DateTime.UtcNow.AddDays(-2)
             });
 
@@ -379,6 +380,7 @@ Shift each letter backwards by 3 to recover the plaintext flag.",
                 ContentType = ProgressContentType.Challenge,
                 ChallengeId = c1Challenge.ChallengeId,
                 IsCompleted = true,
+                CompletedUtc = DateTime.UtcNow.AddDays(-1),
                 LastUpdatedDate = DateTime.UtcNow.AddDays(-1)
             });
 

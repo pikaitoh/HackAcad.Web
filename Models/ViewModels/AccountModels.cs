@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using HackAcad.Web.Models.Entities;
 
 namespace HackAcad.Web.Models.ViewModels;
@@ -125,4 +126,54 @@ public class DashboardModel
     public CourseCardViewModel? RecentCourse { get; set; }
     public List<BadgeItem> Badges { get; set; } = [];
     public List<ChallengeSubmission> RecentSubmissions { get; set; } = [];
+    public ActivityCalendarViewModel ActivityCalendar { get; set; } = new();
+}
+
+public class ActivityCalendarViewModel
+{
+    public int SelectedYear { get; set; }
+    public int TotalEvents { get; set; }
+    public string TimeZoneId { get; set; } = "UTC";
+    public List<int> AvailableYears { get; set; } = [];
+    public List<ActivityCalendarMonthViewModel> Months { get; set; } = [];
+    public List<ActivityCalendarWeekViewModel> Weeks { get; set; } = [];
+}
+
+public class ActivityCalendarMonthViewModel
+{
+    public string Label { get; set; } = "";
+    public int WeekColumn { get; set; }
+}
+
+public class ActivityCalendarWeekViewModel
+{
+    public List<ActivityCalendarDayViewModel> Days { get; set; } = [];
+}
+
+public class ActivityCalendarDayViewModel
+{
+    public DateOnly Date { get; set; }
+    public bool IsInActivityRange { get; set; }
+    public int Lessons { get; set; }
+    public int CtfSolves { get; set; }
+    public int Labs { get; set; }
+    public int CoursesFinished { get; set; }
+    public int TotalEvents => Lessons + CtfSolves + Labs + CoursesFinished;
+    public int IntensityLevel => TotalEvents switch { 0 => 0, 1 => 1, <= 3 => 2, <= 6 => 3, _ => 4 };
+    public string AccessibleDescription
+    {
+        get
+        {
+            var date = Date.ToString("ddd, dd MMM yyyy", CultureInfo.InvariantCulture);
+            if (!IsInActivityRange) return $"{date}: outside your activity range.";
+            if (TotalEvents == 0) return $"{date}: no learning events.";
+
+            var details = new List<string>();
+            if (Lessons > 0) details.Add($"{Lessons} lesson{(Lessons == 1 ? "" : "s")}");
+            if (CtfSolves > 0) details.Add($"{CtfSolves} CTF solve{(CtfSolves == 1 ? "" : "s")}");
+            if (Labs > 0) details.Add($"{Labs} lab{(Labs == 1 ? "" : "s")}");
+            if (CoursesFinished > 0) details.Add($"{CoursesFinished} course{(CoursesFinished == 1 ? "" : "s")} finished");
+            return $"{date}: {TotalEvents} event{(TotalEvents == 1 ? "" : "s")} — {string.Join(", ", details)}.";
+        }
+    }
 }

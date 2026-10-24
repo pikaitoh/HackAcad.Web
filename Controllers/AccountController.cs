@@ -17,7 +17,7 @@ namespace HackAcad.Web.Controllers;
 [Route("Identity/Account/[action]")]
 public partial class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     UserAccounts accounts, ApplicationDbContext db, EmailVerification verification, PhoneVerification phones,
-    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, TimeProvider clock, BadgeService badges, Personalization personalization, AccountConnections connections, AdminSecurity adminSecurity) : Controller
+    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, TimeProvider clock, BadgeService badges, ActivityCalendarService activityCalendar, Personalization personalization, AccountConnections connections, AdminSecurity adminSecurity) : Controller
 {
     [AllowAnonymous, HttpGet]
     public IActionResult Register() => User.Identity?.IsAuthenticated == true ? RedirectToAction(nameof(Dashboard)) : View(new RegisterModel());
@@ -153,7 +153,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     }
 
     [HttpGet]
-    public async Task<IActionResult> Dashboard()
+    public async Task<IActionResult> Dashboard(int? activityYear)
     {
         if (User.IsInRole(AccountRoles.Admin)) return RedirectToAction("Index", "Admin");
         var id = users.GetUserId(User)!;
@@ -223,6 +223,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             .SumAsync(c => (int?)c.Points) ?? 0;
 
         var badgesList = await badges.GetUserBadgesAsync(id);
+        var activity = await activityCalendar.BuildAsync(user, enrollments.Select(e => e.EnrollmentId).ToList(), activityYear);
 
         var recentSubmissions = await db.ChallengeSubmissions
             .Where(s => s.UserId == id)
@@ -242,7 +243,8 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             // Keep the dashboard hero focused on a course the student can still work on.
             RecentCourse = enrolledCards.FirstOrDefault(c => !c.IsCompleted),
             Badges = badgesList,
-            RecentSubmissions = recentSubmissions
+            RecentSubmissions = recentSubmissions,
+            ActivityCalendar = activity
         });
     }
 

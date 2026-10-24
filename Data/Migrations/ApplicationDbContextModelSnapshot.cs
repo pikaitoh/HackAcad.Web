@@ -702,6 +702,9 @@ namespace HackAcad.Web.Data.Migrations
                     b.Property<int?>("ChallengeId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("CompletedUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<int>("ContentType")
                         .HasColumnType("int");
 
@@ -730,6 +733,8 @@ namespace HackAcad.Web.Data.Migrations
 
                     b.HasIndex("EnrollmentId", "ChallengeId")
                         .IsUnique();
+
+                    b.HasIndex("EnrollmentId", "CompletedUtc");
 
                     b.HasIndex("EnrollmentId", "LessonId")
                         .IsUnique();

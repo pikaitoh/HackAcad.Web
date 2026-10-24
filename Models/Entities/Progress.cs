@@ -22,6 +22,8 @@ public class Progress
     public int? SimulationTaskId { get; set; }
 
     public bool IsCompleted { get; set; }
+    // Set once on the first successful completion so reviews do not move activity days.
+    public DateTime? CompletedUtc { get; set; }
     // Stored in UTC and set by the activity completion handlers.
     public DateTime LastUpdatedDate { get; set; } = DateTime.UtcNow;
 }
