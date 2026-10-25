@@ -192,6 +192,13 @@ try
     Check((await Post(t2,"/Courses/SubmitFlag",Fields("courseId",publicId.ToString(),"challengeId",challengeId.ToString(),"flag",flag))).StatusCode==HttpStatusCode.Redirect,"Instructor can submit a challenge flag");
     await Post(t2,"/Courses/SubmitFlag",Fields("courseId",publicId.ToString(),"challengeId",challengeId.ToString(),"flag",flag));
     await Complete(t2,publicId,simId,["cd /var/secret","chmod 755 audit.sh","cat audit.sh"],true);
+    using(var scope=factory.Services.CreateScope())
+    {
+        var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var award=await db.UserBadgeAwards.SingleOrDefaultAsync(a=>a.UserId==otherInstructor.Id&&a.BadgeId=="full_spectrum_operator");
+        var notice=await db.UserNotifications.SingleOrDefaultAsync(n=>n.UserId==otherInstructor.Id&&n.EventKey=="badge:full_spectrum_operator");
+        Check(award is not null&&notice?.Title=="Badge earned: Full-Spectrum Operator","lesson, correct CTF, and lab in one course unlock and notify the mission-set badge");
+    }
     var completionPage=await t2.GetStringAsync("/Courses/Learn/"+publicId);
     Check(completionPage.Contains("Finish Course"),"Instructor sees the one-time finish action after completing the course");
     await Post(t2,"/Courses/FinishCourse",Fields("courseId",publicId.ToString()));

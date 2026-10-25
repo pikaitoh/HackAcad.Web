@@ -244,22 +244,9 @@
                 <div class="badges-grid dashboard-earned-badges">
                     @foreach (var b in earnedBadges)
                     {
-                        var icon = b.Id switch
-                        {
-                            "cyber_recruit" => "🛡️",
-                            "first_step" => "📖",
-                            "diligent_learner" => "📚",
-                            "first_blood" => "🚩",
-                            "flag_hunter" => "🎯",
-                            "century_club" => "💎",
-                            "terminal_novice" => "⚡",
-                            "academy_graduate" => "🏆",
-                            _ => "⭐"
-                        };
-
                         <div class="badge-card @(b.IsUnlocked ? "unlocked" : "locked")">
                             <div class="badge-icon-box" style="background:@(b.IsUnlocked ? b.ColorHex + "20" : "#f1f5f9"); color:@(b.IsUnlocked ? b.ColorHex : "#94a3b8");">
-                                <span>@icon</span>
+                                <partial name="_BadgeIcon" model="@b.Id" />
                             </div>
                             <div class="badge-title">@b.Title</div>
                             <div class="badge-desc">@b.Description</div>

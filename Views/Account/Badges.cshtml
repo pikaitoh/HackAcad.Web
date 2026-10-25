@@ -60,18 +60,6 @@
         <div class="badges-grid badges-page-grid">
             @foreach (var badge in Model.Badges)
             {
-                var icon = badge.Id switch
-                {
-                    "cyber_recruit" => "🛡️",
-                    "first_step" => "📖",
-                    "diligent_learner" => "📚",
-                    "first_blood" => "🚩",
-                    "flag_hunter" => "🎯",
-                    "century_club" => "💎",
-                    "terminal_novice" => "⚡",
-                    "academy_graduate" => "🏆",
-                    _ => "⭐"
-                };
                 var progressPercent = badge.TargetProgress > 0
                     ? Math.Clamp((int)Math.Round((double)badge.CurrentProgress / badge.TargetProgress * 100), 0, 100)
                     : 0;
@@ -83,7 +71,7 @@
                         <span class="badge-category">@badge.Category</span>
                     </div>
                     <div class="badge-icon-box" style="background:@(badge.IsUnlocked ? badge.ColorHex + "20" : "#f1f5f9"); color:@(badge.IsUnlocked ? badge.ColorHex : "#94a3b8");">
-                        <span aria-hidden="true">@icon</span>
+                        <partial name="_BadgeIcon" model="@badge.Id" />
                     </div>
                     <h2 class="badge-title">@badge.Title</h2>
                     <p class="badge-desc">@badge.Description</p>

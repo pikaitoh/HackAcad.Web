@@ -6,7 +6,7 @@ using MySqlConnector;
 
 namespace HackAcad.Web.Services;
 
-public class BadgeService(ApplicationDbContext db, TimeProvider clock, Personalization notifications)
+public class BadgeService(ApplicationDbContext db, TimeProvider clock, Personalization notifications, UserTimeZone userTime)
 {
     public async Task<List<BadgeItem>> GetUserBadgesAsync(string userId, DateTime? activityEventUtc = null)
     {
@@ -25,10 +25,11 @@ public class BadgeService(ApplicationDbContext db, TimeProvider clock, Personali
             .ToListAsync();
 
         var lessonProgress = progress.Where(p => p.ContentType == ProgressContentType.Lesson).ToList();
-        var completedLessons = lessonProgress.Count;
-        var completedChallenges = progress.Count(p => p.ContentType == ProgressContentType.Challenge);
+        var uniqueCompletedLessonIds = lessonProgress.Where(p => p.LessonId.HasValue).Select(p => p.LessonId!.Value).Distinct().ToHashSet();
+        var completedLessons = uniqueCompletedLessonIds.Count;
         var simulationProgress = progress.Where(p => p.ContentType == ProgressContentType.Simulation).ToList();
-        var completedSimulations = simulationProgress.Count;
+        var uniqueCompletedSimulationIds = simulationProgress.Where(p => p.SimulationTaskId.HasValue).Select(p => p.SimulationTaskId!.Value).Distinct().ToHashSet();
+        var completedSimulations = uniqueCompletedSimulationIds.Count;
 
         // A challenge counts once, at the first correct submission for that challenge.
         var correctSubmissions = await db.ChallengeSubmissions
@@ -79,10 +80,37 @@ public class BadgeService(ApplicationDbContext db, TimeProvider clock, Personali
             }
         }
 
-        var lessonDates = lessonProgress.Select(CompletionDateUtc).OrderBy(date => date).ToList();
+        var lessonDates = lessonProgress.Where(p => p.LessonId.HasValue)
+            .GroupBy(p => p.LessonId!.Value).Select(g => g.Min(CompletionDateUtc)).OrderBy(date => date).ToList();
         var challengeDates = solvedAt.Values.OrderBy(date => date).ToList();
-        var simulationDates = simulationProgress.Select(CompletionDateUtc).OrderBy(date => date).ToList();
+        var simulationDates = simulationProgress.Where(p => p.SimulationTaskId.HasValue)
+            .GroupBy(p => p.SimulationTaskId!.Value).Select(g => g.Min(CompletionDateUtc)).OrderBy(date => date).ToList();
         var pointThresholdDate = GetPointThresholdDate(solvedAt, pointsByChallenge, 100);
+        var courseCompletionDatesSorted = courseCompletionDates.OrderBy(date => date).ToList();
+
+        // Full-Spectrum requires all three activity types in one course.
+        DateTime? fullSpectrumDate = null;
+        var fullSpectrumProgress = 0;
+        foreach (var enrollment in enrollments)
+        {
+            var courseProgress = progress.Where(p => p.EnrollmentId == enrollment.EnrollmentId).ToList();
+            var lessonDate = courseProgress.Where(p => p.ContentType == ProgressContentType.Lesson && p.LessonId.HasValue)
+                .GroupBy(p => p.LessonId!.Value).Select(g => g.Min(CompletionDateUtc)).DefaultIfEmpty().Min();
+            var challengeDate = courseProgress.Where(p => p.ContentType == ProgressContentType.Challenge && p.ChallengeId.HasValue)
+                .GroupBy(p => p.ChallengeId!.Value).Select(g => g.Min(CompletionDateUtc)).DefaultIfEmpty().Min();
+            var labDate = courseProgress.Where(p => p.ContentType == ProgressContentType.Simulation && p.SimulationTaskId.HasValue)
+                .GroupBy(p => p.SimulationTaskId!.Value).Select(g => g.Min(CompletionDateUtc)).DefaultIfEmpty().Min();
+            var covered = (lessonDate != default ? 1 : 0) + (challengeDate != default ? 1 : 0) + (labDate != default ? 1 : 0);
+            fullSpectrumProgress = Math.Max(fullSpectrumProgress, covered);
+            if (lessonDate == default || challengeDate == default || labDate == default) continue;
+            var candidate = new[] { lessonDate, challengeDate, labDate }.Max();
+            if (fullSpectrumDate is null || candidate < fullSpectrumDate) fullSpectrumDate = candidate;
+        }
+
+        var streakEvents = progress.Select(CompletionDateUtc).Concat(enrollments.Where(e => e.FinishedUtc.HasValue).Select(e => AsUtc(e.FinishedUtc!.Value)));
+        var streak = CalculateStreakMetrics(streakEvents);
+        DateTime? AtThreshold(IReadOnlyList<DateTime> dates, int threshold) => dates.Count >= threshold ? dates[threshold - 1] : null;
+        DateTime? StreakThresholdDate(int threshold) => streak.ThresholdDates.TryGetValue(threshold, out var date) ? date : null;
         var awardDates = new Dictionary<string, DateTime?>
         {
             ["cyber_recruit"] = enrollments.Count == 0 ? null : enrollments.Min(e => AsUtc(e.EnrolledDate)),
@@ -92,7 +120,19 @@ public class BadgeService(ApplicationDbContext db, TimeProvider clock, Personali
             ["flag_hunter"] = challengeDates.Count >= 3 ? challengeDates[2] : null,
             ["century_club"] = pointThresholdDate,
             ["terminal_novice"] = simulationDates.Count > 0 ? simulationDates[0] : null,
-            ["academy_graduate"] = courseCompletionDates.Count == 0 ? null : courseCompletionDates.Min()
+            ["academy_graduate"] = courseCompletionDates.Count == 0 ? null : courseCompletionDates.Min(),
+            ["full_spectrum_operator"] = fullSpectrumDate,
+            ["lab_regular_10"] = AtThreshold(simulationDates, 10),
+            ["lab_veteran_25"] = AtThreshold(simulationDates, 25),
+            ["ctf_veteran_10"] = AtThreshold(challengeDates, 10),
+            ["flag_master_25"] = AtThreshold(challengeDates, 25),
+            ["master_learner_10"] = AtThreshold(courseCompletionDatesSorted, 10),
+            ["course_champion_25"] = AtThreshold(courseCompletionDatesSorted, 25),
+            ["dedicated_scholar_25"] = AtThreshold(lessonDates, 25),
+            ["cyber_scholar_100"] = AtThreshold(lessonDates, 100),
+            ["week_streak_7"] = StreakThresholdDate(7),
+            ["month_streak_30"] = StreakThresholdDate(30),
+            ["century_streak_100"] = StreakThresholdDate(100)
         };
 
         // 5. Definitions
@@ -193,7 +233,20 @@ public class BadgeService(ApplicationDbContext db, TimeProvider clock, Personali
                 TargetProgress = 1,
                 CurrentProgress = completedCoursesCount,
                 IsUnlocked = completedCoursesCount >= 1
-            }
+            },
+            Make("full_spectrum_operator", "Full-Spectrum Operator", "Complete a lesson, correctly solve a CTF, and finish a lab in the same course.", "Mission Sets", "Uncommon", "#7c3aed", 3,
+                fullSpectrumProgress, fullSpectrumDate is not null),
+            Make("lab_regular_10", "Lab Regular", "Complete 10 distinct hands-on labs.", "Simulation", "Uncommon", "#0284c7", 10, completedSimulations, completedSimulations >= 10),
+            Make("lab_veteran_25", "Lab Veteran", "Complete 25 distinct hands-on labs.", "Simulation", "Rare", "#0369a1", 25, completedSimulations, completedSimulations >= 25),
+            Make("ctf_veteran_10", "CTF Veteran", "Correctly solve 10 distinct CTF challenges.", "CTF", "Uncommon", "#d9534f", 10, solvedChallengeIds.Count, solvedChallengeIds.Count >= 10),
+            Make("flag_master_25", "Flag Master", "Correctly solve 25 distinct CTF challenges.", "CTF", "Rare", "#b91c1c", 25, solvedChallengeIds.Count, solvedChallengeIds.Count >= 25),
+            Make("master_learner_10", "Master Learner", "Complete 10 courses.", "Mastery", "Rare", "#624080", 10, completedCoursesCount, completedCoursesCount >= 10),
+            Make("course_champion_25", "Course Champion", "Complete 25 courses.", "Mastery", "Epic", "#5b21b6", 25, completedCoursesCount, completedCoursesCount >= 25),
+            Make("dedicated_scholar_25", "Dedicated Scholar", "Complete 25 distinct lessons.", "Learning", "Uncommon", "#28545a", 25, completedLessons, completedLessons >= 25),
+            Make("cyber_scholar_100", "Cyber Scholar", "Complete 100 distinct lessons.", "Learning", "Rare", "#134e4a", 100, completedLessons, completedLessons >= 100),
+            Make("week_streak_7", "Week Streak", "Complete at least one learning event on 7 consecutive local days.", "Consistency", "Uncommon", "#ea580c", 7, streak.CurrentStreakDays, awardDates["week_streak_7"] is not null),
+            Make("month_streak_30", "Month Streak", "Complete at least one learning event on 30 consecutive local days.", "Consistency", "Rare", "#c2410c", 30, streak.CurrentStreakDays, awardDates["month_streak_30"] is not null),
+            Make("century_streak_100", "Century Streak", "Complete at least one learning event on 100 consecutive local days.", "Consistency", "Epic", "#9a3412", 100, streak.CurrentStreakDays, awardDates["century_streak_100"] is not null)
         };
 
         // Synchronize any newly-earned badges. The unique index makes this an
@@ -253,6 +306,42 @@ public class BadgeService(ApplicationDbContext db, TimeProvider clock, Personali
         AsUtc(progress.CompletedUtc ?? progress.LastUpdatedDate);
 
     private static DateTime AsUtc(DateTime value) => DateTime.SpecifyKind(value, DateTimeKind.Utc);
+
+    private static BadgeItem Make(string id, string title, string description, string category, string rarity, string color, int target, int progress, bool unlocked) => new()
+    {
+        Id = id, Title = title, Description = description, Category = category, Rarity = rarity,
+        ColorHex = color, TargetProgress = target, CurrentProgress = progress, IsUnlocked = unlocked
+    };
+
+    private sealed record StreakMetrics(int CurrentStreakDays, Dictionary<int, DateTime> ThresholdDates);
+
+    private StreakMetrics CalculateStreakMetrics(IEnumerable<DateTime> timestamps)
+    {
+        var dayEvents = timestamps.Select(AsUtc)
+            .GroupBy(t => DateOnly.FromDateTime(userTime.Convert(t).DateTime))
+            .ToDictionary(g => g.Key, g => g.Min());
+        var days = dayEvents.Keys.OrderBy(d => d).ToList();
+        var thresholds = new Dictionary<int, DateTime>();
+        var run = 0;
+        DateOnly? previous = null;
+        foreach (var day in days)
+        {
+            run = previous.HasValue && previous.Value.AddDays(1) == day ? run + 1 : 1;
+            foreach (var target in new[] { 7, 30, 100 })
+                if (run == target) thresholds[target] = dayEvents[day];
+            previous = day;
+        }
+
+        var today = DateOnly.FromDateTime(userTime.Convert(clock.GetUtcNow().UtcDateTime).DateTime);
+        var lastDay = days.LastOrDefault();
+        var current = 0;
+        if (days.Count > 0 && (lastDay == today || lastDay.AddDays(1) == today))
+        {
+            current = 1;
+            for (var i = days.Count - 1; i > 0 && days[i - 1].AddDays(1) == days[i]; i--) current++;
+        }
+        return new StreakMetrics(current, thresholds);
+    }
 
     private static DateTime? GetPointThresholdDate(
         IReadOnlyDictionary<int, DateTime> solvedAt,

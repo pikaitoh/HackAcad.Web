@@ -465,7 +465,7 @@ public class CoursesController(
 
         enrollment.FinishedUtc = DateTime.UtcNow;
         await db.SaveChangesAsync();
-        await badges.GetUserBadgesAsync(currentUserId);
+        await badges.GetUserBadgesAsync(currentUserId, enrollment.FinishedUtc);
         TempData["Success"] = $"Congratulations! You completed {course.Title}. Keep up the great work!";
         return RedirectToAction("Dashboard", "Account");
     }
