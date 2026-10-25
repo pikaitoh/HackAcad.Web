@@ -153,6 +153,7 @@ public class ActivityCalendarWeekViewModel
 public class ActivityCalendarDayViewModel
 {
     public DateOnly Date { get; set; }
+    public bool IsInSelectedYear { get; set; }
     public bool IsInActivityRange { get; set; }
     public int Lessons { get; set; }
     public int CtfSolves { get; set; }

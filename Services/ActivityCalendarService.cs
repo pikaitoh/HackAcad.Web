@@ -71,8 +71,11 @@ public sealed class ActivityCalendarService(ApplicationDbContext db, UserTimeZon
             }
         }
 
+        // Render a complete calendar year. Dates outside the user's eligible
+        // activity period remain visible as blank cells in the view.
         var calendarStart = yearStart.AddDays(-(int)yearStart.DayOfWeek);
-        var calendarEnd = lastActivityDate < nextYearStart.AddDays(-1) ? lastActivityDate : nextYearStart.AddDays(-1);
+        var yearEnd = nextYearStart.AddDays(-1);
+        var calendarEnd = yearEnd.AddDays(6 - (int)yearEnd.DayOfWeek);
         var weekCount = ((calendarEnd.DayNumber - calendarStart.DayNumber) / 7) + 1;
         var calendar = new ActivityCalendarViewModel
         {
@@ -82,8 +85,7 @@ public sealed class ActivityCalendarService(ApplicationDbContext db, UserTimeZon
             AvailableYears = years
         };
 
-        var lastVisibleMonth = year == currentYear ? today.Month : 12;
-        for (var month = 1; month <= lastVisibleMonth; month++)
+        for (var month = 1; month <= 12; month++)
         {
             var monthStart = new DateOnly(year, month, 1);
             calendar.Months.Add(new ActivityCalendarMonthViewModel
@@ -99,11 +101,12 @@ public sealed class ActivityCalendarService(ApplicationDbContext db, UserTimeZon
             for (var weekday = 0; weekday < 7; weekday++)
             {
                 var date = calendarStart.AddDays(week * 7 + weekday);
-                var inRange = date >= firstActivityDate && date <= calendarEnd && date.Year == year;
+                var inRange = date >= firstActivityDate && date <= lastActivityDate && date.Year == year;
                 counts.TryGetValue(date, out var dayCounts);
                 weekModel.Days.Add(new ActivityCalendarDayViewModel
                 {
                     Date = date,
+                    IsInSelectedYear = date.Year == year,
                     IsInActivityRange = inRange,
                     Lessons = inRange ? dayCounts?.Lessons ?? 0 : 0,
                     CtfSolves = inRange ? dayCounts?.CtfSolves ?? 0 : 0,

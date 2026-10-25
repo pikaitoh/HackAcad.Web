@@ -166,9 +166,6 @@
                 }
                 <div class="activity-calendar-scroll" aria-label="Daily learning activity for @Model.ActivityCalendar.SelectedYear">
                     <div class="activity-calendar-layout">
-                        <div class="activity-weekday-labels" aria-hidden="true">
-                            <span></span><span>Mon</span><span></span><span>Wed</span><span></span><span>Fri</span><span></span>
-                        </div>
                         <div class="activity-calendar-body">
                             <div class="activity-month-labels" style="--activity-weeks:@Model.ActivityCalendar.Weeks.Count">
                                 @foreach (var month in Model.ActivityCalendar.Months)
@@ -182,13 +179,21 @@
                                     <div class="activity-week">
                                         @foreach (var day in week.Days)
                                         {
-                                            if (day.IsInActivityRange)
+                                            if (!day.IsInSelectedYear)
                                             {
-                                                <span class="activity-day" role="img" data-level="@day.IntensityLevel" title="@day.AccessibleDescription" aria-label="@day.AccessibleDescription"></span>
+                                                <span class="activity-day activity-day-outside-year" aria-hidden="true"></span>
+                                            }
+                                            else if (day.IsInActivityRange && day.TotalEvents > 0)
+                                            {
+                                                <span class="activity-day" data-date="@day.Date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)" role="img" data-level="@day.IntensityLevel" title="@day.AccessibleDescription" aria-label="@day.AccessibleDescription"></span>
+                                            }
+                                            else if (day.IsInActivityRange)
+                                            {
+                                                <span class="activity-day activity-day-empty" data-date="@day.Date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)" role="img" title="@day.AccessibleDescription" aria-label="@day.AccessibleDescription"></span>
                                             }
                                             else
                                             {
-                                                <span class="activity-day activity-day-empty" aria-hidden="true"></span>
+                                                <span class="activity-day activity-day-empty" data-date="@day.Date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)" aria-hidden="true"></span>
                                             }
                                         }
                                     </div>

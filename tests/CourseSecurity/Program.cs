@@ -124,6 +124,9 @@ try
     var instructorDashboard=await t.GetAsync("/Identity/Account/Dashboard");
     var instructorDashboardHtml=await instructorDashboard.Content.ReadAsStringAsync();
     Check(instructorDashboard.StatusCode==HttpStatusCode.OK&&instructorDashboardHtml.Contains("Your Progress Totals")&&instructorDashboardHtml.Contains("Badges &amp; Achievements"),"Instructor dashboard includes learner progress and badges");
+    var activityMonths=Regex.Match(instructorDashboardHtml,"<div class=\"activity-month-labels\".*?</div>",RegexOptions.Singleline).Value;
+    var visibleActivityDates=Regex.Matches(instructorDashboardHtml,"data-date=\"\\d{4}-\\d{2}-\\d{2}\"").Count;
+    Check(Regex.Matches(activityMonths,"<span").Count==12&&!instructorDashboardHtml.Contains("activity-weekday-labels")&&visibleActivityDates is 365 or 366&&instructorDashboardHtml.Contains("activity-day-empty"),"activity calendar shows all months, one tile per date in the selected year, and visible blank dates without weekday labels");
     bool HasCatalogueLink(string html)=>Regex.IsMatch(Regex.Match(html,"<header.*?</header>",RegexOptions.Singleline).Value,"href=\"/Courses\"");
     Check(!HasCatalogueLink(await a.GetStringAsync("/Admin/Courses")),"Admin header has no student course link");
     var instructorWorkspace=await t.GetStringAsync("/InstructorCourses");
