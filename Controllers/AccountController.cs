@@ -155,6 +155,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     [HttpGet]
     public async Task<IActionResult> Badges(string? status, string? category, string? rarity)
     {
+        // Show the badge collection with the requested filters.
         if (User.IsInRole(AccountRoles.Admin)) return RedirectToAction("Index", "Admin");
 
         var allBadges = await badges.GetUserBadgesAsync(users.GetUserId(User)!);
@@ -162,7 +163,8 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         var rarities = allBadges.Select(b => b.Rarity).Distinct()
             .OrderBy(r => r switch { "Common" => 0, "Uncommon" => 1, "Rare" => 2, "Epic" => 3, _ => 4 })
             .ToList();
-        var selectedStatus = status?.ToLowerInvariant() is "earned" or "locked" ? status.ToLowerInvariant() : "all";
+        var normalizedStatus = status?.ToLowerInvariant();
+        var selectedStatus = normalizedStatus is "earned" or "locked" ? normalizedStatus : "all";
         var selectedCategory = categories.FirstOrDefault(x => string.Equals(x, category, StringComparison.OrdinalIgnoreCase)) ?? "";
         var selectedRarity = rarities.FirstOrDefault(x => string.Equals(x, rarity, StringComparison.OrdinalIgnoreCase)) ?? "";
         var filteredBadges = allBadges
@@ -187,6 +189,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     [HttpGet]
     public async Task<IActionResult> Dashboard(int? activityYear)
     {
+        // Build the learner's progress summary, activity calendar, and badges.
         if (User.IsInRole(AccountRoles.Admin)) return RedirectToAction("Index", "Admin");
         var id = users.GetUserId(User)!;
         var isInstructor = User.IsInRole(AccountRoles.Instructor);

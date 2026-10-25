@@ -5,7 +5,7 @@ public class BadgeItem
     public string Id { get; set; } = string.Empty;
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
-    public string Category { get; set; } = string.Empty; // e.g., "Enrollment", "CTF", "Terminal", "Mastery"
+    public string Category { get; set; } = string.Empty; // e.g., "Enrollment", "CTF", "Simulation", "Mastery"
     public string Rarity { get; set; } = "Common";
     public string IconSvg { get; set; } = string.Empty;
     public string ColorHex { get; set; } = "#33796e";

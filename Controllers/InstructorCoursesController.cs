@@ -176,22 +176,49 @@ public class InstructorCoursesController(
         var studentIds = enrollments.Select(e => e.UserId).Distinct().ToList();
         var studentUsers = await db.Users.Where(u => studentIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id);
         var enrollmentIds = enrollments.Select(e => e.EnrollmentId).ToList();
+        var lessonIds = lessons.Select(l => l.LessonId).ToHashSet();
+        var publishedChallengeIds = challenges.Where(c => c.IsPublished).Select(c => c.ChallengeId).ToHashSet();
+        var publishedLabIds = simulations.Where(s => s.IsPublished).Select(s => s.TaskId).ToHashSet();
+
+        // Count only activities students can complete and show their latest activity.
         var completedProgress = await db.ProgressRecords.AsNoTracking()
-            .Where(p => enrollmentIds.Contains(p.EnrollmentId) && p.IsCompleted)
-            .Select(p => new { p.EnrollmentId, p.LastUpdatedDate })
+            .Where(p => enrollmentIds.Contains(p.EnrollmentId)
+                && p.IsCompleted
+                && ((p.ContentType == ProgressContentType.Lesson
+                        && p.LessonId.HasValue
+                        && lessonIds.Contains(p.LessonId.Value))
+                    || (p.ContentType == ProgressContentType.Challenge
+                        && p.ChallengeId.HasValue
+                        && publishedChallengeIds.Contains(p.ChallengeId.Value))
+                    || (p.ContentType == ProgressContentType.Simulation
+                        && p.SimulationTaskId.HasValue
+                        && publishedLabIds.Contains(p.SimulationTaskId.Value))))
+            .Select(p => new
+            {
+                p.EnrollmentId,
+                p.ContentType,
+                p.LessonId,
+                p.ChallengeId,
+                p.SimulationTaskId,
+                p.LastUpdatedDate
+            })
             .ToListAsync();
         var progressByEnrollment = completedProgress.GroupBy(p => p.EnrollmentId)
-            .ToDictionary(g => g.Key, g => g.Select(p => p.LastUpdatedDate).ToList());
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         var studentRows = new List<StudentCourseActivityRow>();
-        var totalItems = lessons.Count + challenges.Count + simulations.Count;
+        var totalItems = lessons.Count + publishedChallengeIds.Count + publishedLabIds.Count;
 
         foreach (var enrollment in enrollments)
         {
             studentUsers.TryGetValue(enrollment.UserId, out var user);
             progressByEnrollment.TryGetValue(enrollment.EnrollmentId, out var activityDates);
-            var completedCount = activityDates?.Count ?? 0;
-            var latestActivityUtc = activityDates?.Count > 0 ? activityDates.Max() : (DateTime?)null;
+            var completedCount = activityDates?
+                .DistinctBy(p => (p.ContentType, p.LessonId, p.ChallengeId, p.SimulationTaskId))
+                .Count() ?? 0;
+            var latestActivityUtc = activityDates?.Count > 0
+                ? activityDates.Max(p => p.LastUpdatedDate)
+                : (DateTime?)null;
 
             var pct = totalItems > 0 ? (int)Math.Round((double)completedCount / totalItems * 100) : 0;
             var elapsedCourseTime = latestActivityUtc.HasValue

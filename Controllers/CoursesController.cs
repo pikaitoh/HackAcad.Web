@@ -263,6 +263,7 @@ public class CoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Enroll(int id)
     {
+        // Create the course enrollment and save its starting lesson.
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var course = await db.Courses.FindAsync(id);
         if (course == null || !CanReadCourse(course)) return NotFound("Course does not exist.");
@@ -303,6 +304,7 @@ public class CoursesController(
     [HttpGet]
     public async Task<IActionResult> Learn(int id, int? lessonId, int? challengeId, int? simulationId)
     {
+        // Rebuild the course view from progress saved in the database.
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var course = await db.Courses.FindAsync(id);
         if (course == null || !CanReadCourse(course)) return NotFound("Course not found.");
@@ -443,6 +445,7 @@ public class CoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> FinishCourse(int courseId)
     {
+        // Save the first learner acknowledgement after all course work is done.
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var course = await db.Courses.FindAsync(courseId);
         if (course is null || !CanReadCourse(course)) return NotFound();
@@ -478,6 +481,7 @@ public class CoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CompleteLesson(int lessonId, int courseId)
     {
+        // Mark the lesson complete and refresh course progress.
         var course = await db.Courses.FindAsync(courseId);
         if (course is null || !CanReadCourse(course)) return NotFound();
         if (!CanLearnCourse(course)) return Forbid();
@@ -539,6 +543,7 @@ public class CoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SubmitFlag(int challengeId, int courseId, string flag)
     {
+        // Save CTF progress only after a correct flag submission.
         var course = await db.Courses.FindAsync(courseId);
         if (course is null || !CanReadCourse(course)) return NotFound();
         if (!CanLearnCourse(course)) return Forbid();
@@ -644,6 +649,7 @@ public class CoursesController(
     [RequestSizeLimit(128 * 1024)]
     public async Task<IActionResult> CompleteSimulation(int taskId, int courseId, string[]? commands)
     {
+        // Verify the lab objectives before saving completion progress.
         var course = await db.Courses.FindAsync(courseId);
         if (course is null || !CanReadCourse(course)) return NotFound();
         if (!CanLearnCourse(course)) return Forbid();
@@ -720,6 +726,7 @@ public class CoursesController(
 
     private async Task SaveProgressAndStatus(Enrollment enrollment, int courseId, DateTime activityEventUtc)
     {
+        // Save completion, refresh course status, and sync learner rewards.
         await using var transaction = await db.Database.BeginTransactionAsync();
         await db.SaveChangesAsync();
         enrollment.Status = await IsCourseCompleteAsync(enrollment, courseId) ? "Completed" : "InProgress";
@@ -731,6 +738,7 @@ public class CoursesController(
 
     private async Task<bool> IsCourseCompleteAsync(Enrollment enrollment, int courseId)
     {
+        // Count currently required course activities against completed progress.
         var totalLessons = await db.Lessons.CountAsync(l => l.CourseId == courseId);
         var totalChallenges = await db.Challenges.CountAsync(c => c.CourseId == courseId && c.IsPublished);
         var totalSimulations = await db.SimulationTasks.CountAsync(s => s.CourseId == courseId && s.IsPublished);

@@ -199,6 +199,9 @@ try
         var notice=await db.UserNotifications.SingleOrDefaultAsync(n=>n.UserId==otherInstructor.Id&&n.EventKey=="badge:full_spectrum_operator");
         Check(award is not null&&notice?.Title=="Badge earned: Full-Spectrum Operator","lesson, correct CTF, and lab in one course unlock and notify the mission-set badge");
     }
+    var curriculumHtml=await t.GetStringAsync("/InstructorCourses/Curriculum/"+publicId);
+    var learnerRow=Regex.Match(curriculumHtml,"<tr>.*?"+Regex.Escape(otherInstructor.Email)+".*?</tr>",RegexOptions.Singleline).Value;
+    Check(learnerRow.Contains("100%")&&learnerRow.Contains("Completed"),"instructor progress counts completed published activities and excludes course drafts");
     var completionPage=await t2.GetStringAsync("/Courses/Learn/"+publicId);
     Check(completionPage.Contains("Finish Course"),"Instructor sees the one-time finish action after completing the course");
     await Post(t2,"/Courses/FinishCourse",Fields("courseId",publicId.ToString()));

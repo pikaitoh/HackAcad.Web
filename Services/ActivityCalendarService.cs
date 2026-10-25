@@ -8,17 +8,21 @@ namespace HackAcad.Web.Services;
 
 public sealed class ActivityCalendarService(ApplicationDbContext db, UserTimeZone userTime, TimeProvider clock)
 {
+    // Build the selected year's calendar from the learner's completed events.
     public async Task<ActivityCalendarViewModel> BuildAsync(
         ApplicationUser user,
         IReadOnlyCollection<int> enrollmentIds,
         int? requestedYear)
     {
+        // Use local dates for account age, selected years, and activity cells.
         var today = DateOnly.FromDateTime(userTime.Convert(clock.GetUtcNow().UtcDateTime).DateTime);
         var joinedUtc = DateTime.SpecifyKind(user.JoinedDate, DateTimeKind.Utc);
         var joinedDate = DateOnly.FromDateTime(userTime.Convert(joinedUtc).DateTime);
         var firstYear = Math.Min(joinedDate.Year, today.Year);
         var currentYear = today.Year;
-        var years = Enumerable.Range(firstYear, currentYear - firstYear + 1).Reverse().ToList();
+        var years = Enumerable.Range(firstYear, currentYear - firstYear + 1)
+            .Reverse()
+            .ToList();
         var year = requestedYear is { } requested && years.Contains(requested) ? requested : currentYear;
 
         var yearStart = new DateOnly(year, 1, 1);
@@ -26,7 +30,8 @@ public sealed class ActivityCalendarService(ApplicationDbContext db, UserTimeZon
         var firstActivityDate = year == joinedDate.Year ? joinedDate : yearStart;
         var lastActivityDate = year == currentYear ? today : nextYearStart.AddDays(-1);
         var queryStartUtc = userTime.StartOfDayUtc(yearStart);
-        if (year == joinedDate.Year && joinedUtc > queryStartUtc) queryStartUtc = joinedUtc;
+        if (year == joinedDate.Year && joinedUtc > queryStartUtc)
+            queryStartUtc = joinedUtc;
         var queryEndDate = year == currentYear ? today.AddDays(1) : nextYearStart;
         var queryEndUtc = userTime.StartOfDayUtc(queryEndDate);
 
@@ -44,14 +49,21 @@ public sealed class ActivityCalendarService(ApplicationDbContext db, UserTimeZon
 
             foreach (var completion in completions)
             {
-                var date = DateOnly.FromDateTime(userTime.Convert(completion.CompletedUtc!.Value).DateTime);
-                if (date < firstActivityDate || date > lastActivityDate) continue;
-                var day = GetCounts(counts, date);
+                var localDate = DateOnly.FromDateTime(userTime.Convert(completion.CompletedUtc!.Value).DateTime);
+                if (localDate < firstActivityDate || localDate > lastActivityDate) continue;
+
+                var day = GetCounts(counts, localDate);
                 switch (completion.ContentType)
                 {
-                    case ProgressContentType.Lesson: day.Lessons++; break;
-                    case ProgressContentType.Challenge: day.CtfSolves++; break;
-                    case ProgressContentType.Simulation: day.Labs++; break;
+                    case ProgressContentType.Lesson:
+                        day.Lessons++;
+                        break;
+                    case ProgressContentType.Challenge:
+                        day.CtfSolves++;
+                        break;
+                    case ProgressContentType.Simulation:
+                        day.Labs++;
+                        break;
                 }
             }
 
@@ -65,9 +77,9 @@ public sealed class ActivityCalendarService(ApplicationDbContext db, UserTimeZon
 
             foreach (var finishUtc in courseFinishes)
             {
-                var date = DateOnly.FromDateTime(userTime.Convert(finishUtc!.Value).DateTime);
-                if (date < firstActivityDate || date > lastActivityDate) continue;
-                GetCounts(counts, date).CoursesFinished++;
+                var localDate = DateOnly.FromDateTime(userTime.Convert(finishUtc!.Value).DateTime);
+                if (localDate < firstActivityDate || localDate > lastActivityDate) continue;
+                GetCounts(counts, localDate).CoursesFinished++;
             }
         }
 
@@ -76,7 +88,7 @@ public sealed class ActivityCalendarService(ApplicationDbContext db, UserTimeZon
         var calendarStart = yearStart.AddDays(-(int)yearStart.DayOfWeek);
         var yearEnd = nextYearStart.AddDays(-1);
         var calendarEnd = yearEnd.AddDays(6 - (int)yearEnd.DayOfWeek);
-        var weekCount = ((calendarEnd.DayNumber - calendarStart.DayNumber) / 7) + 1;
+        var weekCount = (calendarEnd.DayNumber - calendarStart.DayNumber) / 7 + 1;
         var calendar = new ActivityCalendarViewModel
         {
             SelectedYear = year,
@@ -101,7 +113,9 @@ public sealed class ActivityCalendarService(ApplicationDbContext db, UserTimeZon
             for (var weekday = 0; weekday < 7; weekday++)
             {
                 var date = calendarStart.AddDays(week * 7 + weekday);
-                var inRange = date >= firstActivityDate && date <= lastActivityDate && date.Year == year;
+                var inRange = date >= firstActivityDate
+                    && date <= lastActivityDate
+                    && date.Year == year;
                 counts.TryGetValue(date, out var dayCounts);
                 weekModel.Days.Add(new ActivityCalendarDayViewModel
                 {

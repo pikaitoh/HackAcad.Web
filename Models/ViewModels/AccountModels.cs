@@ -165,6 +165,7 @@ public class ActivityCalendarDayViewModel
     {
         get
         {
+            // Give each calendar tile a clear screen-reader description.
             var date = Date.ToString("ddd, dd MMM yyyy", CultureInfo.InvariantCulture);
             if (!IsInActivityRange) return $"{date}: outside your activity range.";
             if (TotalEvents == 0) return $"{date}: no learning events.";
