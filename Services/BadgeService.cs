@@ -6,9 +6,9 @@ using MySqlConnector;
 
 namespace HackAcad.Web.Services;
 
-public class BadgeService(ApplicationDbContext db, TimeProvider clock)
+public class BadgeService(ApplicationDbContext db, TimeProvider clock, Personalization notifications)
 {
-    public async Task<List<BadgeItem>> GetUserBadgesAsync(string userId)
+    public async Task<List<BadgeItem>> GetUserBadgesAsync(string userId, DateTime? activityEventUtc = null)
     {
         // 1. Enrollment stats
         var isInstructor = await db.Instructors.AnyAsync(i => i.UserId == userId);
@@ -233,6 +233,17 @@ public class BadgeService(ApplicationDbContext db, TimeProvider clock)
             badge.IsUnlocked = true;
             badge.UnlockedDate = AsUtc(awardedUtc);
             badge.CurrentProgress = Math.Max(badge.CurrentProgress, badge.TargetProgress);
+
+            // Reads and historical backfills stay silent. A completion handler
+            // supplies its event time, so only badges crossed by that activity
+            // produce a notification.
+            if (activityEventUtc is { } eventUtc && badge.IsUnlocked
+                && awardDates[badge.Id] is { } requirementReachedUtc
+                && Math.Abs((AsUtc(requirementReachedUtc) - AsUtc(eventUtc)).TotalSeconds) <= 2)
+            {
+                await notifications.Notify(userId, $"badge:{badge.Id}", $"Badge earned: {badge.Title}",
+                    $"You earned the {badge.Title} badge. View your badge collection.", "/Identity/Account/Badges");
+            }
         }
 
         return badges;

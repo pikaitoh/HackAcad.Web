@@ -289,7 +289,7 @@ public class CoursesController(
 
             db.Enrollments.Add(newEnrollment);
             await db.SaveChangesAsync();
-            await badges.GetUserBadgesAsync(currentUserId);
+            await badges.GetUserBadgesAsync(currentUserId, newEnrollment.EnrolledDate);
             TempData["Success"] = $"Enrolled in {course.Title}! Welcome to your training.";
         }
 
@@ -514,7 +514,7 @@ public class CoursesController(
         enrollment.LastLessonId = lessonId;
 
         // Check if all items in course are complete
-        await SaveProgressAndStatus(enrollment, courseId);
+        await SaveProgressAndStatus(enrollment, courseId, completedUtc);
 
         // Redirect to next lesson if available, or stay
         var nextLesson = await db.Lessons
@@ -595,7 +595,7 @@ public class CoursesController(
                 existingProgress.LastUpdatedDate = completedUtc;
             }
 
-            await SaveProgressAndStatus(enrollment, courseId);
+            await SaveProgressAndStatus(enrollment, courseId, submission.SubmittedDate);
             TempData["FlagSuccess"] = $"🎉 Correct Flag! You earned {challenge.Points} points!";
         }
         else
@@ -683,7 +683,7 @@ public class CoursesController(
             existingProgress.LastUpdatedDate = completedUtc;
         }
 
-        await SaveProgressAndStatus(enrollment, courseId);
+        await SaveProgressAndStatus(enrollment, courseId, completedUtc);
 
         return Json(new
         {
@@ -718,14 +718,14 @@ public class CoursesController(
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
-    private async Task SaveProgressAndStatus(Enrollment enrollment, int courseId)
+    private async Task SaveProgressAndStatus(Enrollment enrollment, int courseId, DateTime activityEventUtc)
     {
         await using var transaction = await db.Database.BeginTransactionAsync();
         await db.SaveChangesAsync();
         enrollment.Status = await IsCourseCompleteAsync(enrollment, courseId) ? "Completed" : "InProgress";
         await db.SaveChangesAsync();
         await personalization.SyncRewards(enrollment.UserId);
-        await badges.GetUserBadgesAsync(enrollment.UserId);
+        await badges.GetUserBadgesAsync(enrollment.UserId, activityEventUtc);
         await transaction.CommitAsync();
     }
 

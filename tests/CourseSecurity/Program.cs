@@ -164,7 +164,8 @@ try
         var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var enrollment=await db.Enrollments.SingleAsync(e=>e.UserId==otherInstructor.Id&&e.CourseId==publicId);
         var award=await db.UserBadgeAwards.SingleOrDefaultAsync(a=>a.UserId==otherInstructor.Id&&a.BadgeId=="cyber_recruit");
-        Check(award is not null&&award.AwardedUtc==enrollment.EnrolledDate,"first enrollment creates one permanent badge award with its enrollment date");
+        var notice=await db.UserNotifications.SingleOrDefaultAsync(n=>n.UserId==otherInstructor.Id&&n.EventKey=="badge:cyber_recruit");
+        Check(award is not null&&award.AwardedUtc==enrollment.EnrolledDate&&notice?.Title=="Badge earned: Cyber Recruit","first enrollment creates one dated award and an idempotent badge notification");
     }
     Check((await Post(t2,"/Courses/CompleteLesson",Fields("courseId",publicId.ToString(),"lessonId",lessonId.ToString()))).StatusCode==HttpStatusCode.Redirect,"Instructor can save lesson progress");
     DateTime? firstLessonCompletion;
@@ -173,7 +174,8 @@ try
         var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         firstLessonCompletion=await db.ProgressRecords.Where(p=>p.EnrollmentId==db.Enrollments.Where(e=>e.UserId==otherInstructor.Id&&e.CourseId==publicId).Select(e=>e.EnrollmentId).Single()&&p.LessonId==lessonId).Select(p=>p.CompletedUtc).SingleAsync();
         var award=await db.UserBadgeAwards.SingleOrDefaultAsync(a=>a.UserId==otherInstructor.Id&&a.BadgeId=="first_step");
-        Check(award is not null&&award.AwardedUtc==firstLessonCompletion,"lesson completion persists the badge's first qualifying completion date");
+        var notice=await db.UserNotifications.SingleOrDefaultAsync(n=>n.UserId==otherInstructor.Id&&n.EventKey=="badge:first_step");
+        Check(award is not null&&award.AwardedUtc==firstLessonCompletion&&notice?.Title=="Badge earned: First Step","lesson completion persists its award date and sends a badge notification");
     }
     await Post(t2,"/Courses/CompleteLesson",Fields("courseId",publicId.ToString(),"lessonId",lessonId.ToString()));
     using(var scope=factory.Services.CreateScope())
@@ -181,7 +183,8 @@ try
         var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var repeatedLessonCompletion=await db.ProgressRecords.Where(p=>p.EnrollmentId==db.Enrollments.Where(e=>e.UserId==otherInstructor.Id&&e.CourseId==publicId).Select(e=>e.EnrollmentId).Single()&&p.LessonId==lessonId).Select(p=>p.CompletedUtc).SingleAsync();
         var awardDates=await db.UserBadgeAwards.Where(a=>a.UserId==otherInstructor.Id&&a.BadgeId=="first_step").Select(a=>a.AwardedUtc).ToListAsync();
-        Check(firstLessonCompletion==repeatedLessonCompletion&&awardDates.Count==1&&awardDates[0]==firstLessonCompletion,"reviewing a completed lesson keeps its original activity and badge award dates");
+        var notificationCount=await db.UserNotifications.CountAsync(n=>n.UserId==otherInstructor.Id&&n.EventKey=="badge:first_step");
+        Check(firstLessonCompletion==repeatedLessonCompletion&&awardDates.Count==1&&awardDates[0]==firstLessonCompletion&&notificationCount==1,"reviewing a completed lesson keeps its original activity and award date without duplicating its notification");
     }
     Check((await Post(t2,"/Courses/SubmitFlag",Fields("courseId",publicId.ToString(),"challengeId",challengeId.ToString(),"flag",flag))).StatusCode==HttpStatusCode.Redirect,"Instructor can submit a challenge flag");
     await Post(t2,"/Courses/SubmitFlag",Fields("courseId",publicId.ToString(),"challengeId",challengeId.ToString(),"flag",flag));
