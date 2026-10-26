@@ -1,0 +1,793 @@
+@model HackAcad.Web.Models.Entities.CourseNotebook
+@{
+    ViewData["Title"] = $"Edit Course Notebook: {Model.Title}";
+}
+
+<link rel="stylesheet" href="~/css/learning.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/simulation-builder.css" asp-append-version="true" />
+
+<style>
+    .notebook-editor-shell {
+        max-width: 1100px;
+        margin: 0 auto;
+    }
+    .block-card {
+        background: var(--ha-surface, #ffffff);
+        color: var(--ha-ink, #193e46);
+        border: 1px solid var(--ha-line, #cbded5);
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        transition: box-shadow 0.2s, border-color 0.2s;
+    }
+    .block-card:hover {
+        border-color: #0c7c59;
+    }
+    .block-header {
+        background: var(--ha-tint, #e3f1eb);
+        color: var(--ha-ink, #193e46);
+        border-bottom: 1px solid var(--ha-line, #cbded5);
+        border-top-left-radius: 11px;
+        border-top-right-radius: 11px;
+        padding: 0.6rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    [data-appearance="dark"] .block-header {
+        background: #15282a;
+        color: #d1fae5;
+    }
+    .block-body {
+        padding: 1.25rem;
+    }
+    .add-block-tray {
+        background: var(--ha-canvas, #f2fbf7);
+        border: 2px dashed var(--ha-line, #cbded5);
+        border-radius: 12px;
+        padding: 1.25rem;
+        text-align: center;
+        margin-top: 1rem;
+    }
+    [data-appearance="dark"] .add-block-tray {
+        background: #112224;
+        border-color: #2b494d;
+    }
+    .cmd-out-row {
+        background: var(--ha-canvas, #f2fbf7);
+        border: 1px solid var(--ha-line, #cbded5);
+        border-radius: 8px;
+        padding: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    [data-appearance="dark"] .cmd-out-row {
+        background: #132427;
+        border-color: #2b494d;
+    }
+    /* Modal styles */
+    .sim-modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.75);
+        z-index: 1050;
+        display: none;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+    .sim-modal-dialog {
+        background: var(--ha-surface, #ffffff);
+        color: var(--ha-ink, #193e46);
+        max-width: 1200px;
+        margin: 0 auto;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        border: 1px solid var(--ha-line, #cbded5);
+        display: flex;
+        flex-direction: column;
+    }
+    .sim-modal-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--ha-line, #cbded5);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .sim-modal-body {
+        padding: 1.5rem;
+        max-height: calc(85vh - 70px);
+        overflow-y: auto;
+    }
+</style>
+
+<div class="container module-shell notebook-editor-shell">
+    @Html.AntiForgeryToken()
+
+    <!-- Top Sticky Action Bar -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2 pb-3 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+            <a asp-action="Curriculum" asp-route-id="@Model.CourseId" class="btn btn-sm btn-outline-secondary">
+                ← Back to Course Curriculum
+            </a>
+            <span class="text-secondary">/</span>
+            <span id="saveStatusIndicator" class="small text-secondary fw-semibold">Saved</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a asp-controller="Courses" asp-action="Learn" asp-route-id="@Model.CourseId" asp-route-notebookId="@Model.CourseNotebookId" class="btn btn-sm btn-outline-secondary" target="_blank" title="Preview student view">
+                👁 Preview in Course Player
+            </a>
+            <a asp-action="ExportCourseNotebook" asp-route-id="@Model.CourseNotebookId" class="btn btn-sm btn-outline-secondary" title="Download standalone HTML">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Export Standalone HTML
+            </a>
+            <button type="button" id="saveNotebookBtn" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                    <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                    <polyline points="7 3 7 8 15 8"></polyline>
+                </svg>
+                Save Course Notebook
+            </button>
+        </div>
+    </div>
+
+    <!-- Notebook Title Card -->
+    <div class="surface-panel p-4 mb-4 border rounded-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <label for="notebookTitleInput" class="form-label fw-bold mb-0 text-secondary small text-uppercase">Course Notebook Title</label>
+            <div class="d-flex gap-2 align-items-center">
+                <span class="badge bg-primary-subtle text-primary border font-monospace small">COURSE INDEPENDENT COPY</span>
+                <span class="badge @(Model.IsPublished ? "bg-success" : "bg-secondary")">@(Model.IsPublished ? "Published" : "Draft")</span>
+            </div>
+        </div>
+        <input type="text" id="notebookTitleInput" class="form-control form-control-lg fw-bold" value="@Model.Title" maxlength="150" placeholder="e.g. Linux Command Walkthrough &amp; Notes" />
+        <div class="form-text small mt-1">This notebook is tied to course curriculum. Edits here do not affect your personal notebooks.</div>
+    </div>
+
+    <!-- Blocks Container -->
+    <div id="blocksContainer" class="d-flex flex-column"></div>
+
+    <!-- Add Block Tray -->
+    <div class="add-block-tray">
+        <h3 class="h6 text-secondary mb-3">Add Content to Course Notebook</h3>
+        <div class="d-flex flex-wrap justify-content-center gap-2">
+            <button type="button" class="btn btn-outline-success d-inline-flex align-items-center gap-2" onclick="addMarkdownBlock()">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                + Add Markdown Notes
+            </button>
+            <button type="button" class="btn btn-outline-info d-inline-flex align-items-center gap-2" onclick="addInteractiveTerminalBlock()">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                + Add Interactive Terminal
+            </button>
+            <button type="button" class="btn btn-outline-secondary d-inline-flex align-items-center gap-2" onclick="addStaticTerminalBlock()">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
+                + Add Static Command Example
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Visual Simulation Builder (Used when editing interactive terminal block) -->
+<div id="simBuilderModal" class="sim-modal-overlay">
+    <div class="sim-modal-dialog">
+        <div class="sim-modal-header">
+            <div class="d-flex align-items-center gap-2">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                <h3 class="h5 mb-0 fw-bold">Configure Interactive Terminal Sandbox</h3>
+            </div>
+            <button type="button" class="btn-close" aria-label="Close" onclick="closeSimBuilderModal()"></button>
+        </div>
+        <div class="sim-modal-body">
+            <div id="sim-builder-mount"></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/simulation-terminal.js" asp-append-version="true"></script>
+    <script src="~/js/simulation-builder.js" asp-append-version="true"></script>
+    <script>
+        var courseNotebookId = @Model.CourseNotebookId;
+        var initialRawJson = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ContentJson ?? ""));
+        var notebookDoc = { version: 1, blocks: [] };
+
+        try {
+            if (initialRawJson && initialRawJson.trim()) {
+                notebookDoc = JSON.parse(initialRawJson);
+                if (!notebookDoc.blocks) notebookDoc.blocks = [];
+            }
+        } catch(e) {
+            console.error("Failed to parse initial course notebook JSON:", e);
+        }
+
+        var blocks = notebookDoc.blocks || [];
+        var activeEditingBlockIdx = null;
+
+        function renderBasicMarkdown(md) {
+            if (!md) return '<p class="text-secondary fst-italic">Empty notes...</p>';
+            var esc = function(str) {
+                return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+            };
+            var lines = md.replace(/\r\n/g, "\n").split("\n");
+            var html = [];
+            var inCodeBlock = false;
+            var codeBuffer = [];
+
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                if (line.trim().startsWith("```")) {
+                    if (inCodeBlock) {
+                        html.push('<pre><code>' + esc(codeBuffer.join("\n")) + '</code></pre>');
+                        codeBuffer = [];
+                        inCodeBlock = false;
+                    } else {
+                        inCodeBlock = true;
+                    }
+                    continue;
+                }
+                if (inCodeBlock) {
+                    codeBuffer.push(line);
+                    continue;
+                }
+
+                if (line.startsWith("# ")) {
+                    html.push('<h1>' + esc(line.slice(2)) + '</h1>');
+                } else if (line.startsWith("## ")) {
+                    html.push('<h2>' + esc(line.slice(3)) + '</h2>');
+                } else if (line.startsWith("### ")) {
+                    html.push('<h3>' + esc(line.slice(4)) + '</h3>');
+                } else if (line.startsWith("- ") || line.startsWith("* ")) {
+                    html.push('<ul><li>' + esc(line.slice(2)) + '</li></ul>');
+                } else if (line.trim().length === 0) {
+                    // blank
+                } else {
+                    var parsed = esc(line);
+                    parsed = parsed.replace(/`([^`]+)`/g, '<code>$1</code>');
+                    parsed = parsed.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                    parsed = parsed.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+                    html.push('<p>' + parsed + '</p>');
+                }
+            }
+            if (inCodeBlock) {
+                html.push('<pre><code>' + esc(codeBuffer.join("\n")) + '</code></pre>');
+            }
+            return html.join("\n");
+        }
+
+        function renderBlocks() {
+            var container = document.getElementById("blocksContainer");
+            container.innerHTML = "";
+
+            if (blocks.length === 0) {
+                container.innerHTML = `
+                    <div class="surface-panel p-4 text-center border rounded-3 mb-3 text-secondary">
+                        <p class="mb-0">This course notebook currently has no content blocks. Add Markdown notes or terminal demonstrations below.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            blocks.forEach(function (blk, idx) {
+                var card = document.createElement("div");
+                card.className = "block-card";
+                card.id = "block_elem_" + idx;
+
+                var isFirst = idx === 0;
+                var isLast = idx === blocks.length - 1;
+
+                var typeLabel = "Block";
+                var typeBadgeClass = "bg-secondary";
+                if (blk.type === "markdown") {
+                    typeLabel = "📝 Markdown Notes";
+                    typeBadgeClass = "bg-secondary-subtle text-secondary border";
+                } else if (blk.type === "terminal_interactive") {
+                    typeLabel = "💻 Interactive Terminal";
+                    typeBadgeClass = "bg-info-subtle text-info border";
+                } else if (blk.type === "terminal_static") {
+                    typeLabel = "📋 Static Command Example";
+                    typeBadgeClass = "bg-warning-subtle text-warning-emphasis border";
+                }
+
+                var headerHtml = `
+                    <div class="block-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge ${typeBadgeClass}">${typeLabel}</span>
+                            <span class="small text-secondary font-monospace">#${idx + 1}</span>
+                        </div>
+                        <div class="d-flex align-items-center gap-1">
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Move Up" ${isFirst ? 'disabled' : ''} onclick="moveBlock(${idx}, -1)">↑</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Move Down" ${isLast ? 'disabled' : ''} onclick="moveBlock(${idx}, 1)">↓</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2" title="Delete Block" onclick="deleteBlock(${idx})">✕</button>
+                        </div>
+                    </div>
+                `;
+
+                var bodyHtml = "";
+
+                if (blk.type === "markdown") {
+                    bodyHtml = `
+                        <div class="block-body">
+                            <ul class="nav nav-tabs mb-3" id="tab_md_${idx}">
+                                <li class="nav-item">
+                                    <button class="nav-link active py-1 px-3 small" type="button" onclick="switchMdTab(${idx}, 'edit')">Markdown Source</button>
+                                </li>
+                                <li class="nav-item">
+                                    <button class="nav-link py-1 px-3 small" type="button" onclick="switchMdTab(${idx}, 'preview')">Live Preview</button>
+                                </li>
+                            </ul>
+                            <div id="md_edit_pane_${idx}">
+                                <textarea class="form-control font-monospace" rows="8" placeholder="Type Markdown notes here..." oninput="updateMdContent(${idx}, this.value)">${escapeHtml(blk.content || "")}</textarea>
+                                <div class="form-text small mt-1">Supports GitHub-flavored Markdown: <code># H1</code>, <code>## H2</code>, <code>**bold**</code>, <code>*italic*</code>, <code>- list</code>, <code>\`code\`</code>, and fenced <code>\`\`\`</code> code blocks.</div>
+                            </div>
+                            <div id="md_prev_pane_${idx}" class="p-3 border rounded surface-panel lesson-body" style="display:none; min-height:160px;">
+                                ${renderBasicMarkdown(blk.content || "")}
+                            </div>
+                        </div>
+                    `;
+                } else if (blk.type === "terminal_interactive") {
+                    var cmdCount = (blk.allowedCommands || []).length;
+                    var customCmdCount = (blk.customCommands || []).length;
+                    var initDir = blk.initialDirectory || "/home/student";
+
+                    bodyHtml = `
+                        <div class="block-body">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-7">
+                                    <label class="form-label small fw-bold">Demonstration Title</label>
+                                    <input type="text" class="form-control" placeholder="e.g. Linux Sandbox Exercise" value="${escapeHtml(blk.title || "")}" onchange="updateBlockField(${idx}, 'title', this.value)" />
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label small fw-bold">Initial Working Directory</label>
+                                    <input type="text" class="form-control font-monospace" placeholder="/home/student" value="${escapeHtml(initDir)}" onchange="updateBlockField(${idx}, 'initialDirectory', this.value)" />
+                                </div>
+                            </div>
+
+                            <div class="p-3 mb-3 border rounded surface-panel d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <div>
+                                    <div class="small fw-bold">Virtual Environment Configuration</div>
+                                    <div class="small text-secondary">
+                                        ${cmdCount} allowed shell command(s) · ${customCmdCount} custom command(s) · virtual root filesystem
+                                    </div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" onclick="openSimBuilderForBlock(${idx})">
+                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                    Configure Filesystem &amp; Commands
+                                </button>
+                            </div>
+
+                            <div class="mt-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small fw-bold text-secondary text-uppercase">Interactive Preview Sandbox</span>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0" onclick="mountInteractivePreview(${idx})">↺ Reset Preview</button>
+                                </div>
+                                <div id="interactive_mount_${idx}" class="notebook-term-host" style="min-height: 240px;"></div>
+                            </div>
+                        </div>
+                    `;
+                } else if (blk.type === "terminal_static") {
+                    var exList = blk.examples || [];
+                    var cwd = blk.cwd || "/home/student";
+
+                    var rowsHtml = exList.map(function (ex, exIdx) {
+                        return `
+                            <div class="cmd-out-row">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-light text-secondary border font-monospace small">Command #${exIdx + 1}</span>
+                                    <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2" onclick="removeStaticExampleRow(${idx}, ${exIdx})">Remove</button>
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small mb-1 fw-bold">Command</label>
+                                    <input type="text" class="form-control font-monospace" placeholder="e.g. ls -la /var/log" value="${escapeHtml(ex.command || "")}" onchange="updateStaticExampleCommand(${idx}, ${exIdx}, this.value)" />
+                                </div>
+                                <div>
+                                    <label class="form-label small mb-1 fw-bold">Output</label>
+                                    <textarea class="form-control font-monospace small" rows="3" placeholder="Command output..." onchange="updateStaticExampleOutput(${idx}, ${exIdx}, this.value)">${escapeHtml(ex.output || "")}</textarea>
+                                </div>
+                            </div>
+                        `;
+                    }).join("");
+
+                    bodyHtml = `
+                        <div class="block-body">
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-7">
+                                    <label class="form-label small fw-bold">Example Demonstration Title</label>
+                                    <input type="text" class="form-control" placeholder="e.g. Sample Command Output" value="${escapeHtml(blk.title || "")}" onchange="updateBlockField(${idx}, 'title', this.value)" />
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label small fw-bold">Prompt Working Directory</label>
+                                    <input type="text" class="form-control font-monospace" placeholder="/home/student" value="${escapeHtml(cwd)}" onchange="updateBlockField(${idx}, 'cwd', this.value)" />
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <label class="form-label small fw-bold mb-0">Command &amp; Output Pairs</label>
+                                    <button type="button" class="btn btn-sm btn-outline-primary py-0" onclick="addStaticExampleRow(${idx})">+ Add Command</button>
+                                </div>
+                                <div id="static_rows_${idx}">
+                                    ${rowsHtml || '<p class="text-secondary small fst-italic mb-2">No commands added yet. Click &quot;+ Add Command&quot; above.</p>'}
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <span class="small fw-bold text-secondary text-uppercase d-block mb-2">Static Display Preview</span>
+                                <div class="terminal-wrapper mb-0">
+                                    <div class="terminal-header">
+                                        <div class="terminal-buttons">
+                                            <span class="t-btn t-btn-red"></span>
+                                            <span class="t-btn t-btn-yellow"></span>
+                                            <span class="t-btn t-btn-green"></span>
+                                        </div>
+                                        <div class="terminal-title">student@hackacad: ~ (preview)</div>
+                                        <div class="terminal-badge">EXAMPLE</div>
+                                    </div>
+                                    <div class="terminal-body" style="height:auto; min-height:60px; max-height:280px;">
+                                        ${renderStaticTerminalPreview(blk)}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                card.innerHTML = headerHtml + bodyHtml;
+                container.appendChild(card);
+
+                if (blk.type === "terminal_interactive") {
+                    mountInteractivePreview(idx);
+                }
+            });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return "";
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function renderStaticTerminalPreview(blk) {
+            var cwd = blk.cwd || "/home/student";
+            var exs = blk.examples || [];
+            if (exs.length === 0) {
+                return '<div class="term-line text-muted"># No commands configured</div>';
+            }
+            var lines = [];
+            for (var i = 0; i < exs.length; i++) {
+                var ex = exs[i];
+                lines.push('<div class="term-line"><span class="term-prompt">student@hackacad:' + escapeHtml(cwd) + '$ </span><span class="term-cmd">' + escapeHtml(ex.command || "") + '</span></div>');
+                if (ex.output) {
+                    var outLines = ex.output.replace(/\r\n/g, "\n").split("\n");
+                    for (var j = 0; j < outLines.length; j++) {
+                        lines.push('<div class="term-line">' + escapeHtml(outLines[j]) + '</div>');
+                    }
+                }
+            }
+            return lines.join("");
+        }
+
+        function mountInteractivePreview(idx) {
+            var blk = blocks[idx];
+            if (!blk || blk.type !== "terminal_interactive") return;
+            var mountEl = document.getElementById("interactive_mount_" + idx);
+            if (!mountEl) return;
+
+            var configObj = {
+                allowedCommands: blk.allowedCommands || ["help", "clear", "pwd", "ls", "cd", "cat", "whoami", "chmod", "echo", "history", "date", "id", "touch", "nano"],
+                initialDirectory: blk.initialDirectory || "/home/student",
+                fileSystem: blk.fileSystem || {
+                    home: {
+                        student: {
+                            "notes.txt": "Welcome to your course terminal sandbox.\nUse standard Linux commands to inspect files and test scenarios."
+                        }
+                    }
+                },
+                customCommands: blk.customCommands || [],
+                isNotebook: true,
+                objectives: []
+            };
+
+            if (typeof window.initSimulationTerminal === 'function') {
+                window.initSimulationTerminal("interactive_mount_" + idx, configObj);
+            }
+        }
+
+        function switchMdTab(idx, tab) {
+            var editPane = document.getElementById("md_edit_pane_" + idx);
+            var prevPane = document.getElementById("md_prev_pane_" + idx);
+            var tabContainer = document.getElementById("tab_md_" + idx);
+            if (!editPane || !prevPane || !tabContainer) return;
+
+            var buttons = tabContainer.querySelectorAll("button");
+            if (tab === 'edit') {
+                editPane.style.display = "block";
+                prevPane.style.display = "none";
+                buttons[0].classList.add("active");
+                buttons[1].classList.remove("active");
+            } else {
+                editPane.style.display = "none";
+                prevPane.style.display = "block";
+                buttons[0].classList.remove("active");
+                buttons[1].classList.add("active");
+                prevPane.innerHTML = renderBasicMarkdown(blocks[idx].content || "");
+            }
+        }
+
+        function updateMdContent(idx, value) {
+            if (blocks[idx]) {
+                blocks[idx].content = value;
+                markUnsaved();
+            }
+        }
+
+        function updateBlockField(idx, field, value) {
+            if (blocks[idx]) {
+                blocks[idx][field] = value;
+                markUnsaved();
+                if (blocks[idx].type === 'terminal_interactive' && field === 'initialDirectory') {
+                    mountInteractivePreview(idx);
+                }
+            }
+        }
+
+        function addStaticExampleRow(blockIdx) {
+            if (!blocks[blockIdx]) return;
+            if (!blocks[blockIdx].examples) blocks[blockIdx].examples = [];
+            blocks[blockIdx].examples.push({
+                command: "echo 'Hello HackAcad'",
+                output: "Hello HackAcad"
+            });
+            markUnsaved();
+            renderBlocks();
+        }
+
+        function removeStaticExampleRow(blockIdx, exIdx) {
+            if (!blocks[blockIdx] || !blocks[blockIdx].examples) return;
+            blocks[blockIdx].examples.splice(exIdx, 1);
+            markUnsaved();
+            renderBlocks();
+        }
+
+        function updateStaticExampleCommand(blockIdx, exIdx, value) {
+            if (blocks[blockIdx] && blocks[blockIdx].examples && blocks[blockIdx].examples[exIdx]) {
+                blocks[blockIdx].examples[exIdx].command = value;
+                markUnsaved();
+                renderBlocks();
+            }
+        }
+
+        function updateStaticExampleOutput(blockIdx, exIdx, value) {
+            if (blocks[blockIdx] && blocks[blockIdx].examples && blocks[blockIdx].examples[exIdx]) {
+                blocks[blockIdx].examples[exIdx].output = value;
+                markUnsaved();
+                renderBlocks();
+            }
+        }
+
+        function moveBlock(idx, direction) {
+            var targetIdx = idx + direction;
+            if (targetIdx < 0 || targetIdx >= blocks.length) return;
+            var temp = blocks[idx];
+            blocks[idx] = blocks[targetIdx];
+            blocks[targetIdx] = temp;
+            markUnsaved();
+            renderBlocks();
+        }
+
+        function deleteBlock(idx) {
+            if (!confirm("Are you sure you want to remove this block?")) return;
+            blocks.splice(idx, 1);
+            markUnsaved();
+            renderBlocks();
+        }
+
+        function addMarkdownBlock() {
+            blocks.push({
+                id: "blk_" + Math.random().toString(36).substring(2, 10),
+                type: "markdown",
+                content: "### Course Documentation\n\nAdd technical documentation, learning notes, or commands description here."
+            });
+            markUnsaved();
+            renderBlocks();
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        function addInteractiveTerminalBlock() {
+            blocks.push({
+                id: "blk_" + Math.random().toString(36).substring(2, 10),
+                type: "terminal_interactive",
+                title: "Interactive Course Terminal Sandbox",
+                initialDirectory: "/home/student",
+                allowedCommands: ["help", "clear", "pwd", "ls", "cd", "cat", "whoami", "chmod", "echo", "history", "date", "id", "touch", "nano"],
+                fileSystem: {
+                    home: {
+                        student: {
+                            "readme.txt": "Welcome to your course sandbox demonstration.\nExplore directories and execute permitted Linux commands."
+                        }
+                    }
+                },
+                customCommands: []
+            });
+            markUnsaved();
+            renderBlocks();
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        function addStaticTerminalBlock() {
+            blocks.push({
+                id: "blk_" + Math.random().toString(36).substring(2, 10),
+                type: "terminal_static",
+                title: "Sample Command Demonstration",
+                cwd: "/home/student",
+                examples: [
+                    {
+                        command: "whoami",
+                        output: "student"
+                    },
+                    {
+                        command: "pwd",
+                        output: "/home/student"
+                    }
+                ]
+            });
+            markUnsaved();
+            renderBlocks();
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+        }
+
+        function openSimBuilderForBlock(idx) {
+            var blk = blocks[idx];
+            if (!blk) return;
+            activeEditingBlockIdx = idx;
+
+            var modal = document.getElementById("simBuilderModal");
+            var mount = document.getElementById("sim-builder-mount");
+            mount.innerHTML = "";
+            modal.style.display = "block";
+
+            var blockConfig = {
+                fileSystem: blk.fileSystem || { home: { student: {} } },
+                allowedCommands: blk.allowedCommands || ["help", "clear", "pwd", "ls", "cd", "cat", "whoami", "chmod", "echo", "history", "date", "id", "touch", "nano"],
+                initialDirectory: blk.initialDirectory || "/home/student",
+                customCommands: blk.customCommands || []
+            };
+
+            if (typeof window.initSimulationBuilder === 'function') {
+                window.initSimulationBuilder({
+                    rootId: "sim-builder-mount",
+                    mode: "notebook_block",
+                    isNotebookBlock: true,
+                    initialConfig: blockConfig,
+                    onSave: function (savedCfg) {
+                        if (activeEditingBlockIdx !== null && blocks[activeEditingBlockIdx]) {
+                            blocks[activeEditingBlockIdx].fileSystem = savedCfg.fileSystem;
+                            blocks[activeEditingBlockIdx].allowedCommands = savedCfg.allowedCommands;
+                            blocks[activeEditingBlockIdx].initialDirectory = savedCfg.initialDirectory;
+                            blocks[activeEditingBlockIdx].customCommands = savedCfg.customCommands;
+                            markUnsaved();
+                        }
+                        closeSimBuilderModal();
+                        renderBlocks();
+                    },
+                    onCancel: function () {
+                        closeSimBuilderModal();
+                    }
+                });
+            } else {
+                mount.innerHTML = '<div class="alert alert-warning">Simulation builder library is not loaded.</div>';
+            }
+        }
+
+        function closeSimBuilderModal() {
+            var modal = document.getElementById("simBuilderModal");
+            modal.style.display = "none";
+            document.getElementById("sim-builder-mount").innerHTML = "";
+            activeEditingBlockIdx = null;
+        }
+
+        var isDirty = false;
+        function markUnsaved() {
+            isDirty = true;
+            var indicator = document.getElementById("saveStatusIndicator");
+            if (indicator) {
+                indicator.textContent = "● Unsaved changes";
+                indicator.className = "small text-warning fw-semibold";
+            }
+        }
+
+        function markSaved(timeStr) {
+            isDirty = false;
+            var indicator = document.getElementById("saveStatusIndicator");
+            if (indicator) {
+                indicator.textContent = "✓ Saved " + (timeStr ? "at " + new Date(timeStr).toLocaleTimeString() : "");
+                indicator.className = "small text-success fw-semibold";
+            }
+        }
+
+        async function saveNotebook() {
+            var saveBtn = document.getElementById("saveNotebookBtn");
+            var indicator = document.getElementById("saveStatusIndicator");
+            var titleInput = document.getElementById("notebookTitleInput");
+            var title = (titleInput.value || "").trim();
+
+            if (!title) {
+                alert("Please enter a notebook title.");
+                titleInput.focus();
+                return;
+            }
+
+            if (saveBtn) saveBtn.disabled = true;
+            if (indicator) {
+                indicator.textContent = "Saving...";
+                indicator.className = "small text-info fw-semibold";
+            }
+
+            var tokenEl = document.querySelector('input[name="__RequestVerificationToken"]');
+            var token = tokenEl ? tokenEl.value : "";
+
+            var payload = {
+                title: title,
+                contentJson: JSON.stringify({
+                    version: 1,
+                    blocks: blocks
+                })
+            };
+
+            try {
+                var resp = await fetch("/InstructorCourses/SaveCourseNotebook/" + courseNotebookId, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "RequestVerificationToken": token
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                var res = await resp.json();
+                if (resp.ok && res.success) {
+                    markSaved(res.updatedAt);
+                } else {
+                    alert("Failed to save course notebook: " + (res.message || "Unknown error"));
+                    if (indicator) {
+                        indicator.textContent = "Save failed";
+                        indicator.className = "small text-danger fw-semibold";
+                    }
+                }
+            } catch (err) {
+                console.error("Save error:", err);
+                alert("Network error while saving course notebook.");
+                if (indicator) {
+                    indicator.textContent = "Save error";
+                    indicator.className = "small text-danger fw-semibold";
+                }
+            } finally {
+                if (saveBtn) saveBtn.disabled = false;
+            }
+        }
+
+        document.getElementById("saveNotebookBtn").addEventListener("click", saveNotebook);
+        document.getElementById("notebookTitleInput").addEventListener("input", markUnsaved);
+
+        window.addEventListener("beforeunload", function (e) {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = "";
+            }
+        });
+
+        document.addEventListener("DOMContentLoaded", function () {
+            renderBlocks();
+        });
+    </script>
+}

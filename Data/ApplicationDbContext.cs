@@ -42,6 +42,9 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
     public DbSet<SupportTicket> SupportTickets => Set<SupportTicket>();
     public DbSet<SupportMessage> SupportMessages => Set<SupportMessage>();
 
+    public DbSet<Notebook> Notebooks => Set<Notebook>();
+    public DbSet<CourseNotebook> CourseNotebooks => Set<CourseNotebook>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -74,6 +77,8 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
         builder.Entity<SupportAccess>().ToTable("support_accesses");
         builder.Entity<SupportTicket>().ToTable("support_tickets");
         builder.Entity<SupportMessage>().ToTable("support_messages");
+        builder.Entity<Notebook>().ToTable("notebooks");
+        builder.Entity<CourseNotebook>().ToTable("course_notebooks");
 
         builder.Entity<AdminActivity>().Property(a => a.Before).HasColumnType("text");
         builder.Entity<AdminActivity>().Property(a => a.After).HasColumnType("text");
@@ -161,6 +166,23 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
             .HasOne<Course>()
             .WithMany()
             .HasForeignKey(t => t.CourseId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // --- Terminal Notebooks ---
+        builder.Entity<Notebook>().Property(n => n.ContentJson).HasColumnType("longtext");
+        builder.Entity<Notebook>().HasIndex(n => new { n.UserId, n.UpdatedAtUtc });
+        builder.Entity<Notebook>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(n => n.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<CourseNotebook>().Property(n => n.ContentJson).HasColumnType("longtext");
+        builder.Entity<CourseNotebook>().HasIndex(n => new { n.CourseId, n.OrderIndex });
+        builder.Entity<CourseNotebook>()
+            .HasOne<Course>()
+            .WithMany()
+            .HasForeignKey(n => n.CourseId)
             .OnDelete(DeleteBehavior.Cascade);
 
         // --- Enrollments: one per (user, course); LastLessonId is a nullable resume cache ---

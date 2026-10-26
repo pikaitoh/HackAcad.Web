@@ -27,6 +27,11 @@
                     <span>@Model.Challenges.Count CTF Challenges</span>
                     <span class="mx-2">•</span>
                     <span>@Model.SimulationTasks.Count Terminal Labs</span>
+                    @if (Model.CourseNotebooks.Any())
+                    {
+                        <span class="mx-2">•</span>
+                        <span>@Model.CourseNotebooks.Count Terminal Notebooks</span>
+                    }
                 </div>
             </div>
 
@@ -195,6 +200,36 @@
                             {
                                 <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-simulationId="@s.TaskId" class="btn btn-sm btn-outline-secondary">
                                     @(isDone ? "Launch Lab Again" : "Launch Lab")
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Module 4: Terminal Notebooks -->
+        @if (Model.CourseNotebooks.Any())
+        {
+            <div class="mb-3">
+                <h3 style="font-size: 1.05rem; font-weight:700; color:#0c7c59; margin-bottom: 0.75rem;">
+                    📓 Terminal Notebooks (@Model.CourseNotebooks.Count)
+                </h3>
+                <div class="list-group">
+                    @foreach (var nb in Model.CourseNotebooks)
+                    {
+                        <div class="list-group-item d-flex justify-content-between align-items-center py-3">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <strong style="font-size:0.95rem;">@nb.Title</strong>
+                                    <span class="badge bg-light text-secondary border font-monospace small">#@nb.OrderIndex</span>
+                                </div>
+                                <div class="text-secondary small">Interactive study notes and terminal demonstrations.</div>
+                            </div>
+                            @if (Model.IsEnrolled)
+                            {
+                                <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-notebookId="@nb.CourseNotebookId" class="btn btn-sm btn-outline-secondary">
+                                    Open Notebook
                                 </a>
                             }
                         </div>

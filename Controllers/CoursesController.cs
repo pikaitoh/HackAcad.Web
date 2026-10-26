@@ -14,7 +14,8 @@ namespace HackAcad.Web.Controllers;
 
 public class CoursesController(
     ApplicationDbContext db,
-    IWebHostEnvironment environment, Personalization personalization, BadgeService badges) : Controller
+    IWebHostEnvironment environment, Personalization personalization, BadgeService badges,
+    NotebookExportService exportService) : Controller
 {
     // ==========================================
     // 1. PUBLIC / STUDENT CATALOGUE
@@ -135,6 +136,11 @@ public class CoursesController(
         var lessons = await db.Lessons.Where(l => l.CourseId == id).OrderBy(l => l.OrderIndex).ToListAsync();
         var challenges = await db.Challenges.Where(c => c.CourseId == id && c.IsPublished).ToListAsync();
         var simulations = await db.SimulationTasks.Where(s => s.CourseId == id && s.IsPublished).ToListAsync();
+        var courseNotebooks = await db.CourseNotebooks
+            .Where(nb => nb.CourseId == id && nb.IsPublished)
+            .OrderBy(nb => nb.OrderIndex)
+            .ThenBy(nb => nb.CourseNotebookId)
+            .ToListAsync();
 
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
         var isOwnCourse = User.IsInRole(AccountRoles.Instructor) && IsCourseOwner(course.InstructorId);
@@ -178,6 +184,7 @@ public class CoursesController(
             Lessons = lessons,
             Challenges = challenges,
             SimulationTasks = simulations,
+            CourseNotebooks = courseNotebooks,
             CompletedLessonIds = completedLessons,
             CompletedChallengeIds = completedChallenges,
             CompletedSimulationIds = completedSimulations
@@ -302,7 +309,7 @@ public class CoursesController(
     // ==========================================
     [Authorize(Roles = AccountRoles.Learner)]
     [HttpGet]
-    public async Task<IActionResult> Learn(int id, int? lessonId, int? challengeId, int? simulationId)
+    public async Task<IActionResult> Learn(int id, int? lessonId, int? challengeId, int? simulationId, int? notebookId)
     {
         // Rebuild the course view from progress saved in the database.
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -316,9 +323,15 @@ public class CoursesController(
         if (enrollment == null)
             return RedirectToAction(nameof(Details), new { id });
 
+        var isInstructor = IsCourseOwner(course.InstructorId);
         var lessons = await db.Lessons.Where(l => l.CourseId == id).OrderBy(l => l.OrderIndex).ToListAsync();
         var challenges = await db.Challenges.Where(c => c.CourseId == id && c.IsPublished).ToListAsync();
         var simulations = await db.SimulationTasks.Where(s => s.CourseId == id && s.IsPublished).ToListAsync();
+        var courseNotebooks = await db.CourseNotebooks
+            .Where(nb => nb.CourseId == id && (nb.IsPublished || isInstructor))
+            .OrderBy(nb => nb.OrderIndex)
+            .ThenBy(nb => nb.CourseNotebookId)
+            .ToListAsync();
 
         var progressList = await db.ProgressRecords
             .Where(p => p.EnrollmentId == enrollment.EnrollmentId && p.IsCompleted)
@@ -343,9 +356,23 @@ public class CoursesController(
         Lesson? currentLesson = null;
         Challenge? currentChallenge = null;
         SimulationTask? currentSimulation = null;
+        CourseNotebook? currentNotebook = null;
         bool isCurrentCompleted = false;
 
-        if (simulationId.HasValue)
+        if (notebookId.HasValue)
+        {
+            currentNotebook = courseNotebooks.FirstOrDefault(nb => nb.CourseNotebookId == notebookId.Value);
+            if (currentNotebook != null)
+            {
+                currentType = LearnContentType.Notebook;
+            }
+            else
+            {
+                currentType = LearnContentType.Lesson;
+                currentLesson = lessons.FirstOrDefault();
+            }
+        }
+        else if (simulationId.HasValue)
         {
             currentSimulation = simulations.FirstOrDefault(s => s.TaskId == simulationId.Value);
             if (currentSimulation != null)
@@ -424,6 +451,7 @@ public class CoursesController(
             Lessons = lessons,
             Challenges = challenges,
             SimulationTasks = simulations,
+            CourseNotebooks = courseNotebooks,
             CompletedLessonIds = completedLessonIds,
             CompletedChallengeIds = completedChallengeIds,
             CompletedSimulationIds = completedSimulationIds,
@@ -431,6 +459,7 @@ public class CoursesController(
             CurrentLesson = currentLesson,
             CurrentChallenge = currentChallenge,
             CurrentSimulation = currentSimulation,
+            CurrentNotebook = currentNotebook,
             PrevLessonId = prevLessonId,
             NextLessonId = nextLessonId,
             CurrentItemCompleted = isCurrentCompleted,
@@ -438,6 +467,30 @@ public class CoursesController(
         };
 
         return View(viewModel);
+    }
+
+    [Authorize(Roles = AccountRoles.Learner)]
+    [HttpGet]
+    public async Task<IActionResult> ExportNotebook(int id, int notebookId)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FindAsync(id);
+        if (course == null || !CanReadCourse(course)) return NotFound("Course not found.");
+        if (!CanLearnCourse(course)) return Forbid();
+
+        var isInstructor = IsCourseOwner(course.InstructorId);
+        var enrollment = await db.Enrollments.FirstOrDefaultAsync(e => e.UserId == currentUserId && e.CourseId == id);
+        if (enrollment == null && !isInstructor) return Forbid();
+
+        var notebook = await db.CourseNotebooks
+            .FirstOrDefaultAsync(nb => nb.CourseNotebookId == notebookId && nb.CourseId == id && (nb.IsPublished || isInstructor));
+        if (notebook == null) return NotFound("Notebook not found.");
+
+        var html = exportService.GenerateStandaloneHtml(notebook.Title, notebook.ContentJson);
+        var safeFilename = System.Text.RegularExpressions.Regex.Replace(notebook.Title, @"[^a-zA-Z0-9_\-]+", "_").Trim('_');
+        if (string.IsNullOrWhiteSpace(safeFilename)) safeFilename = "course_terminal_notebook";
+
+        return File(Encoding.UTF8.GetBytes(html), "text/html", $"{safeFilename}.html");
     }
 
     [Authorize(Roles = AccountRoles.Learner)]

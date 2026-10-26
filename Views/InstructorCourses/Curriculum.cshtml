@@ -56,6 +56,11 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
+            <button class="nav-link" id="notebooks-tab" data-bs-toggle="pill" data-bs-target="#notebooks-content" type="button" role="tab">
+                📓 Terminal Notebooks (@Model.CourseNotebooks.Count)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
             <button class="nav-link" id="students-tab" data-bs-toggle="pill" data-bs-target="#students-content" type="button" role="tab">
                 👥 Enrolled Students (@Model.EnrolledStudents.Count)
             </button>
@@ -280,7 +285,85 @@
             </div>
         </div>
 
-        <!-- 4. STUDENTS TAB -->
+        <!-- 4. NOTEBOOKS TAB -->
+        <div class="tab-pane fade" id="notebooks-content" role="tabpanel">
+            <div class="surface-panel p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h2>Terminal Notebooks</h2>
+                        <span class="text-secondary">Combine Markdown notes with interactive and static terminal demonstrations</span>
+                    </div>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addNotebookModal">
+                        + Add Notebook to Course
+                    </button>
+                </div>
+
+                @if (Model.CourseNotebooks.Count == 0)
+                {
+                    <div class="empty-state p-4 text-center">
+                        <p class="text-secondary">No terminal notebooks in this course yet. Add your first notebook above.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle module-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5rem;">Order</th>
+                                    <th>Notebook Title</th>
+                                    <th>Status</th>
+                                    <th>Last Updated</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var nb in Model.CourseNotebooks)
+                                {
+                                    <tr>
+                                        <td><span class="font-monospace">#@nb.OrderIndex</span></td>
+                                        <td>
+                                            <strong>@nb.Title</strong>
+                                        </td>
+                                        <td>
+                                            @if (nb.IsPublished)
+                                            {
+                                                <span class="badge bg-success">Published</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Draft</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <span class="text-secondary small">@UserTime.Format(nb.UpdatedAtUtc)</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-inline-flex gap-2 align-items-center">
+                                                <a asp-action="EditCourseNotebook" asp-route-id="@nb.CourseNotebookId" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                                <a asp-action="ExportCourseNotebook" asp-route-id="@nb.CourseNotebookId" class="btn btn-sm btn-outline-secondary" title="Export Standalone HTML">HTML</a>
+                                                <form asp-action="ToggleCourseNotebookPublish" asp-route-id="@nb.CourseNotebookId" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary">
+                                                        @(nb.IsPublished ? "Unpublish" : "Publish")
+                                                    </button>
+                                                </form>
+                                                <form asp-action="DeleteCourseNotebook" asp-route-id="@nb.CourseNotebookId" method="post" onsubmit="return confirm('Delete this course notebook? Enrolled students will no longer see it.');">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- 5. STUDENTS TAB -->
         <div class="tab-pane fade" id="students-content" role="tabpanel">
             <div class="surface-panel p-4 mb-4">
                 <h2>Enrolled Learners</h2>
@@ -368,6 +451,56 @@
                     </div>
                 </div>
             }
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Notebook to Course -->
+<div class="modal fade" id="addNotebookModal" tabindex="-1" aria-labelledby="addNotebookModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="AddNotebookToCourse" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="CourseId" value="@Model.Course.CourseId" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addNotebookModalLabel">Add Notebook to Course</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-secondary small">
+                        Adding a notebook creates an independent copy for this course. Any future edits to your personal notebook or course copy will remain isolated from each other.
+                    </p>
+
+                    @{
+                        var pNotebooks = ViewBag.PersonalNotebooks as IEnumerable<dynamic>;
+                    }
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Option A: Copy from Personal Notebooks</label>
+                        <select name="SelectedNotebookId" class="form-select">
+                            <option value="">-- Choose an existing personal notebook --</option>
+                            @if (pNotebooks != null)
+                            {
+                                foreach (var pnb in pNotebooks)
+                                {
+                                    <option value="@pnb.NotebookId">@pnb.Title</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="text-center my-2 text-secondary fw-semibold small">— OR —</div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Option B: Create New Blank Course Notebook</label>
+                        <input type="text" name="NewNotebookTitle" class="form-control" placeholder="e.g. Linux Command Walkthrough &amp; Notes" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add to Course</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

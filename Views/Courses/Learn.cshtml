@@ -96,6 +96,23 @@
                         </a>
                     }
                 }
+
+                <!-- Terminal Notebooks Group -->
+                @if (Model.CourseNotebooks.Any())
+                {
+                    <div class="curriculum-section-title">Terminal Notebooks</div>
+                    @foreach (var nb in Model.CourseNotebooks)
+                    {
+                        var isActive = Model.CurrentType == LearnContentType.Notebook && Model.CurrentNotebook?.CourseNotebookId == nb.CourseNotebookId;
+                        <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-notebookId="@nb.CourseNotebookId"
+                           class="curriculum-item-link @(isActive ? "active" : "")">
+                            <div class="d-flex align-items-center gap-2 text-truncate">
+                                <span class="item-badge-pill badge-lesson" style="background:#0c7c59; color:#fff;">NOTE</span>
+                                <span class="text-truncate">@nb.Title</span>
+                            </div>
+                        </a>
+                    }
+                }
             </nav>
         </aside>
 
@@ -350,12 +367,180 @@
                 <!-- Terminal Display Container -->
                 <div id="sim-terminal-container"></div>
             }
+
+            @* =========================================
+               CASE 4: CURRENT ITEM IS NOTEBOOK
+               ========================================= *@
+            else if (Model.CurrentType == LearnContentType.Notebook && Model.CurrentNotebook != null)
+            {
+                var doc = new HackAcad.Web.Models.ViewModels.NotebookDocument();
+                try
+                {
+                    if (!string.IsNullOrWhiteSpace(Model.CurrentNotebook.ContentJson))
+                    {
+                        doc = System.Text.Json.JsonSerializer.Deserialize<HackAcad.Web.Models.ViewModels.NotebookDocument>(Model.CurrentNotebook.ContentJson) ?? new HackAcad.Web.Models.ViewModels.NotebookDocument();
+                    }
+                }
+                catch { }
+
+                <div class="learn-header-bar">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="item-badge-pill badge-lesson" style="background:#0c7c59; color:#fff;">Course Notebook</span>
+                            <span class="badge bg-light text-secondary border font-monospace small">#@Model.CurrentNotebook.OrderIndex</span>
+                        </div>
+                        <h1>@Model.CurrentNotebook.Title</h1>
+                    </div>
+                    <div>
+                        <a asp-action="ExportNotebook" asp-route-id="@Model.Course.CourseId" asp-route-notebookId="@Model.CurrentNotebook.CourseNotebookId" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" title="Download standalone offline HTML file">
+                            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;" aria-hidden="true">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            Export Standalone HTML
+                        </a>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-column gap-4 mt-3">
+                    @if (doc.Blocks.Count == 0)
+                    {
+                        <div class="surface-panel p-4 text-center border rounded-3 text-secondary">
+                            <p class="mb-0">This notebook currently has no notes or demonstrations configured.</p>
+                        </div>
+                    }
+
+                    @{ int nbBlockIdx = 0; }
+                    @foreach (var block in doc.Blocks)
+                    {
+                        nbBlockIdx++;
+                        var blockDomId = $"learn_nb_block_{nbBlockIdx}";
+
+                        @if (block.Type == "markdown")
+                        {
+                            <div class="surface-panel p-4 border rounded-3 lesson-body" id="@blockDomId">
+                                @Html.Raw(HackAcad.Web.Services.MarkdownService.RenderHtml(block.Content))
+                            </div>
+                        }
+                        else if (block.Type == "terminal_static")
+                        {
+                            var promptCwd = string.IsNullOrWhiteSpace(block.Cwd) ? "/home/student" : block.Cwd.Trim();
+                            <div class="surface-panel p-4 border rounded-3" id="@blockDomId">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h2 class="h5 mb-0 font-monospace">@(string.IsNullOrWhiteSpace(block.Title) ? "Command & Output Demonstration" : block.Title)</h2>
+                                    <span class="badge bg-light text-secondary border">Static Example</span>
+                                </div>
+                                <div class="terminal-wrapper mb-0">
+                                    <div class="terminal-header">
+                                        <div class="terminal-buttons">
+                                            <span class="t-btn t-btn-red"></span>
+                                            <span class="t-btn t-btn-yellow"></span>
+                                            <span class="t-btn t-btn-green"></span>
+                                        </div>
+                                        <div class="terminal-title">student@hackacad: ~ (example)</div>
+                                        <div class="terminal-badge">EXAMPLE</div>
+                                    </div>
+                                    <div class="terminal-body" style="height:auto; min-height:80px; max-height:480px;">
+                                        @if (block.Examples != null && block.Examples.Any())
+                                        {
+                                            foreach (var ex in block.Examples)
+                                            {
+                                                <div class="term-line">
+                                                    <span class="term-prompt">student@hackacad:@(promptCwd)$ </span><span class="term-cmd">@ex.Command</span>
+                                                </div>
+                                                @if (!string.IsNullOrEmpty(ex.Output))
+                                                {
+                                                    var lines = ex.Output.Replace("\r\n", "\n").Split('\n');
+                                                    foreach (var l in lines)
+                                                    {
+                                                        <div class="term-line">@l</div>
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <div class="term-line text-muted"># No commands in this static example block.</div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else if (block.Type == "terminal_interactive")
+                        {
+                            var mountId = $"learn_interactive_term_{nbBlockIdx}";
+                            var cfgId = $"learn_cfg_data_{nbBlockIdx}";
+
+                            var configObj = new Dictionary<string, object?>
+                            {
+                                ["allowedCommands"] = block.AllowedCommands ?? ["help", "clear", "pwd", "ls", "cd", "cat", "whoami", "chmod", "echo", "history", "date", "id", "touch", "nano"],
+                                ["initialDirectory"] = string.IsNullOrWhiteSpace(block.InitialDirectory) ? "/home/student" : block.InitialDirectory,
+                                ["fileSystem"] = block.FileSystem ?? new Dictionary<string, object>
+                                {
+                                    ["home"] = new Dictionary<string, object>
+                                    {
+                                        ["student"] = new Dictionary<string, object>
+                                        {
+                                            ["notes.txt"] = "Welcome to your course terminal sandbox."
+                                        }
+                                    }
+                                },
+                                ["customCommands"] = block.CustomCommands ?? new List<HackAcad.Web.Models.ViewModels.NotebookCustomCommand>(),
+                                ["isNotebook"] = true,
+                                ["objectives"] = Array.Empty<object>()
+                            };
+                            var configJson = System.Text.Json.JsonSerializer.Serialize(configObj);
+
+                            <div class="surface-panel p-4 border rounded-3" id="@blockDomId">
+                                <div class="d-flex justify-content-between align-items-center mb-3">
+                                    <h2 class="h5 mb-0 font-monospace">@(string.IsNullOrWhiteSpace(block.Title) ? "Interactive Simulated Terminal" : block.Title)</h2>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="badge bg-info-subtle text-info border">Interactive CLI</span>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetCourseInteractiveTerminal('@mountId', '@cfgId')">
+                                            ↺ Reset Terminal
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div id="@mountId" class="course-notebook-terminal-container"></div>
+                                <script type="application/json" id="@cfgId">@Html.Raw(configJson)</script>
+                            </div>
+                        }
+                    }
+                </div>
+            }
         </main>
     </div>
 </div>
 
 @section Scripts {
+    <link rel="stylesheet" href="~/css/simulation-builder.css" asp-append-version="true" />
     <script src="~/js/simulation-terminal.js" asp-append-version="true"></script>
+    <script>
+        function resetCourseInteractiveTerminal(mountId, cfgId) {
+            var cfgEl = document.getElementById(cfgId);
+            if (!cfgEl) return;
+            try {
+                var cfg = JSON.parse(cfgEl.textContent);
+                cfg.isNotebook = true;
+                if (typeof window.initSimulationTerminal === 'function') {
+                    window.initSimulationTerminal(mountId, cfg);
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.course-notebook-terminal-container').forEach(function (container) {
+                var mountId = container.id;
+                var blockNum = mountId.replace('learn_interactive_term_', '');
+                var cfgId = 'learn_cfg_data_' + blockNum;
+                resetCourseInteractiveTerminal(mountId, cfgId);
+            });
+        });
+    </script>
     @if (Model.CurrentType == LearnContentType.Simulation && Model.CurrentSimulation != null)
     {
         <script>

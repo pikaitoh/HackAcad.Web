@@ -92,6 +92,7 @@ builder.Services.AddScoped<BadgeService>();
 builder.Services.AddScoped<ActivityCalendarService>();
 builder.Services.AddScoped<InstructorApplications>();
  builder.Services.AddScoped<Personalization>();
+builder.Services.AddScoped<NotebookExportService>();
 builder.Services.AddSingleton<PhoneVerification>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddOptions<Microsoft.AspNetCore.Authentication.Cookies.CookieAuthenticationOptions>(SupportAccessService.Scheme)

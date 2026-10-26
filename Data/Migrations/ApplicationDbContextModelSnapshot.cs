@@ -427,6 +427,45 @@ namespace HackAcad.Web.Data.Migrations
                     b.ToTable("courses", (string)null);
                 });
 
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.CourseNotebook", b =>
+                {
+                    b.Property<int>("CourseNotebookId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("CourseNotebookId"));
+
+                    b.Property<string>("ContentJson")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsPublished")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("CourseNotebookId");
+
+                    b.HasIndex("CourseId", "OrderIndex");
+
+                    b.ToTable("course_notebooks", (string)null);
+                });
+
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Enrollment", b =>
                 {
                     b.Property<int>("EnrollmentId")
@@ -689,6 +728,40 @@ namespace HackAcad.Web.Data.Migrations
                     b.HasIndex("UserId", "OccurredUtc");
 
                     b.ToTable("login_records", (string)null);
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.Notebook", b =>
+                {
+                    b.Property<int>("NotebookId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("NotebookId"));
+
+                    b.Property<string>("ContentJson")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("NotebookId");
+
+                    b.HasIndex("UserId", "UpdatedAtUtc");
+
+                    b.ToTable("notebooks", (string)null);
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Progress", b =>
@@ -1269,6 +1342,15 @@ namespace HackAcad.Web.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.CourseNotebook", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.Course", null)
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Enrollment", b =>
                 {
                     b.HasOne("HackAcad.Web.Models.Entities.Lesson", null)
@@ -1316,6 +1398,15 @@ namespace HackAcad.Web.Data.Migrations
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.LoginRecord", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.Notebook", b =>
                 {
                     b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
                         .WithMany()

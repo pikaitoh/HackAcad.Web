@@ -1,0 +1,189 @@
+@model HackAcad.Web.Models.Entities.Notebook
+@inject HackAcad.Web.Services.UserTimeZone UserTime
+@{
+    ViewData["Title"] = $"{Model.Title} — Terminal Notebook";
+    var doc = ViewBag.Document as HackAcad.Web.Models.ViewModels.NotebookDocument ?? new HackAcad.Web.Models.ViewModels.NotebookDocument();
+}
+
+<link rel="stylesheet" href="~/css/learning.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/simulation-builder.css" asp-append-version="true" />
+
+<div class="container module-shell" style="max-width: 1060px;">
+    @Html.AntiForgeryToken()
+
+    <!-- Top Action Bar -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+            ← All Notebooks
+        </a>
+        <div class="d-flex align-items-center gap-2">
+            <a asp-action="Export" asp-route-id="@Model.NotebookId" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" title="Download standalone offline HTML file">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Export Standalone HTML
+            </a>
+            <a asp-action="Edit" asp-route-id="@Model.NotebookId" class="btn btn-sm btn-primary">
+                Edit Notebook
+            </a>
+        </div>
+    </div>
+
+    <!-- Notebook Header -->
+    <div class="surface-panel p-4 mb-4 border rounded-3">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+            <div>
+                <span class="badge bg-light text-secondary border font-monospace small mb-2">PERSONAL NOTEBOOK</span>
+                <h1 class="h2 mb-1" style="color:var(--ha-ink);">@Model.Title</h1>
+                <div class="text-secondary small">
+                    Last updated @UserTime.Format(Model.UpdatedAtUtc) · @UserTime.Id
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <span class="badge bg-secondary-subtle text-secondary border align-self-center">
+                    @doc.Blocks.Count @(doc.Blocks.Count == 1 ? "Block" : "Blocks")
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Blocks List -->
+    <div class="d-flex flex-column gap-4">
+        @if (doc.Blocks.Count == 0)
+        {
+            <div class="surface-panel p-5 text-center empty-state border rounded-3">
+                <p class="text-secondary mb-3">This notebook is empty.</p>
+                <a asp-action="Edit" asp-route-id="@Model.NotebookId" class="btn btn-primary">Add Notes &amp; Terminals</a>
+            </div>
+        }
+
+        @{ int blockIdx = 0; }
+        @foreach (var block in doc.Blocks)
+        {
+            blockIdx++;
+            var blockDomId = $"block_view_{blockIdx}";
+
+            @if (block.Type == "markdown")
+            {
+                <div class="surface-panel p-4 border rounded-3 lesson-body" id="@blockDomId">
+                    @Html.Raw(HackAcad.Web.Services.MarkdownService.RenderHtml(block.Content))
+                </div>
+            }
+            else if (block.Type == "terminal_static")
+            {
+                var promptCwd = string.IsNullOrWhiteSpace(block.Cwd) ? "/home/student" : block.Cwd.Trim();
+                <div class="surface-panel p-4 border rounded-3" id="@blockDomId">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h5 mb-0 font-monospace">@(string.IsNullOrWhiteSpace(block.Title) ? "Command & Output Demonstration" : block.Title)</h2>
+                        <span class="badge bg-light text-secondary border">Static Example</span>
+                    </div>
+
+                    <div class="terminal-wrapper mb-0">
+                        <div class="terminal-header">
+                            <div class="terminal-buttons">
+                                <span class="t-btn t-btn-red"></span>
+                                <span class="t-btn t-btn-yellow"></span>
+                                <span class="t-btn t-btn-green"></span>
+                            </div>
+                            <div class="terminal-title">student@hackacad: ~ (example)</div>
+                            <div class="terminal-badge">EXAMPLE</div>
+                        </div>
+                        <div class="terminal-body" style="height:auto; min-height:80px; max-height:480px;">
+                            @if (block.Examples != null && block.Examples.Any())
+                            {
+                                foreach (var ex in block.Examples)
+                                {
+                                    <div class="term-line">
+                                        <span class="term-prompt">student@hackacad:@(promptCwd)$ </span><span class="term-cmd">@ex.Command</span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(ex.Output))
+                                    {
+                                        var lines = ex.Output.Replace("\r\n", "\n").Split('\n');
+                                        foreach (var l in lines)
+                                        {
+                                            <div class="term-line">@l</div>
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                <div class="term-line text-muted"># No commands in this static example block.</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+            else if (block.Type == "terminal_interactive")
+            {
+                var mountId = $"interactive_term_{blockIdx}";
+                var cfgId = $"cfg_data_{blockIdx}";
+
+                var configObj = new Dictionary<string, object?>
+                {
+                    ["allowedCommands"] = block.AllowedCommands ?? ["help", "clear", "pwd", "ls", "cd", "cat", "whoami", "chmod", "echo", "history", "date", "id", "touch", "nano"],
+                    ["initialDirectory"] = string.IsNullOrWhiteSpace(block.InitialDirectory) ? "/home/student" : block.InitialDirectory,
+                    ["fileSystem"] = block.FileSystem ?? new Dictionary<string, object>
+                    {
+                        ["home"] = new Dictionary<string, object>
+                        {
+                            ["student"] = new Dictionary<string, object>
+                            {
+                                ["notes.txt"] = "Welcome to your personal terminal sandbox.\nUse standard Linux commands to inspect files and test scenarios."
+                            }
+                        }
+                    },
+                    ["customCommands"] = block.CustomCommands ?? new List<HackAcad.Web.Models.ViewModels.NotebookCustomCommand>(),
+                    ["isNotebook"] = true,
+                    ["objectives"] = Array.Empty<object>()
+                };
+                var configJson = System.Text.Json.JsonSerializer.Serialize(configObj);
+
+                <div class="surface-panel p-4 border rounded-3" id="@blockDomId">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h2 class="h5 mb-0 font-monospace">@(string.IsNullOrWhiteSpace(block.Title) ? "Interactive Simulated Terminal" : block.Title)</h2>
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-info-subtle text-info border">Interactive CLI</span>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetInteractiveTerminal('@mountId', '@cfgId')">
+                                ↺ Reset Terminal
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="@mountId" class="notebook-terminal-container"></div>
+                    <script type="application/json" id="@cfgId">@Html.Raw(configJson)</script>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/simulation-terminal.js" asp-append-version="true"></script>
+    <script>
+        function resetInteractiveTerminal(mountId, cfgId) {
+            var cfgEl = document.getElementById(cfgId);
+            if (!cfgEl) return;
+            try {
+                var cfg = JSON.parse(cfgEl.textContent);
+                cfg.isNotebook = true;
+                if (typeof window.initSimulationTerminal === 'function') {
+                    window.initSimulationTerminal(mountId, cfg);
+                }
+            } catch(e) {
+                console.error(e);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('.notebook-terminal-container').forEach(function (container) {
+                var mountId = container.id;
+                var blockNum = mountId.replace('interactive_term_', '');
+                var cfgId = 'cfg_data_' + blockNum;
+                resetInteractiveTerminal(mountId, cfgId);
+            });
+        });
+    </script>
+}

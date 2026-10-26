@@ -112,6 +112,8 @@
         const formEl = document.getElementById(options.formId);
 
         // Core State
+        const isNotebookBlock = options.isNotebookBlock === true || options.mode === 'notebook_block';
+
         let state = {
             title: options.initialTitle || "",
             description: options.initialDescription || "",
@@ -131,8 +133,14 @@
 
         // Load initial JSON configuration if provided
         try {
-            if (hiddenJsonInput && hiddenJsonInput.value.trim()) {
-                const parsed = JSON.parse(hiddenJsonInput.value.trim());
+            let parsed = null;
+            if (options.initialConfig) {
+                parsed = typeof options.initialConfig === 'string' ? JSON.parse(options.initialConfig) : JSON.parse(JSON.stringify(options.initialConfig));
+            } else if (hiddenJsonInput && hiddenJsonInput.value.trim()) {
+                parsed = JSON.parse(hiddenJsonInput.value.trim());
+            }
+
+            if (parsed) {
                 if (parsed.fileSystem && typeof parsed.fileSystem === 'object') {
                     state.fileSystem = JSON.parse(JSON.stringify(parsed.fileSystem));
                 }
@@ -500,22 +508,26 @@
 
         // Serialization & Sync
         function serializeConfiguration() {
-            return {
-                description: state.description,
-                difficulty: state.difficulty,
+            const config = {
                 allowedCommands: state.allowedCommands,
                 initialDirectory: state.initialDirectory,
                 fileSystem: state.fileSystem,
                 customCommands: state.customCommands,
-                sequentialObjectives: state.sequentialObjectives !== false,
-                objectives: state.objectives.map(o => ({
+                isNotebook: isNotebookBlock
+            };
+            if (!isNotebookBlock) {
+                config.description = state.description;
+                config.difficulty = state.difficulty;
+                config.sequentialObjectives = state.sequentialObjectives !== false;
+                config.objectives = state.objectives.map(o => ({
                     id: o.id,
                     text: (o.text || '').trim(),
                     command: (o.command || '').trim(),
                     executionDirectory: o.executionDirectory ? normalizePath(o.executionDirectory) : '',
                     hint: (o.hint || '').trim()
-                }))
-            };
+                }));
+            }
+            return config;
         }
 
         function syncStateToInput() {
@@ -683,6 +695,7 @@
                     </div>
 
                     <!-- Section 1: Lab Details -->
+                    ${!isNotebookBlock ? `
                     <div class="builder-card mb-4">
                         <div class="builder-card-header">
                             <h5 class="mb-0">1. Simulation Metadata</h5>
@@ -712,6 +725,7 @@
                             </div>
                         </div>
                     </div>
+                    ` : ''}
 
                     <!-- Section 2: Virtual Filesystem Builder -->
                     <div class="builder-card mb-4">
@@ -815,6 +829,7 @@
                         </div>
                     </div>
 
+                    ${!isNotebookBlock ? `
                     <!-- Section 5: Objective Builder -->
                     <div class="builder-card mb-4">
                         <div class="builder-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -858,20 +873,33 @@
                             </div>
                         </div>
                     </div>
+                    ` : ''}
 
                     <!-- Action Bar -->
                     <div id="validationAlertContainer"></div>
                     <div class="d-flex gap-3 align-items-center mt-3 pt-3 border-top">
-                        <button type="button" id="saveDraftActionBtn" class="btn btn-outline-secondary">
-                            ${svgIcon('save', 'me-1')} Save Draft
-                        </button>
-                        <button type="button" id="livePreviewActionBtn" class="btn btn-outline-primary">
-                            ${svgIcon('play', 'me-1')} Live Preview
-                        </button>
-                        <button type="button" id="publishActionBtn" class="btn btn-success">
-                            ${svgIcon('publish', 'me-1')} Publish Simulation Lab
-                        </button>
-                        <a href="${options.cancelUrl || '#'}" class="btn btn-link text-secondary text-decoration-none">Cancel</a>
+                        ${isNotebookBlock ? `
+                            <button type="button" id="notebookSaveBlockBtn" class="btn btn-success">
+                                ${svgIcon('save', 'me-1')} Apply Configuration to Block
+                            </button>
+                            <button type="button" id="livePreviewActionBtn" class="btn btn-outline-primary">
+                                ${svgIcon('play', 'me-1')} Test in Live Preview
+                            </button>
+                            <button type="button" id="notebookCancelBlockBtn" class="btn btn-outline-secondary">
+                                Cancel
+                            </button>
+                        ` : `
+                            <button type="button" id="saveDraftActionBtn" class="btn btn-outline-secondary">
+                                ${svgIcon('save', 'me-1')} Save Draft
+                            </button>
+                            <button type="button" id="livePreviewActionBtn" class="btn btn-outline-primary">
+                                ${svgIcon('play', 'me-1')} Live Preview
+                            </button>
+                            <button type="button" id="publishActionBtn" class="btn btn-success">
+                                ${svgIcon('publish', 'me-1')} Publish Simulation Lab
+                            </button>
+                            <a href="${options.cancelUrl || '#'}" class="btn btn-link text-secondary text-decoration-none">Cancel</a>
+                        `}
                     </div>
                 </div>
 
@@ -879,8 +907,8 @@
                 <div id="previewTabContent" style="${state.activeTab === 'preview' ? '' : 'display:none;'}">
                     <div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
                         <div>
-                            <strong>${svgIcon('terminal', 'me-1')} Live Sandbox Preview Mode</strong>: Test filesystem navigation, commands, and objectives completion right now.
-                            <div class="small text-secondary">Activity in preview mode is completely isolated and does not save student progress records.</div>
+                            <strong>${svgIcon('terminal', 'me-1')} Live Sandbox Preview Mode</strong>: Test filesystem navigation, commands, and script execution.
+                            <div class="small text-secondary">Activity in preview mode is completely isolated and does not modify saved notebook data.</div>
                         </div>
                         <div class="d-flex gap-2">
                             <button type="button" id="resetPreviewBtn" class="btn btn-sm btn-outline-secondary">
@@ -890,6 +918,7 @@
                         </div>
                     </div>
 
+                    ${!isNotebookBlock ? `
                     <div id="sim-builder-preview-success" class="alert alert-success" style="display:none;">
                         ${svgIcon('check', 'me-2')} <strong>Preview Verified!</strong> All lab objectives have been satisfied!
                     </div>
@@ -903,6 +932,7 @@
                             <ul class="objectives-list mb-0" id="simulation-objectives-list"></ul>
                         </div>
                     </div>
+                    ` : ''}
 
                     <!-- Preview Terminal Host -->
                     <div id="sim-builder-preview-terminal"></div>
@@ -1542,6 +1572,19 @@
             });
 
             // Action Buttons: Save Draft, Preview, Publish
+            document.getElementById("notebookSaveBlockBtn")?.addEventListener("click", () => {
+                syncStateToInput();
+                if (typeof options.onSave === 'function') {
+                    options.onSave(serializeConfiguration());
+                }
+            });
+
+            document.getElementById("notebookCancelBlockBtn")?.addEventListener("click", () => {
+                if (typeof options.onCancel === 'function') {
+                    options.onCancel();
+                }
+            });
+
             document.getElementById("saveDraftActionBtn")?.addEventListener("click", () => {
                 state.isPublished = false;
                 submitForm(false);

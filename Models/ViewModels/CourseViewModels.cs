@@ -47,6 +47,7 @@ public class CourseDetailsViewModel
     public List<Lesson> Lessons { get; set; } = [];
     public List<Challenge> Challenges { get; set; } = [];
     public List<SimulationTask> SimulationTasks { get; set; } = [];
+    public List<CourseNotebook> CourseNotebooks { get; set; } = [];
     public HashSet<int> CompletedLessonIds { get; set; } = [];
     public HashSet<int> CompletedChallengeIds { get; set; } = [];
     public HashSet<int> CompletedSimulationIds { get; set; } = [];
@@ -56,7 +57,8 @@ public enum LearnContentType
 {
     Lesson,
     Challenge,
-    Simulation
+    Simulation,
+    Notebook
 }
 
 public class CourseLearnViewModel
@@ -69,6 +71,7 @@ public class CourseLearnViewModel
     public List<Lesson> Lessons { get; set; } = [];
     public List<Challenge> Challenges { get; set; } = [];
     public List<SimulationTask> SimulationTasks { get; set; } = [];
+    public List<CourseNotebook> CourseNotebooks { get; set; } = [];
 
     public HashSet<int> CompletedLessonIds { get; set; } = [];
     public HashSet<int> CompletedChallengeIds { get; set; } = [];
@@ -78,6 +81,7 @@ public class CourseLearnViewModel
     public Lesson? CurrentLesson { get; set; }
     public Challenge? CurrentChallenge { get; set; }
     public SimulationTask? CurrentSimulation { get; set; }
+    public CourseNotebook? CurrentNotebook { get; set; }
 
     public int? PrevLessonId { get; set; }
     public int? NextLessonId { get; set; }
@@ -225,6 +229,20 @@ public class CourseCurriculumViewModel
     public List<Lesson> Lessons { get; set; } = [];
     public List<Challenge> Challenges { get; set; } = [];
     public List<SimulationTask> SimulationTasks { get; set; } = [];
+    public List<CourseNotebook> CourseNotebooks { get; set; } = [];
     public List<StudentCourseActivityRow> EnrolledStudents { get; set; } = [];
     public List<ChallengeSubmission> RecentSubmissions { get; set; } = [];
+}
+
+public class CourseNotebookCreateEditModel
+{
+    public int CourseNotebookId { get; set; }
+    public int CourseId { get; set; }
+
+    [Required(ErrorMessage = "Notebook title is required."), StringLength(150, ErrorMessage = "Title cannot exceed 150 characters.")]
+    public string Title { get; set; } = string.Empty;
+
+    public string? ContentJson { get; set; }
+    public bool IsPublished { get; set; } = true;
+    public int OrderIndex { get; set; }
 }

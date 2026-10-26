@@ -84,10 +84,15 @@
             return directory && Object.hasOwn(directory, name) && typeof directory[name] === 'string' ? directory[name] : null;
         }
 
+        let isNotebook = false;
+
         // Parse instructor config
         if (config) {
             try {
                 const parsed = typeof config === 'string' ? JSON.parse(config) : config;
+                if (parsed.isNotebook === true || parsed.noObjectives === true) {
+                    isNotebook = true;
+                }
                 if (parsed.allowedCommands && Array.isArray(parsed.allowedCommands)) {
                     allowedCommands = parsed.allowedCommands
                         .map(c => c.toLowerCase().trim())
@@ -133,7 +138,7 @@
             }
         }
 
-        if (objectives.length === 0) {
+        if (objectives.length === 0 && !isNotebook) {
             objectives = [
                 { id: "explore", text: "Explore the filesystem with pwd", command: "pwd", executionDirectory: "", hint: "Type 'pwd' and press Enter", completed: false },
                 { id: "find_flag", text: "Locate and read notes.txt using cat", command: "cat notes.txt", executionDirectory: "/home/student", hint: "Run 'cat notes.txt'", completed: false }
@@ -813,10 +818,21 @@
         // Print initial hint(s) once on startup
         introduceAvailableHints();
 
-        // Expose reset attempt function
-        window.resetSimulationAttempt = function () {
+        // Expose container-level reset
+        container.resetTerminal = function () {
             try { sessionStorage.removeItem(hintStorageKey); } catch (e) { }
-            introducedHints.clear();
+            window.initSimulationTerminal(containerId, config, onCompleteCallback);
         };
+    };
+
+    window.resetSimulationTerminal = function (cId) {
+        const el = document.getElementById(cId);
+        if (el && typeof el.resetTerminal === 'function') {
+            el.resetTerminal();
+        }
+    };
+
+    window.resetSimulationAttempt = function () {
+        try { sessionStorage.clear(); } catch (e) { }
     };
 })();

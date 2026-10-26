@@ -15,7 +15,8 @@ namespace HackAcad.Web.Controllers;
 [Authorize(Roles = AccountRoles.Instructor)]
 public class InstructorCoursesController(
     ApplicationDbContext db,
-    IWebHostEnvironment environment) : Controller
+    IWebHostEnvironment environment,
+    NotebookExportService exportService) : Controller
 {
     // ==========================================
     // 1. INSTRUCTOR STUDIO DASHBOARD
@@ -171,6 +172,18 @@ public class InstructorCoursesController(
         var lessons = await db.Lessons.Where(l => l.CourseId == id).OrderBy(l => l.OrderIndex).ToListAsync();
         var challenges = await db.Challenges.Where(c => c.CourseId == id).ToListAsync();
         var simulations = await db.SimulationTasks.Where(s => s.CourseId == id).ToListAsync();
+        var courseNotebooks = await db.CourseNotebooks
+            .Where(nb => nb.CourseId == id)
+            .OrderBy(nb => nb.OrderIndex)
+            .ThenBy(nb => nb.CourseNotebookId)
+            .ToListAsync();
+
+        var personalNotebooks = await db.Notebooks
+            .Where(n => n.UserId == instructorId)
+            .OrderByDescending(n => n.UpdatedAtUtc)
+            .Select(n => new { n.NotebookId, n.Title })
+            .ToListAsync();
+        ViewBag.PersonalNotebooks = personalNotebooks;
 
         var enrollments = await db.Enrollments.Where(e => e.CourseId == id).ToListAsync();
         var studentIds = enrollments.Select(e => e.UserId).Distinct().ToList();
@@ -252,6 +265,7 @@ public class InstructorCoursesController(
             Lessons = lessons,
             Challenges = challenges,
             SimulationTasks = simulations,
+            CourseNotebooks = courseNotebooks,
             EnrolledStudents = studentRows,
             RecentSubmissions = recentSubmissions
         };
@@ -785,6 +799,214 @@ public class InstructorCoursesController(
 
         TempData["Success"] = $"Course \"{course.Title}\" deleted.";
         return RedirectToAction(nameof(Index));
+    }
+
+    // ==========================================
+    // 9. COURSE NOTEBOOKS MANAGEMENT
+    // ==========================================
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddNotebookToCourse(AddNotebookToCourseModel model)
+    {
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
+        if (course == null) return NotFound("Course not found or unauthorized.");
+
+        string title;
+        string contentJson;
+
+        if (model.SelectedNotebookId.HasValue && model.SelectedNotebookId.Value > 0)
+        {
+            var personalNotebook = await db.Notebooks
+                .FirstOrDefaultAsync(n => n.NotebookId == model.SelectedNotebookId.Value && n.UserId == instructorId);
+            if (personalNotebook == null)
+            {
+                TempData["FlagError"] = "Selected personal notebook could not be found or you do not own it.";
+                return RedirectToAction(nameof(Curriculum), new { id = model.CourseId });
+            }
+
+            title = personalNotebook.Title;
+            contentJson = personalNotebook.ContentJson;
+        }
+        else
+        {
+            title = string.IsNullOrWhiteSpace(model.NewNotebookTitle) ? "Course Notebook" : model.NewNotebookTitle.Trim();
+            if (title.Length > 150) title = title[..150];
+
+            var initialDoc = new NotebookDocument
+            {
+                Version = 1,
+                Blocks =
+                [
+                    new NotebookBlock
+                    {
+                        Id = "blk_" + Guid.NewGuid().ToString("n")[..8],
+                        Type = "markdown",
+                        Content = $"# {title}\n\nWelcome to this course terminal notebook.\nUse the notes and terminal demonstrations below to follow along with the instructor."
+                    }
+                ]
+            };
+            contentJson = JsonSerializer.Serialize(initialDoc);
+        }
+
+        var maxOrder = await db.CourseNotebooks
+            .Where(cn => cn.CourseId == model.CourseId)
+            .MaxAsync(cn => (int?)cn.OrderIndex) ?? 0;
+
+        var courseNotebook = new CourseNotebook
+        {
+            CourseId = model.CourseId,
+            Title = title,
+            ContentJson = contentJson,
+            OrderIndex = maxOrder + 1,
+            IsPublished = true,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+
+        db.CourseNotebooks.Add(courseNotebook);
+        await db.SaveChangesAsync();
+
+        TempData["Success"] = $"Added notebook \"{courseNotebook.Title}\" to the course curriculum.";
+        return RedirectToAction(nameof(EditCourseNotebook), new { id = courseNotebook.CourseNotebookId });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> EditCourseNotebook(int id)
+    {
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var notebook = await db.CourseNotebooks
+            .FirstOrDefaultAsync(cn => cn.CourseNotebookId == id);
+
+        if (notebook == null) return NotFound("Course notebook not found.");
+
+        var isOwner = await db.Courses.AnyAsync(c => c.CourseId == notebook.CourseId && c.InstructorId == instructorId);
+        if (!isOwner) return Forbid();
+
+        return View(notebook);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveCourseNotebook(int id, [FromBody] NotebookSaveModel model)
+    {
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var notebook = await db.CourseNotebooks
+            .FirstOrDefaultAsync(cn => cn.CourseNotebookId == id);
+
+        if (notebook == null)
+        {
+            return NotFound(new { success = false, message = "Course notebook not found." });
+        }
+
+        var isOwner = await db.Courses.AnyAsync(c => c.CourseId == notebook.CourseId && c.InstructorId == instructorId);
+        if (!isOwner)
+        {
+            return Forbid();
+        }
+
+        if (string.IsNullOrWhiteSpace(model.Title))
+        {
+            return BadRequest(new { success = false, message = "Notebook title is required." });
+        }
+
+        if (!string.IsNullOrWhiteSpace(model.ContentJson))
+        {
+            try
+            {
+                var doc = JsonSerializer.Deserialize<NotebookDocument>(model.ContentJson);
+                if (doc == null)
+                {
+                    return BadRequest(new { success = false, message = "Invalid notebook document format." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = "JSON parse error: " + ex.Message });
+            }
+        }
+
+        notebook.Title = model.Title.Trim();
+        if (notebook.Title.Length > 150) notebook.Title = notebook.Title[..150];
+
+        notebook.ContentJson = model.ContentJson ?? "{\"version\":1,\"blocks\":[]}";
+        notebook.UpdatedAtUtc = DateTime.UtcNow;
+
+        await db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            title = notebook.Title,
+            updatedAt = notebook.UpdatedAtUtc.ToString("o"),
+            message = "Course notebook saved successfully."
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleCourseNotebookPublish(int id)
+    {
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var notebook = await db.CourseNotebooks
+            .FirstOrDefaultAsync(cn => cn.CourseNotebookId == id);
+
+        if (notebook == null) return NotFound();
+
+        var isOwner = await db.Courses.AnyAsync(c => c.CourseId == notebook.CourseId && c.InstructorId == instructorId);
+        if (!isOwner) return Forbid();
+
+        notebook.IsPublished = !notebook.IsPublished;
+        notebook.UpdatedAtUtc = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+
+        TempData["Success"] = notebook.IsPublished
+            ? $"Course notebook \"{notebook.Title}\" is now published for enrolled students."
+            : $"Course notebook \"{notebook.Title}\" is now hidden (draft mode).";
+
+        return RedirectToAction(nameof(Curriculum), new { id = notebook.CourseId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteCourseNotebook(int id)
+    {
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var notebook = await db.CourseNotebooks
+            .FirstOrDefaultAsync(cn => cn.CourseNotebookId == id);
+
+        if (notebook == null) return NotFound();
+
+        var isOwner = await db.Courses.AnyAsync(c => c.CourseId == notebook.CourseId && c.InstructorId == instructorId);
+        if (!isOwner) return Forbid();
+
+        var courseId = notebook.CourseId;
+        var title = notebook.Title;
+        db.CourseNotebooks.Remove(notebook);
+        await db.SaveChangesAsync();
+
+        TempData["Success"] = $"Course notebook \"{title}\" deleted.";
+        return RedirectToAction(nameof(Curriculum), new { id = courseId });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportCourseNotebook(int id)
+    {
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var notebook = await db.CourseNotebooks
+            .AsNoTracking()
+            .FirstOrDefaultAsync(cn => cn.CourseNotebookId == id);
+
+        if (notebook == null) return NotFound();
+
+        var isOwner = await db.Courses.AnyAsync(c => c.CourseId == notebook.CourseId && c.InstructorId == instructorId);
+        if (!isOwner) return Forbid();
+
+        var html = exportService.GenerateStandaloneHtml(notebook.Title, notebook.ContentJson);
+        var safeFilename = System.Text.RegularExpressions.Regex.Replace(notebook.Title, @"[^a-zA-Z0-9_\-]+", "_").Trim('_');
+        if (string.IsNullOrWhiteSpace(safeFilename)) safeFilename = "course_terminal_notebook";
+
+        return File(Encoding.UTF8.GetBytes(html), "text/html", $"{safeFilename}.html");
     }
 
     private static string ComputeSha256(string input)
