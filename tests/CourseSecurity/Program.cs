@@ -31,15 +31,17 @@ Check(!SimulationVerifier.IsComplete(config,["cd /var/secret","chmod 644 audit.s
 Check(!SimulationVerifier.IsComplete(config,["cd /missing","chmod 755 audit.sh","cat audit.sh"]),"failed directory and file commands do not satisfy objectives");
 Check(!SimulationVerifier.IsComplete(config,["cd /var/secret-extra","cat audit.sh","chmod 755 audit.sh"]),"partial directory names cannot satisfy cwd objective");
 Check(SimulationVerifier.IsComplete(config,["bad-command","cd /missing","cd /var/secret","chmod 755 audit.sh","cat audit.sh"]),"learner mistakes are allowed before a valid complete command sequence");
-Check(SimulationVerifier.IsComplete(config,["cd /var/secret","chmod 755 /var/secret/audit.sh","cat /var/secret/audit.sh"]),"absolute file paths are supported");
+Check(!SimulationVerifier.IsComplete(config,["cd /var/secret","chmod 755 /var/secret/audit.sh","cat /var/secret/audit.sh"]),"exact command objectives reject a different path spelling");
+var absoluteConfig=config.Replace("\"target\":\"audit.sh\"","\"target\":\"/var/secret/audit.sh\"");
+Check(SimulationVerifier.IsComplete(absoluteConfig,["cd /var/secret","chmod 755 /var/secret/audit.sh","cat /var/secret/audit.sh"]),"explicit absolute-path objectives are supported");
 Check(!SimulationVerifier.IsComplete(config,Enumerable.Repeat("ls",257).ToArray()),"oversized command history is rejected");
 Check(!SimulationVerifier.TryConfiguration("{};alert(1)",out _,out _),"non-JSON simulation scripts are rejected");
 Check(!SimulationVerifier.TryConfiguration("{}",out _,out _),"missing objective definitions are rejected");
 var network=config.Replace("[{\"id\":\"nav\",\"type\":\"cwd\",\"target\":\"/var/secret\"},{\"id\":\"mode\",\"type\":\"chmod\",\"target\":\"audit.sh\"},{\"id\":\"read\",\"type\":\"cat\",\"target\":\"audit.sh\"}]","[{\"id\":\"scan\",\"type\":\"command\",\"target\":\"nmap\"},{\"id\":\"request\",\"type\":\"command\",\"target\":\"curl\"}]");
-Check(SimulationVerifier.IsComplete(network,["nmap target.hackacad.local","curl http://target.hackacad.local/debug"]),"network lab command objectives work without real network requests");
+Check(!SimulationVerifier.IsComplete(network,["nmap target.hackacad.local","curl http://target.hackacad.local/debug"]),"removed network built-ins cannot satisfy objectives");
 var crypto=network.Replace("\"nmap\"}","\"base64\"}");
 Check(!SimulationVerifier.IsComplete(crypto,["base64 -d !!!","curl /debug"]),"invalid base64 does not satisfy a decode command objective");
-Check(SimulationVerifier.IsComplete(crypto,["base64 -d dGVzdA==","curl /debug"]),"valid base64 command objectives are supported");
+Check(!SimulationVerifier.IsComplete(crypto,["base64 -d dGVzdA==","curl /debug"]),"removed base64 and curl built-ins cannot satisfy objectives");
 
 await using var factory=new WebApplicationFactory<AccountController>();
 const string password="HackAcad@123!",flag="flag{course_security_test}";
@@ -77,6 +79,12 @@ async Task Login(HttpClient client,string email)
  if(adminCodes.TryGetValue(email,out var recovery)) { signedInAdmins[client]=email;var complete=await Post(client,"/Identity/Account/LoginRecoveryCode",Fields("Code",recovery.Dequeue()),"/Identity/Account/LoginRecoveryCode");Check(complete.StatusCode==HttpStatusCode.Redirect,"Admin fixture completes mandatory MFA"); }
 
 }
+// Learner/security checks use an approved fixture; moderation is covered by CourseReviewFlow.
+async Task ApproveFixture(int id)
+{
+    using var scope=factory.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var course=await db.Courses.SingleAsync(c=>c.CourseId==id);course.ReviewStatus=CourseReviewStatus.Approved;course.IsPublished=true;await db.SaveChangesAsync();
+}
 async Task Complete(HttpClient student,int course,int task,string[]? commands,bool expected)
 {
     var data=Fields("courseId",course.ToString(),"taskId",task.ToString()).ToList();
@@ -106,6 +114,7 @@ try
         db.SimulationTasks.AddRange(sim,draftSim);await db.SaveChangesAsync();
         lessonId=lesson.LessonId;challengeId=challenge.ChallengeId;draftChallengeId=draftChallenge.ChallengeId;simId=sim.TaskId;draftSimId=draftSim.TaskId;
     }
+    await ApproveFixture(publicId);
     foreach(var path in new[]{"/Courses","/Courses/Details/"+publicId})
     {
         var response=await guest.GetAsync(path);
@@ -294,6 +303,7 @@ try
     var safeJson=SimulationVerifier.SafeJson(scriptConfig);
     Check(!safeJson.Contains("</script>")&&safeJson.Contains("u003C"),"HTML-safe serialization escapes script-closing sequences");
     await Post(t,"/InstructorCourses/SaveSimulation",Fields("CourseId",publicId.ToString(),"TaskId",simId.ToString(),"Title","Review lab","VirtualFileSystemJson",scriptConfig,"RewardFlag","flag{reward}","IsPublished","true"));
+    await ApproveFixture(publicId);
     var lab=await s.GetStringAsync($"/Courses/Learn/{publicId}?simulationId={simId}");
     Check(!lab.Contains("<script>window.__reviewMarker")&&lab.Contains("u003C"),"stored JSON cannot break out of the rendered lab script");
     await Complete(s,publicId,simId,null,false);await Complete(s,publicId,simId,["cd /var/secret","chmod 644 audit.sh","cat audit.sh"],false);

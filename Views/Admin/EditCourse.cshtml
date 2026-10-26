@@ -1,15 +1,24 @@
 @model EditCourseModel
 @{ ViewData["Title"] = "Review course";
    var original = (Course)ViewData["OriginalCourse"]!;
+   var categories = new[] { "Web Security", "Linux Basics", "Cryptography", "Network Security", "Digital Forensics", "Reverse Engineering", "General Security" };
    var originalValues = System.Text.Json.JsonSerializer.Serialize(new { original.Title, original.Category, original.Description, original.IsPublished }); }
 <div class="admin-content admin-form-page"><div class="page-heading"><div><h1>Review course</h1><p class="text-secondary">Owned by @Model.Instructor. Update its catalogue details and publication status.</p></div></div>
     <form data-admin-operation asp-action="EditCourse" asp-route-id="@Model.CourseId" method="post" data-validated-form data-original-values="@originalValues" class="form-measure">
         @if (ViewData["NoChanges"] is string noChanges) { <p class="text-secondary" role="status">@noChanges</p> }
         <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
         <div class="mb-3"><label asp-for="Title" class="form-label"></label><input asp-for="Title" data-trim aria-invalid="@(ViewData.ModelState["Title"]?.Errors.Count > 0 ? "true" : null)" class="form-control" maxlength="150" required aria-describedby="Title-help Title-error" /><p id="Title-help" class="form-text">Required. Up to 150 characters.</p><span id="Title-error" asp-validation-for="Title" class="field-error" aria-live="polite"></span></div>
-        <div class="mb-3"><label asp-for="Category" class="form-label"></label><input asp-for="Category" data-trim aria-invalid="@(ViewData.ModelState["Category"]?.Errors.Count > 0 ? "true" : null)" class="form-control" maxlength="50" aria-describedby="Category-help Category-error" /><p id="Category-help" class="form-text">Optional. Up to 50 characters.</p><span id="Category-error" asp-validation-for="Category" class="field-error" aria-live="polite"></span></div>
+        <div class="mb-3"><label asp-for="Category" class="form-label"></label><select asp-for="Category" aria-invalid="@(ViewData.ModelState["Category"]?.Errors.Count > 0 ? "true" : null)" class="form-select" required aria-describedby="Category-help Category-error">
+            <option value="" disabled hidden>Select a category</option>
+            @if (!string.IsNullOrEmpty(Model.Category) && !categories.Contains(Model.Category)) { <option value="@Model.Category">@Model.Category</option> }
+            @foreach (var category in categories) { <option value="@category">@category</option> }
+        </select><p id="Category-help" class="form-text">Required. Choose a course category.</p><span id="Category-error" asp-validation-for="Category" class="field-error" aria-live="polite"></span></div>
         <div class="mb-3"><label asp-for="Description" class="form-label"></label><textarea asp-for="Description" data-trim aria-invalid="@(ViewData.ModelState["Description"]?.Errors.Count > 0 ? "true" : null)" class="form-control" rows="5" maxlength="1000" aria-describedby="Description-help Description-error"></textarea><p id="Description-help" class="form-text">Optional. Up to 1,000 characters.</p><span id="Description-error" asp-validation-for="Description" class="field-error" aria-live="polite"></span></div>
-        <div class="form-check mb-4"><input asp-for="IsPublished" class="form-check-input" /><label asp-for="IsPublished" class="form-check-label"></label></div>
+        @if (original.ReviewStatus == CourseReviewStatus.Approved) {
+            <div class="form-check mb-4"><input asp-for="IsPublished" class="form-check-input" /><label asp-for="IsPublished" class="form-check-label"></label></div>
+        } else { <p class="text-secondary">This course must be approved before publication.</p> }
+        <span asp-validation-for="IsPublished" class="field-error"></span>
+        <p class="text-secondary">Changing course details requires a new review. <a asp-action="ReviewCourse" asp-route-id="@Model.CourseId">View course review</a></p>
         <div class="form-actions"><button class="btn btn-primary" type="submit">Save course</button><a asp-action="Courses" class="btn btn-outline-secondary">Cancel</a></div>
     </form>
 </div>

@@ -86,7 +86,7 @@ public class InstructorCoursesController(
     {
         return View(new CourseCreateEditModel
         {
-            IsPublished = true,
+            IsPublished = false,
             Category = "Web Security"
         });
     }
@@ -106,7 +106,7 @@ public class InstructorCoursesController(
             Description = model.Description?.Trim(),
             Category = model.Category?.Trim(),
             ThumbnailUrl = model.ThumbnailUrl?.Trim(),
-            IsPublished = model.IsPublished,
+            IsPublished = false,
             InstructorId = instructorId,
             CreatedDate = DateTime.UtcNow
         };
@@ -114,7 +114,7 @@ public class InstructorCoursesController(
         db.Courses.Add(course);
         await db.SaveChangesAsync();
 
-        TempData["Success"] = $"Course \"{course.Title}\" created! Now add lessons, CTF challenges, and simulations.";
+        TempData["Success"] = $"Course \"{course.Title}\" saved as a draft. Add curriculum, then submit it for Admin review.";
         return RedirectToAction(nameof(Curriculum), new { id = course.CourseId });
     }
 
@@ -136,7 +136,8 @@ public class InstructorCoursesController(
             Description = course.Description,
             Category = course.Category,
             ThumbnailUrl = course.ThumbnailUrl,
-            IsPublished = course.IsPublished
+            IsPublished = course.IsPublished,
+            ReviewStatus = course.ReviewStatus
         };
 
         return View(model);
@@ -147,11 +148,13 @@ public class InstructorCoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(CourseCreateEditModel model)
     {
-        if (!ModelState.IsValid) return View(model);
-
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found or you do not own it.");
+        model.ReviewStatus = course.ReviewStatus;
+        if (model.IsPublished && course.ReviewStatus != CourseReviewStatus.Approved)
+            ModelState.AddModelError(nameof(model.IsPublished), "Admin approval is required before publishing this course.");
+        if (!ModelState.IsValid) return View(model);
 
         course.Title = model.Title.Trim();
         course.Description = model.Description?.Trim();
@@ -160,7 +163,7 @@ public class InstructorCoursesController(
         course.IsPublished = model.IsPublished;
 
         await db.SaveChangesAsync();
-        TempData["Success"] = "Course settings updated successfully.";
+        TempData["Success"] = course.ReviewStatus == CourseReviewStatus.Draft ? "Course saved as a draft. Submit the updated content for Admin review before publishing." : "Course settings updated successfully.";
         return RedirectToAction(nameof(Curriculum), new { id = course.CourseId });
     }
 
@@ -1018,6 +1021,41 @@ public class InstructorCoursesController(
     // 8. PUBLISH / UNPUBLISH TOGGLE & DELETE COURSE
     // ==========================================
     [Authorize(Roles = AccountRoles.Instructor)]
+    [HttpPost, ValidateAntiForgeryToken]
+    public async Task<IActionResult> SubmitForReview(int id, string version, [FromServices] Personalization notifications)
+    {
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var course = await db.Courses.SingleOrDefaultAsync(c => c.CourseId == id && c.InstructorId == instructorId);
+        if (course is null) return NotFound();
+        if (course.ReviewVersion != version || course.ReviewStatus != CourseReviewStatus.Draft)
+            return Conflict("This course changed or is not ready to resubmit. Update rejected content before requesting another review.");
+        if (!await db.Lessons.AnyAsync(l => l.CourseId == id)
+            && !await db.Challenges.AnyAsync(c => c.CourseId == id && c.IsPublished)
+            && !await db.SimulationTasks.AnyAsync(s => s.CourseId == id && s.IsPublished)
+            && !await db.CourseNotebooks.AnyAsync(n => n.CourseId == id && n.IsPublished))
+        {
+            TempData["CourseError"] = "Add at least one lesson, published challenge, lab or notebook before requesting review.";
+            return RedirectToAction(nameof(Curriculum), new { id });
+        }
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        course.ReviewStatus = CourseReviewStatus.Pending;
+        course.IsPublished = false;
+        course.ReviewRevision++;
+        course.SubmittedForReviewUtc = DateTime.UtcNow;
+        try
+        {
+            await db.SaveChangesAsync();
+            foreach (var adminId in await db.Admins.Where(a => !a.IsReadOnly).Select(a => a.UserId).ToListAsync())
+                await notifications.Notify(adminId, $"course-review:{id}:{course.ReviewRevision}", "Course awaiting review",
+                    $"{course.Title} has been submitted for approval.", $"/Admin/ReviewCourse/{id}");
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateConcurrencyException) { return Conflict("This course changed. Reload and submit the latest content."); }
+        TempData["Success"] = "Course submitted. You can publish it after Admin approval. Editing the content cancels this submission.";
+        return RedirectToAction(nameof(Curriculum), new { id });
+    }
+
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> TogglePublish(int id)
@@ -1026,6 +1064,11 @@ public class InstructorCoursesController(
         var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == id && c.InstructorId == instructorId);
         if (course == null) return NotFound();
 
+        if (!course.IsPublished && course.ReviewStatus != CourseReviewStatus.Approved)
+        {
+            TempData["CourseError"] = "Admin approval is required before publishing this course.";
+            return RedirectToAction(nameof(Curriculum), new { id });
+        }
         course.IsPublished = !course.IsPublished;
         await db.SaveChangesAsync();
 

@@ -63,12 +63,14 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         var query = from c in db.Courses.AsNoTracking()
                     join instructor in db.Users on c.InstructorId equals instructor.Id
                     select new CourseRow { CourseId = c.CourseId, Title = c.Title, Category = c.Category,
-                        IsPublished = c.IsPublished, Instructor = instructor.DisplayName,
+                        IsPublished = c.IsPublished, ReviewStatus = c.ReviewStatus, Instructor = instructor.DisplayName,
                         Enrollments = db.Enrollments.Count(e => e.CourseId == c.CourseId) };
         search = search?.Trim();
         if (!string.IsNullOrEmpty(search)) query = query.Where(c => c.Title.Contains(search) || c.Instructor.Contains(search));
         if (status == "published") query = query.Where(c => c.IsPublished);
         if (status == "draft") query = query.Where(c => !c.IsPublished);
+        if (status is CourseReviewStatus.Draft or CourseReviewStatus.Pending or CourseReviewStatus.Approved or CourseReviewStatus.Rejected)
+            query = query.Where(c => c.ReviewStatus == status);
         var total = await query.CountAsync();
         page = Math.Clamp(page, 1, Math.Max(1, (int)Math.Ceiling(total / 20d)));
         return View(new CourseListModel { Search = search, Status = status, Page = page, Total = total,
@@ -93,6 +95,8 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
         input.CourseId = id;
         input.Instructor = await InstructorName(course.InstructorId);
         ViewData["OriginalCourse"] = course;
+        if (input.IsPublished && course.ReviewStatus != CourseReviewStatus.Approved)
+            ModelState.AddModelError(nameof(input.IsPublished), "Approve the submitted course before publishing it.");
         if (!ModelState.IsValid) return View(input);
         static string? Optional(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
         input.Title = input.Title.Trim();
@@ -105,20 +109,23 @@ public partial class AdminController(ApplicationDbContext db, UserManager<Applic
             return View(input);
         }
         await using var transaction = await db.Database.BeginTransactionAsync();
-        var publicationChanged = course.IsPublished != input.IsPublished;
-        var before = System.Text.Json.JsonSerializer.Serialize(new { course.Title, course.Description, course.Category, course.IsPublished });
+        var wasPublished = course.IsPublished;
+        var contentChanged = course.Title.Trim() != input.Title || Optional(course.Description) != input.Description || Optional(course.Category) != input.Category;
+        var before = System.Text.Json.JsonSerializer.Serialize(new { course.Title, course.Description, course.Category, course.IsPublished, course.ReviewStatus });
         course.Title = input.Title.Trim();
         course.Description = input.Description?.Trim();
         course.Category = input.Category?.Trim();
-        course.IsPublished = input.IsPublished;
+        course.IsPublished = input.IsPublished && !contentChanged;
+        if (contentChanged) course.ReviewStatus = CourseReviewStatus.Draft;
+        var publicationChanged = wasPublished != course.IsPublished;
         records.AddActivity(users.GetUserId(User)!, "Updated course", "Course", course.CourseId.ToString(), course.Title,
-            publicationChanged ? (course.IsPublished ? "Course published" : "Course unpublished") : "Course details changed", before, System.Text.Json.JsonSerializer.Serialize(new { course.Title, course.Description, course.Category, course.IsPublished }));
+            contentChanged ? "Course details changed; new approval required." : publicationChanged ? (course.IsPublished ? "Course published" : "Course unpublished") : "Course details changed", before, System.Text.Json.JsonSerializer.Serialize(new { course.Title, course.Description, course.Category, course.IsPublished, course.ReviewStatus }));
         await db.SaveChangesAsync();
         if (publicationChanged && !course.IsPublished)
             await personalization.Notify(course.InstructorId, $"course-unpublished:{id}:{Guid.NewGuid():N}", "Course unpublished by Admin",
                 $"{course.Title[..Math.Min(course.Title.Length, 300)]} is no longer published. Open Instructor Studio to review it.", $"/InstructorCourses/Edit/{id}");
         await transaction.CommitAsync();
-        TempData["Success"] = "Course details and publication status updated.";
+        TempData["Success"] = contentChanged ? "Course details saved. The instructor must submit the changed course for approval before publishing." : "Course publication status updated.";
         return RedirectToAction(nameof(Courses));
     }
 

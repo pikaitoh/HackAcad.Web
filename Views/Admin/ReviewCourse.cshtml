@@ -1,0 +1,64 @@
+@model CourseReviewModel
+@{ ViewData["Title"] = "Course approval"; }
+<div class="admin-content">
+    <div class="page-heading"><div><h1>Course approval</h1><p class="text-secondary">Review the course and its curriculum before allowing publication.</p></div><a asp-action="Courses" class="btn btn-outline-secondary">Back to courses</a></div>
+    <section class="surface-panel p-4 mb-4">
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-3"><h2 class="h4 mb-0">@Model.Course.Title</h2><partial name="_CourseReviewStatus" model="Model.Course.ReviewStatus" /></div>
+        <p class="text-secondary">By @Model.Instructor · @(Model.Course.Category ?? "Uncategorised") · Submission @Model.Course.ReviewRevision</p>
+        <p class="course-review-content">@Model.Course.Description</p>
+        @if (!string.IsNullOrEmpty(Model.Course.ThumbnailUrl)) { <p class="text-secondary">Thumbnail URL: @Model.Course.ThumbnailUrl</p> }
+        @if (Model.Course.SubmittedForReviewUtc is DateTime submitted) { <p class="text-secondary small">Submitted @UserTime.Format(submitted, "dd MMM yyyy, HH:mm")</p> }
+        @if (!string.IsNullOrWhiteSpace(Model.Course.ReviewReason)) { <p><strong>Latest feedback:</strong> @Model.Course.ReviewReason</p> }
+    </section>
+    <section class="surface-panel p-4 mb-4">
+        <h2 class="h4">Curriculum</h2><p class="text-secondary">Expand each item to inspect its content. Hidden activities are labelled.</p>
+        @foreach (var lesson in Model.Lessons) {
+            <details class="mb-3"><summary>Lesson: @lesson.Title</summary><div class="course-review-content mt-2">@lesson.Content</div>@if (!string.IsNullOrEmpty(lesson.VideoUrl)) { <p>Video: @lesson.VideoUrl</p> }</details>
+        }
+        @foreach (var challenge in Model.Challenges) {
+            <details class="mb-3"><summary>CTF: @challenge.Title @(challenge.IsPublished ? "" : "(Hidden)")</summary><p>@challenge.Category · @challenge.Difficulty · @challenge.Points points</p><p class="course-review-content">@challenge.Description</p>@if (!string.IsNullOrEmpty(challenge.FilePath)) { <a asp-controller="Courses" asp-action="DownloadChallengeFile" asp-route-id="@challenge.ChallengeId">Download challenge attachment</a> }</details>
+        }
+        @foreach (var simulation in Model.Simulations) {
+            <details class="mb-3"><summary>Lab: @simulation.Title @(simulation.IsPublished ? "" : "(Hidden)")</summary><div class="course-review-content">@simulation.Instructions</div><details class="mt-2"><summary>Lab configuration</summary><pre class="course-review-content">@simulation.VirtualFileSystemJson</pre></details></details>
+        }
+        @foreach (var notebook in Model.Notebooks) {
+            <details class="mb-3"><summary>Notebook: @notebook.Title @(notebook.IsPublished ? "" : "(Hidden)")</summary>
+                @{ NotebookDocument? document = null; try { document = System.Text.Json.JsonSerializer.Deserialize<NotebookDocument>(notebook.ContentJson); } catch (System.Text.Json.JsonException) { } }
+                @if (document?.Blocks is not null) { foreach (var block in document.Blocks) {
+                    <h3 class="h6 mt-3">@(block.Title ?? block.Type)</h3><div class="course-review-content">@block.Content</div>
+                    @if (block.Examples is not null) { foreach (var example in block.Examples) { <pre class="course-review-content">@example.Command
+@example.Output</pre> } }
+                    @if (block.CustomCommands is not null) { foreach (var command in block.CustomCommands) { <pre class="course-review-content">@command.Command
+@command.Output
+@command.Description</pre> } }
+                    @if (block.FileSystem is not null) { <details><summary>Terminal files</summary><pre class="course-review-content">@System.Text.Json.JsonSerializer.Serialize(block.FileSystem)</pre></details> }
+                } } else { <p class="field-error">This notebook has an unreadable document. Ask the instructor to correct it before approval.</p> }
+            </details>
+        }
+        @if (Model.Lessons.Count + Model.Challenges.Count + Model.Simulations.Count + Model.Notebooks.Count == 0) { <p>No curriculum has been added yet.</p> }
+    </section>
+    @if (Model.Course.ReviewStatus == CourseReviewStatus.Pending) {
+        <section class="surface-panel p-4 form-measure">
+            <h2 class="h4">Review decision</h2>
+            <p class="text-secondary">Approval allows the instructor to publish; it does not publish the course automatically.</p>
+            <form asp-action="ReviewCourse" asp-route-id="@Model.Course.CourseId" method="post" data-admin-operation data-validated-form>
+                <input asp-for="Input.Version" type="hidden" />
+                <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
+                <div class="mb-3"><label asp-for="Input.Decision" class="form-label">Decision</label><select asp-for="Input.Decision" class="form-select" required aria-describedby="decision-error"><option value="" disabled>Choose a decision</option><option value="Approved">Approve</option><option value="Rejected">Reject</option></select><span asp-validation-for="Input.Decision" id="decision-error" class="field-error" aria-live="polite"></span></div>
+                <div class="mb-4"><label asp-for="Input.Reason" class="form-label">Feedback to instructor</label><textarea asp-for="Input.Reason" class="form-control" rows="4" maxlength="1000" aria-describedby="reason-help reason-error"></textarea><p id="reason-help" class="form-text">Required when rejecting. Explain what needs to change before resubmission.</p><span asp-validation-for="Input.Reason" id="reason-error" class="field-error" aria-live="polite"></span></div>
+                <button type="submit" class="btn btn-primary">Save decision</button>
+            </form>
+        </section>
+    }
+</div>
+@section Scripts {
+<script>
+(() => {
+    const decision = document.getElementById('Input_Decision');
+    const reason = document.getElementById('Input_Reason');
+    if (!decision || !reason) return;
+    const update = () => { reason.required = decision.value === 'Rejected'; };
+    decision.addEventListener('change', update); update();
+})();
+</script>
+}

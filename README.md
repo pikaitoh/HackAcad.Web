@@ -312,3 +312,12 @@ The administrator overview uses existing records for current account/course tota
 ### Database table naming
 
 `UseReadableTableNames` renames application tables to lowercase snake_case and removes the Identity `AspNet` table prefix: `users`, `user_claims`, `user_logins`, and `user_tokens`. For example, `AdminActivities` becomes `admin_activities`. The migration preserves existing rows and foreign-key relationships; columns and C# entity/DbSet names remain unchanged. Back up the database, stop the running site, then apply the migration with `dotnet ef database update` before restarting with the matching code. Historical migrations retain their original names. EF's internal `__EFMigrationsHistory` table retains its standard name so migration tracking remains compatible.
+
+
+## Course approval
+
+New instructor courses are saved as unpublished drafts. Add at least one learner-visible curriculum item and use **Submit for review** in the curriculum page. Admins review the complete course at **Courses → Review**; rejecting requires feedback. Approval leaves the course unpublished so its instructor can choose when to publish. Rejected courses must be edited before resubmission.
+
+Any saved change to course details, lessons, challenges, labs or course notebooks cancels pending/previous approval and unpublishes the course. Unchanged saves and publication-only toggles preserve approval. All curriculum writes update the parent course version atomically; stale decisions or resubmissions cannot overwrite a newer revision. Admin review uses the existing MFA verification, read-only restrictions, audit log and notification system.
+
+The `AddCourseApproval` migration adds review fields to `courses` without removing tables or records. Already-published courses are treated as approved; existing unpublished courses require review. Restart the application after pulling to apply migrations before using the workflow. Run `tests/CourseReviewFlow` against its guarded isolated database with local email/SMS capture for end-to-end checks.

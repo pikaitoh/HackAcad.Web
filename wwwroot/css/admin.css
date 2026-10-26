@@ -54,6 +54,10 @@
 .module-table tbody tr:hover td { background: #f2f8f5; }
 .module-table .table-actions { gap: .85rem; }
 .table-actions a { display: inline-flex; align-items: center; min-height: 44px; }
+.admin-status-table .table-actions a { align-items: center; }
+.admin-status-table :is(th,td),.admin-applications-table :is(th,td) { text-align: left; vertical-align: middle; }
+.admin-status-table .table-actions { justify-content: flex-start; }
+
 .pagination-bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-top: 1.5rem; color: var(--ha-muted); font-size: .8125rem; font-variant-numeric: tabular-nums; }
 
 

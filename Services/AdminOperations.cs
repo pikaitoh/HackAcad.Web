@@ -66,8 +66,8 @@ public class AdminOperations(ApplicationDbContext db, IMemoryCache cache, AdminS
     private async Task<string> Snapshot(string action, string id, IFormCollection form)
     {
         object? record = null;
-        if (action is "EditCourse" or "DeleteCourse" && int.TryParse(id, out var course))
-            record = await db.Courses.AsNoTracking().Where(c => c.CourseId == course).Select(c => new { c.Title, c.Description, c.Category, c.IsPublished }).SingleOrDefaultAsync();
+        if (action is "EditCourse" or "DeleteCourse" or "ReviewCourse" && int.TryParse(id, out var course))
+            record = await db.Courses.AsNoTracking().Where(c => c.CourseId == course).Select(c => new { c.Title, c.Description, c.Category, c.IsPublished, c.ReviewStatus, c.ReviewVersion }).SingleOrDefaultAsync();
         else if (action == "AccountStatus") record = await db.Users.AsNoTracking().Where(u => u.Id == id).Select(u => new { u.IsDisabled, u.SecurityStamp }).SingleOrDefaultAsync();
         else if (action == "AdminAccess") record = await db.Admins.AsNoTracking().Where(a => a.UserId == id).Select(a => new { a.IsReadOnly, a.User!.SecurityStamp }).SingleOrDefaultAsync();
         else if (action == "Alert" && long.TryParse(id, out var alert)) record = await db.SecurityAlerts.AsNoTracking().Where(a => a.Id == alert).Select(a => new { a.Status, a.Notes, a.Version }).SingleOrDefaultAsync();

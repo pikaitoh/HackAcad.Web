@@ -20,6 +20,16 @@ public class Course
 
     public bool IsPublished { get; set; }
 
+    [Required, StringLength(20)]
+    public string ReviewStatus { get; set; } = CourseReviewStatus.Draft;
+    [StringLength(1000)]
+    public string? ReviewReason { get; set; }
+    public int ReviewRevision { get; set; }
+    public DateTime? SubmittedForReviewUtc { get; set; }
+    public DateTime? ReviewedUtc { get; set; }
+    [Required, StringLength(32)]
+    public string ReviewVersion { get; set; } = Guid.NewGuid().ToString("N");
+
     // FK points at Instructors.UserId, not users.Id directly — the
     // database itself refuses to let a non-Instructor own a course.
     // See Database_Schema.md v3.0.

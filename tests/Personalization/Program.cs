@@ -137,6 +137,7 @@ try
   var empty=new Course{Title=prefix+" Empty",InstructorId=instructor.Id};db.Courses.AddRange(course,empty);await db.SaveChangesAsync();courseId=course.CourseId;emptyId=empty.CourseId;
   var lesson=new Lesson{CourseId=courseId,Title="Required lesson"};var challenge=new Challenge{CourseId=courseId,Title="Required CTF",FlagHash="test",IsPublished=true};var lab=new SimulationTask{CourseId=courseId,Title="Required lab",IsPublished=true};
   db.AddRange(lesson,challenge,lab);var enrollment=new Enrollment{CourseId=courseId,UserId=student.Id,Status="Completed"};db.Enrollments.Add(enrollment);await db.SaveChangesAsync();lessonId=lesson.LessonId;challengeId=challenge.ChallengeId;labId=lab.TaskId;enrollmentId=enrollment.EnrollmentId;
+  course.ReviewStatus=CourseReviewStatus.Approved;course.IsPublished=true;await db.SaveChangesAsync();
  }
  long auditBefore,noticesBefore;
  using(var scope=factory.Services.CreateScope())
@@ -160,6 +161,8 @@ try
  var changedSave=await Post(a,"/Admin/EditCourse/"+courseId,Fields("Title",prefix+" Cryptography updated","Category","Cryptography","IsPublished","true"));
  Check(changedSave.StatusCode==HttpStatusCode.Redirect,"actual course modification saves successfully");
  using(var scope=factory.Services.CreateScope())Check(await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().AdminActivities.CountAsync(x=>x.ActorUserId==admin.Id && x.Action=="Updated course")==auditBefore+1,"actual course modification creates exactly one update audit event");
+ // Continue learner/reward checks with the revised fixture approved again.
+ using(var scope=factory.Services.CreateScope()) { var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();var course=await db.Courses.SingleAsync(c=>c.CourseId==courseId);course.ReviewStatus=CourseReviewStatus.Approved;course.IsPublished=true;await db.SaveChangesAsync(); }
  var blocked=await a.GetStringAsync("/Admin/DeleteCourse/"+courseId);
  Check(blocked.Contains("Course cannot be deleted")&&!blocked.Contains("Delete course permanently"),"course with enrolment has a clear explanation and no delete button");
  Check((await a.GetStringAsync("/Admin/DeleteCourse/"+emptyId)).Contains("Delete course permanently"),"unused course retains permanent deletion option");

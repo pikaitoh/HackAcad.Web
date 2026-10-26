@@ -186,7 +186,8 @@ html[data-theme="dark"] .table-light { --bs-table-bg: var(--ha-tint); --bs-table
 .login-history-table :is(th,td) { padding-inline: .85rem; overflow-wrap: anywhere; }
 .login-history-table .status-label { white-space: normal; }
 .status-label::before { flex-shrink: 0; }
-.application-status { display: inline-block; border-radius: 999px; padding: .25rem .7rem; font-size: .75rem; font-weight: 650; line-height: 1.5; }
+.course-review-content { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24rem; overflow: auto; }
+.application-status,.admin-status-table .support-status { display: inline-block; border-radius: 999px; padding: .25rem .7rem; font-size: .75rem; font-weight: 650; line-height: 1.5; }
 .application-status[data-status="Pending"] { background: #e4effb; color: #245c91; }
 .application-status[data-status="Needs more information"] { background: #fff0d6; color: #865015; }
 .application-status[data-status="Approved"] { background: #dff1e6; color: #205c3e; }

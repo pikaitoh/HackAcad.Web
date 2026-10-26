@@ -91,6 +91,8 @@ public class CourseLearnViewModel
 
 public class CourseCreateEditModel
 {
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public string ReviewStatus { get; set; } = CourseReviewStatus.Draft;
     public int CourseId { get; set; }
 
     [Required(ErrorMessage = "Enter a course title."), StringLength(150, ErrorMessage = "Title cannot exceed 150 characters.")]

@@ -85,13 +85,14 @@
                                     <div class="record-secondary">@row.CompletedStudentsCount completed</div>
                                 </td>
                                 <td>
+                                    <partial name="_CourseReviewStatus" model="c.ReviewStatus" />
                                     @if (c.IsPublished)
                                     {
                                         <span class="status-label status-active"><span class="status-dot"></span>Published</span>
                                     }
                                     else
                                     {
-                                        <span class="status-label status-disabled"><span class="status-dot"></span>Draft</span>
+                                        <span class="status-label status-disabled"><span class="status-dot"></span>Unpublished</span>
                                     }
                                 </td>
                                 <td class="text-end">
@@ -102,11 +103,13 @@
                                         <a asp-action="Edit" asp-route-id="@c.CourseId" class="btn btn-sm btn-outline-secondary">
                                             Settings
                                         </a>
+                                        @if (c.ReviewStatus == CourseReviewStatus.Approved) {
                                         <form asp-action="TogglePublish" asp-route-id="@c.CourseId" method="post" class="d-inline">
                                             <button type="submit" class="btn btn-sm btn-outline-secondary">
                                                 @(c.IsPublished ? "Unpublish" : "Publish")
                                             </button>
                                         </form>
+                                        }
                                     </div>
                                 </td>
                             </tr>

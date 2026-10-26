@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HackAcad.Web.Data;
 
-public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
+public partial class ApplicationDbContext : IdentityUserContext<ApplicationUser>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
@@ -57,6 +57,8 @@ public class ApplicationDbContext : IdentityUserContext<ApplicationUser>
         builder.Entity<Instructor>().ToTable("instructors");
         builder.Entity<Admin>().ToTable("admins");
         builder.Entity<Course>().ToTable("courses");
+        builder.Entity<Course>().Property(c => c.ReviewVersion).IsConcurrencyToken();
+        builder.Entity<Course>().HasIndex(c => new { c.ReviewStatus, c.SubmittedForReviewUtc });
         builder.Entity<Lesson>().ToTable("lessons");
         builder.Entity<Enrollment>().ToTable("enrollments");
         builder.Entity<SavedCourse>().ToTable("saved_courses");

@@ -75,6 +75,7 @@ public class CourseRow
     public string? Category { get; set; }
     public string Instructor { get; set; } = "";
     public bool IsPublished { get; set; }
+    public string ReviewStatus { get; set; } = CourseReviewStatus.Draft;
     public int Enrollments { get; set; }
 }
 
@@ -97,7 +98,7 @@ public class EditCourseModel
     [StringLength(1000, ErrorMessage = "Use no more than 1,000 characters for the description.")]
     public string? Description { get => description; set => description = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
     private string? description;
-    [StringLength(50, ErrorMessage = "Use no more than 50 characters for the category.")]
+    [Required(ErrorMessage = "Choose a course category."), StringLength(50, ErrorMessage = "Use no more than 50 characters for the category.")]
     public string? Category { get => category; set => category = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
     private string? category;
     [Display(Name = "Publish this course")]

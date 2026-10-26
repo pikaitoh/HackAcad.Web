@@ -411,6 +411,30 @@ namespace HackAcad.Web.Data.Migrations
                     b.Property<bool>("IsPublished")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<string>("ReviewReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.Property<int>("ReviewRevision")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReviewStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
+
+                    b.Property<string>("ReviewVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)");
+
+                    b.Property<DateTime?>("ReviewedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<DateTime?>("SubmittedForReviewUtc")
+                        .HasColumnType("datetime(6)");
+
                     b.Property<string>("ThumbnailUrl")
                         .HasMaxLength(300)
                         .HasColumnType("varchar(300)");
@@ -423,6 +447,8 @@ namespace HackAcad.Web.Data.Migrations
                     b.HasKey("CourseId");
 
                     b.HasIndex("InstructorId");
+
+                    b.HasIndex("ReviewStatus", "SubmittedForReviewUtc");
 
                     b.ToTable("courses", (string)null);
                 });

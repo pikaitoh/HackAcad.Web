@@ -52,6 +52,7 @@ public static class DbInitializer
                 Category = "Linux Basics",
                 ThumbnailUrl = "",
                 IsPublished = true,
+                ReviewStatus = CourseReviewStatus.Approved,
                 InstructorId = instructor.Id,
                 CreatedDate = DateTime.UtcNow.AddDays(-5)
             };
@@ -210,6 +211,7 @@ grep 'Failed password' /var/log/auth.log | awk '{print $11}' | sort | uniq -c
                 Category = "Web Security",
                 ThumbnailUrl = "",
                 IsPublished = true,
+                ReviewStatus = CourseReviewStatus.Approved,
                 InstructorId = instructor.Id,
                 CreatedDate = DateTime.UtcNow.AddDays(-3)
             };
@@ -308,6 +310,7 @@ Cross-Site Scripting happens when an application includes untrusted data in a we
                 Category = "Cryptography",
                 ThumbnailUrl = "",
                 IsPublished = true,
+                ReviewStatus = CourseReviewStatus.Approved,
                 InstructorId = instructor.Id,
                 CreatedDate = DateTime.UtcNow.AddDays(-1)
             };
@@ -361,6 +364,12 @@ Shift each letter backwards by 3 to recover the plaintext flag.",
             };
             db.Enrollments.Add(studentEnrollment);
             await db.SaveChangesAsync();
+
+            foreach (var sample in new[] { course1, course2, course3 })
+            {
+                sample.ReviewStatus = CourseReviewStatus.Approved;
+                sample.IsPublished = true;
+            }
 
             // Mark Lesson 1 complete
             db.ProgressRecords.Add(new Progress

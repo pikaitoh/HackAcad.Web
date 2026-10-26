@@ -14,6 +14,12 @@
     const password = verification.elements.CurrentPassword;
     const code = verification.elements.Code;
     const sms = dialog.querySelector('[data-send-verify-sms]');
+    verification.addEventListener('reset', () => {
+        [password, code].forEach(field => { field.removeAttribute('aria-invalid'); field.classList.remove('input-validation-error'); });
+        verification.querySelectorAll('[data-valmsg-for]').forEach(message => {
+            message.textContent = ''; message.classList.remove('field-validation-error'); message.classList.add('field-validation-valid');
+        });
+    });
     let pending = null;
     let busy = false;
     function showError(form, text, informational = false) {
@@ -69,8 +75,9 @@
         finally { busy = false; if (!pending) controls(form, false); }
     });
     verification.addEventListener('submit', async event => {
+        if (event.defaultPrevented) return;
         event.preventDefault();
-        if (busy || !pending || !verification.reportValidity()) return;
+        if (busy || !pending) return;
         busy = true; controls(verification, true); errors.textContent = '';
         const operation = pending;
         try {

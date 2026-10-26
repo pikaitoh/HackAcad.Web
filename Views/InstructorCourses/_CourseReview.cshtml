@@ -1,0 +1,23 @@
+@model Course
+<section class="surface-panel p-4 mb-4" aria-label="Course approval">
+    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+        <h2 class="h5 mb-0">Admin review</h2><partial name="_CourseReviewStatus" model="Model.ReviewStatus" />
+    </div>
+    @if (!string.IsNullOrWhiteSpace(Model.ReviewReason)) {
+        <p class="fw-semibold mb-1">Latest review feedback</p><p class="course-review-content">@Model.ReviewReason</p>
+    }
+    @if (Model.ReviewStatus == CourseReviewStatus.Pending) {
+        <p class="text-secondary mb-0">Awaiting Admin approval. Editing course details or curriculum cancels this submission; submit the updated course again when ready.</p>
+    } else if (Model.ReviewStatus == CourseReviewStatus.Approved) {
+        <p class="text-secondary">Approved. You can choose whether to publish. Changing course details or curriculum unpublishes the course and requires another review.</p>
+        <form asp-action="TogglePublish" asp-route-id="@Model.CourseId" method="post"><button type="submit" class="btn btn-primary">@(Model.IsPublished ? "Unpublish course" : "Publish course")</button></form>
+    } else if (Model.ReviewStatus == CourseReviewStatus.Rejected) {
+        <p class="text-secondary mb-0">Revise the course details or curriculum using the feedback above. You can request another review after saving your changes.</p>
+    } else {
+        <p class="text-secondary">Add your course content, then request Admin approval. The course stays unpublished until it is approved and you choose to publish it.</p>
+        <form asp-action="SubmitForReview" asp-route-id="@Model.CourseId" method="post">
+            <input type="hidden" name="version" value="@Model.ReviewVersion" />
+            <button type="submit" class="btn btn-primary">@(Model.ReviewRevision > 0 ? "Resubmit for review" : "Submit for review")</button>
+        </form>
+    }
+</section>
