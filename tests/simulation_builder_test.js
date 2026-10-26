@@ -200,3 +200,35 @@ assert(nbMountHtml.includes('id="notebookCancelBlockBtn"'), 'Notebook builder mu
 assert(!nbMountHtml.includes('builderSequentialObjectives'), 'Notebook builder should not display course sequential objectives toggle');
 
 console.log('PASS Visual Simulation Builder initialization, SVG icons, touch/nano commands, clean commands, simplified objectives, and notebook block sandbox mode');
+
+// Both editors now open the shared builder page rather than an inline modal.
+for (const [view, query] of [
+    ['Views/Notebooks/Edit.cshtml', 'notebookId'],
+    ['Views/InstructorCourses/EditCourseNotebook.cshtml', 'courseNotebookId']
+]) {
+    const source = fs.readFileSync(path.join(__dirname, '..', view), 'utf8');
+    assert(source.includes('/InstructorCourses/EditSimulation?' + query + '='), `${view}: editor opens the matching notebook builder`);
+    assert(source.includes('encodeURIComponent(blk.id)'), `${view}: block ID is encoded`);
+}
+const formSource = fs.readFileSync(path.join(__dirname, '../Views/InstructorCourses/SimulationForm.cshtml'), 'utf8');
+assert(formSource.includes('containerId: "simulation-builder-mount"'), 'Shared notebook builder uses its actual mount element');
+elements.notebookSaveBlockBtn = new Element('notebookSaveBlockBtn', 'button');
+elements.notebookCancelBlockBtn = new Element('notebookCancelBlockBtn', 'button');
+elements.builderTitle = new Element('builderTitle', 'input');
+elements.builderDescription = new Element('builderDescription', 'input');
+elements.builderTitle.value = 'Updated notebook terminal';
+elements.builderDescription.value = 'A custom demonstration';
+let submitted = 0;
+elements.simulationForm.submit = () => { submitted++; };
+context.window.location = {href: ''};
+context.window.initSimulationBuilder({
+    containerId: 'simulation-builder-mount', formId: 'simulationForm', hiddenJsonInputId: 'VirtualFileSystemJson',
+    isNotebookBlock: true, cancelUrl: '/Notebooks/Edit/42'
+});
+elements.notebookSaveBlockBtn.trigger('click');
+assert.equal(submitted, 1, 'Notebook block submits the shared configuration form');
+assert.equal(elements.Title.value, 'Updated notebook terminal');
+assert.equal(JSON.parse(elements.VirtualFileSystemJson.value).customCommands[0].command, 'git status');
+elements.notebookCancelBlockBtn.trigger('click');
+assert.equal(context.window.location.href, '/Notebooks/Edit/42');
+console.log('PASS shared notebook builder routing, configuration persistence and cancel destination');

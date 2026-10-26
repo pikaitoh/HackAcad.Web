@@ -160,6 +160,45 @@ try {
   Check(await db.UserNotifications.AnyAsync(n=>n.UserId==instructor.Id&&n.EventKey.StartsWith("course-decision:"+id+":")),"instructor receives decision notification");
   Check(await db.UserNotifications.AnyAsync(n=>n.UserId==admin.Id&&n.EventKey.StartsWith("course-review:"+id+":")),"Admin receives submission notification");
  }
+
+ // The teammate's shared notebook builder must preserve ownership and approval rules.
+ const string notebookJson="{\"version\":1,\"blocks\":[{\"id\":\"terminal-test\",\"type\":\"terminal_interactive\",\"title\":\"Demo terminal\",\"allowedCommands\":[\"pwd\"],\"fileSystem\":{\"home\":{\"student\":{}}}}]}";
+ int personalId,courseNotebookId;
+ using(var scope=factory.Services.CreateScope()) {
+  var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+  var personal=new Notebook{UserId=student.Id,Title="Personal terminal",ContentJson=notebookJson};
+  var shared=new CourseNotebook{CourseId=id,Title="Course terminal",ContentJson=notebookJson};
+  db.AddRange(personal,shared);await db.SaveChangesAsync();personalId=personal.NotebookId;courseNotebookId=shared.CourseNotebookId;
+ }
+ var editor="/InstructorCourses/EditSimulation?notebookId="+personalId+"&blockId=terminal-test";
+ Check((await s.GetAsync(editor)).StatusCode==HttpStatusCode.OK,"Student can open their personal terminal configuration");
+ Check((await t2.GetAsync(editor)).StatusCode==HttpStatusCode.NotFound,"another user cannot open personal terminal configuration");
+ Check(Denied(await s.GetAsync("/InstructorCourses/EditSimulation?courseNotebookId="+courseNotebookId+"&blockId=terminal-test")),"Student cannot edit course notebook terminal configuration");
+ Check(Denied(await SubmitCourse(s,id)),"course review submission remains Instructor-only after the shared controller change");
+ const string terminalConfiguration="{\"initialDirectory\":\"/home/student\",\"allowedCommands\":[\"pwd\"],\"fileSystem\":{\"home\":{\"student\":{}}},\"customCommands\":[{\"command\":\"sysinfo\",\"output\":\"Notebook output\",\"enabled\":true}]}";
+ Dictionary<string,string> NotebookFields(string key,int notebook,string title="Updated terminal",string config=terminalConfiguration)=>Fields(key,notebook.ToString(),"BlockId","terminal-test","Title",title,"VirtualFileSystemJson",config,"ReturnUrl","https://example.test/untrusted");
+ var badTitle=await Post(s,"/InstructorCourses/SaveSimulation",NotebookFields("NotebookId",personalId,title:""));
+ Check(badTitle.StatusCode==HttpStatusCode.OK&&(await badTitle.Content.ReadAsStringAsync()).Contains("Enter a task title."),"notebook builder enforces title validation on the server");
+ foreach(var invalid in new[]{"[]","null","42"}) {
+  var response=await Post(s,"/InstructorCourses/SaveSimulation",NotebookFields("NotebookId",personalId,config:invalid));
+  Check(response.StatusCode==HttpStatusCode.OK&&(await response.Content.ReadAsStringAsync()).Contains("Configuration must be a JSON object."),"non-object notebook configuration shows validation rather than crashing: "+invalid);
+ }
+ var savePersonal=await Post(s,"/InstructorCourses/SaveSimulation",NotebookFields("NotebookId",personalId));
+ Check(savePersonal.Headers.Location?.OriginalString=="/Notebooks/Edit/"+personalId,"personal builder returns to its editor and ignores external return URLs");
+ using(var scope=factory.Services.CreateScope()) {
+  var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+  Check((await db.Notebooks.SingleAsync(n=>n.NotebookId==personalId)).ContentJson.Contains("Notebook output"),"personal notebook custom command is persisted");
+ }
+ Check(Denied(await Post(t2,"/InstructorCourses/SaveSimulation",NotebookFields("CourseNotebookId",courseNotebookId))),"another Instructor cannot modify course notebook terminal configuration");
+ await ApproveDirect();
+ var saveShared=await Post(t,"/InstructorCourses/SaveSimulation",NotebookFields("CourseNotebookId",courseNotebookId));
+ Check(saveShared.Headers.Location?.OriginalString=="/InstructorCourses/EditCourseNotebook/"+courseNotebookId,"course builder returns to its own editor and ignores external return URLs");
+ Check((await Read(id)).ReviewStatus==CourseReviewStatus.Draft&&!(await Read(id)).IsPublished,"new course terminal configuration route also cancels approval and unpublishes");
+ using(var scope=factory.Services.CreateScope()) {
+  var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();var personal=await db.Notebooks.SingleAsync(n=>n.NotebookId==personalId);personal.ContentJson="{\"blocks\":null}";await db.SaveChangesAsync();
+ }
+ Check((await s.GetAsync(editor)).StatusCode==HttpStatusCode.NotFound,"missing terminal block list is handled without a server error");
+
  await ApproveDirect();
  await Post(a,"/Admin/EditCourse/"+id,Fields("Title","Admin revised course","Category","Web Security","IsPublished","true"));
  Check(!(await Read(id)).IsPublished&&(await Read(id)).ReviewStatus==CourseReviewStatus.Draft,"Admin metadata changes also require a new review");

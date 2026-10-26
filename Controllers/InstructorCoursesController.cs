@@ -632,7 +632,7 @@ public class InstructorCoursesController(
                 doc = new NotebookDocument();
             }
 
-            var block = doc.Blocks.FirstOrDefault(b => b.Id == blockId);
+            var block = doc.Blocks?.FirstOrDefault(b => b.Id == blockId);
             if (block == null) return NotFound("Terminal block not found.");
 
             var vfsObj = new
@@ -690,7 +690,7 @@ public class InstructorCoursesController(
                 doc = new NotebookDocument();
             }
 
-            var block = doc.Blocks.FirstOrDefault(b => b.Id == blockId);
+            var block = doc.Blocks?.FirstOrDefault(b => b.Id == blockId);
             if (block == null) return NotFound("Terminal block not found.");
 
             var vfsObj = new
@@ -791,8 +791,9 @@ public class InstructorCoursesController(
                 doc = new NotebookDocument();
             }
 
-            var block = doc.Blocks.FirstOrDefault(b => b.Id == model.BlockId);
+            var block = doc.Blocks?.FirstOrDefault(b => b.Id == model.BlockId);
             if (block == null) return NotFound("Terminal block not found.");
+            if (!ModelState.IsValid) return View("SimulationForm", model);
 
             if (!string.IsNullOrWhiteSpace(model.VirtualFileSystemJson))
             {
@@ -800,6 +801,7 @@ public class InstructorCoursesController(
                 {
                     using var jdoc = JsonDocument.Parse(model.VirtualFileSystemJson);
                     var root = jdoc.RootElement;
+                    if (root.ValueKind != JsonValueKind.Object) throw new JsonException("Configuration must be a JSON object.");
                     if (root.TryGetProperty("initialDirectory", out var initEl) && initEl.ValueKind == JsonValueKind.String)
                         block.InitialDirectory = initEl.GetString();
                     if (root.TryGetProperty("allowedCommands", out var cmdEl) && cmdEl.ValueKind == JsonValueKind.Array)
@@ -824,10 +826,7 @@ public class InstructorCoursesController(
             await db.SaveChangesAsync();
 
             TempData["Success"] = "Terminal block configuration applied to notebook.";
-            var retUrl = !string.IsNullOrWhiteSpace(model.ReturnUrl)
-                ? model.ReturnUrl
-                : Url.Action("Edit", "Notebooks", new { id = notebook.NotebookId });
-            return Redirect(retUrl!);
+            return RedirectToAction("Edit", "Notebooks", new { id = notebook.NotebookId });
         }
 
         // 2. Course notebook terminal block mode (Instructor only)
@@ -852,8 +851,9 @@ public class InstructorCoursesController(
                 doc = new NotebookDocument();
             }
 
-            var block = doc.Blocks.FirstOrDefault(b => b.Id == model.BlockId);
+            var block = doc.Blocks?.FirstOrDefault(b => b.Id == model.BlockId);
             if (block == null) return NotFound("Terminal block not found.");
+            if (!ModelState.IsValid) return View("SimulationForm", model);
 
             if (!string.IsNullOrWhiteSpace(model.VirtualFileSystemJson))
             {
@@ -861,6 +861,7 @@ public class InstructorCoursesController(
                 {
                     using var jdoc = JsonDocument.Parse(model.VirtualFileSystemJson);
                     var root = jdoc.RootElement;
+                    if (root.ValueKind != JsonValueKind.Object) throw new JsonException("Configuration must be a JSON object.");
                     if (root.TryGetProperty("initialDirectory", out var initEl) && initEl.ValueKind == JsonValueKind.String)
                         block.InitialDirectory = initEl.GetString();
                     if (root.TryGetProperty("allowedCommands", out var cmdEl) && cmdEl.ValueKind == JsonValueKind.Array)
@@ -885,10 +886,7 @@ public class InstructorCoursesController(
             await db.SaveChangesAsync();
 
             TempData["Success"] = "Terminal block configuration applied to course notebook.";
-            var retUrl = !string.IsNullOrWhiteSpace(model.ReturnUrl)
-                ? model.ReturnUrl
-                : Url.Action("EditCourseNotebook", "InstructorCourses", new { id = courseNotebook.CourseNotebookId });
-            return Redirect(retUrl!);
+            return RedirectToAction(nameof(EditCourseNotebook), new { id = courseNotebook.CourseNotebookId });
         }
 
         // 3. Course simulation task mode (Instructor only)

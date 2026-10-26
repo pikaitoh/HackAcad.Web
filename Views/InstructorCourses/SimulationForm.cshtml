@@ -7,7 +7,7 @@
         : (isEdit ? "Visual Simulation Builder — Edit Lab" : "Visual Simulation Builder — New Lab");
     ViewData["Title"] = pageTitle;
 
-    var cancelUrl = !string.IsNullOrWhiteSpace(Model.ReturnUrl) 
+    var cancelUrl = Url.IsLocalUrl(Model.ReturnUrl)
         ? Model.ReturnUrl 
         : (Model.NotebookId.HasValue 
             ? Url.Action("Edit", "Notebooks", new { id = Model.NotebookId }) 
@@ -86,7 +86,7 @@
                 containerId: "simulation-builder-mount",
                 formId: "simulationForm",
                 hiddenJsonInputId: "VirtualFileSystemJson",
-                cancelUrl: "@cancelUrl",
+                cancelUrl: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(cancelUrl)),
                 isNotebookBlock: @(isNotebook ? "true" : "false"),
                 initialTitle: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Title ?? "")),
                 initialDescription: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Description ?? "")),
