@@ -165,6 +165,12 @@ public class NotebooksController(
         return View(notebook);
     }
 
+    [HttpGet]
+    public IActionResult EditSimulation(int notebookId, string blockId)
+    {
+        return RedirectToAction("EditSimulation", "InstructorCourses", new { notebookId, blockId });
+    }
+
     // ==========================================
     // 5. SAVE NOTEBOOK (AJAX SAVE)
     // ==========================================

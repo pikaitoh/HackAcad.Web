@@ -1,7 +1,19 @@
 @model SimulationCreateEditModel
 @{
+    var isNotebook = Model.NotebookId.HasValue || Model.CourseNotebookId.HasValue;
     var isEdit = Model.TaskId > 0;
-    ViewData["Title"] = isEdit ? "Visual Simulation Builder — Edit Lab" : "Visual Simulation Builder — New Lab";
+    var pageTitle = isNotebook 
+        ? "Visual Simulation Builder — Terminal Block Sandbox" 
+        : (isEdit ? "Visual Simulation Builder — Edit Lab" : "Visual Simulation Builder — New Lab");
+    ViewData["Title"] = pageTitle;
+
+    var cancelUrl = !string.IsNullOrWhiteSpace(Model.ReturnUrl) 
+        ? Model.ReturnUrl 
+        : (Model.NotebookId.HasValue 
+            ? Url.Action("Edit", "Notebooks", new { id = Model.NotebookId }) 
+            : (Model.CourseNotebookId.HasValue 
+                ? Url.Action("EditCourseNotebook", "InstructorCourses", new { id = Model.CourseNotebookId }) 
+                : Url.Action("Curriculum", "InstructorCourses", new { id = Model.CourseId })));
 }
 
 <link rel="stylesheet" href="~/css/learning.css" asp-append-version="true" />
@@ -9,17 +21,34 @@
 
 <div class="container module-shell" style="max-width: 1200px;">
     <div class="mb-3 d-flex justify-content-between align-items-center">
-        <a asp-action="Curriculum" asp-route-id="@Model.CourseId" class="btn btn-sm btn-outline-secondary">← Back to Course Curriculum</a>
-        <span class="badge @(Model.IsPublished ? "bg-success" : "bg-warning text-dark")">
-            @(Model.IsPublished ? "Published in Curriculum" : "Draft (Unpublished)")
-        </span>
+        @if (isNotebook)
+        {
+            <a href="@cancelUrl" class="btn btn-sm btn-outline-secondary">← Back to Notebook Editor</a>
+            <span class="badge bg-info-subtle text-info border">
+                Notebook Interactive Block
+            </span>
+        }
+        else
+        {
+            <a asp-action="Curriculum" asp-route-id="@Model.CourseId" class="btn btn-sm btn-outline-secondary">← Back to Course Curriculum</a>
+            <span class="badge @(Model.IsPublished ? "bg-success" : "bg-warning text-dark")">
+                @(Model.IsPublished ? "Published in Curriculum" : "Draft (Unpublished)")
+            </span>
+        }
     </div>
 
     <div class="page-heading mb-4">
         <div>
-            <h1>@(isEdit ? "Visual Simulation Builder — Edit Lab" : "Visual Simulation Builder — Create Lab")</h1>
+            <h1>@pageTitle</h1>
             <p class="text-secondary">
-                Design custom terminal simulation labs. Build virtual Linux filesystems, configure allowed shell commands, and define automated step objectives.
+                @if (isNotebook)
+                {
+                    <text>Configure the simulated Linux virtual filesystem, allowed commands, and custom command outputs for this notebook demonstration block.</text>
+                }
+                else
+                {
+                    <text>Design custom terminal simulation labs. Build virtual Linux filesystems, configure allowed shell commands, and define automated step objectives.</text>
+                }
             </p>
         </div>
     </div>
@@ -29,6 +58,10 @@
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="TaskId" id="TaskId" />
         <input type="hidden" asp-for="CourseId" id="CourseId" />
+        <input type="hidden" asp-for="NotebookId" id="NotebookId" />
+        <input type="hidden" asp-for="CourseNotebookId" id="CourseNotebookId" />
+        <input type="hidden" asp-for="BlockId" id="BlockId" />
+        <input type="hidden" asp-for="ReturnUrl" id="ReturnUrl" />
         <input type="hidden" asp-for="Title" id="Title" />
         <input type="hidden" asp-for="Description" id="Description" />
         <input type="hidden" asp-for="Difficulty" id="Difficulty" />
@@ -53,7 +86,8 @@
                 containerId: "simulation-builder-mount",
                 formId: "simulationForm",
                 hiddenJsonInputId: "VirtualFileSystemJson",
-                cancelUrl: "@Url.Action("Curriculum", new { id = Model.CourseId })",
+                cancelUrl: "@cancelUrl",
+                isNotebookBlock: @(isNotebook ? "true" : "false"),
                 initialTitle: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Title ?? "")),
                 initialDescription: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Description ?? "")),
                 initialDifficulty: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Difficulty ?? "Beginner")),

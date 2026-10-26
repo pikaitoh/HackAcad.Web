@@ -232,7 +232,7 @@
             } catch (e) { }
 
             const stepLabel = isSequential ? `Step #${idx + 1}` : `Objective`;
-            printLine(`<div class="term-line" style="color: #38bdf8; margin: 4px 0;"><span class="term-highlight">💡 Hint (${stepLabel}):</span> ${escapeHtml(cleanHint)}</div>`);
+            printLine(`<div class="term-line" style="color: #38bdf8; margin: 4px 0;"><span class="term-highlight"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px;"><path d="M9 18h6"></path><path d="M10 22h4"></path><path d="M12 2a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3 6h8c1.5-1.5 3-3.5 3-6a7 7 0 0 0-7-7z"></path></svg>Hint (${stepLabel}):</span> ${escapeHtml(cleanHint)}</div>`);
         }
 
         function introduceAvailableHints() {
@@ -281,7 +281,7 @@
                 if (matchCmd && matchDir) {
                     targetObj.completed = true;
                     renderObjectives();
-                    printLine(`<div class="term-line" style="color: #4ade80;"><strong>✓ Completed Step #${nextIdx + 1}:</strong> ${escapeHtml(targetObj.text)}</div>`);
+                    printLine(`<div class="term-line" style="color: #4ade80;"><strong><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px;margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Completed Step #${nextIdx + 1}:</strong> ${escapeHtml(targetObj.text)}</div>`);
 
                     // Introduce hint for next available objective
                     const nextIncompleteIdx = objectives.findIndex(o => !o.completed);
@@ -312,7 +312,7 @@
                     if (matchCmd && matchDir) {
                         obj.completed = true;
                         newlyCompleted = true;
-                        printLine(`<div class="term-line" style="color: #4ade80;"><strong>✓ Completed Objective:</strong> ${escapeHtml(obj.text)}</div>`);
+                        printLine(`<div class="term-line" style="color: #4ade80;"><strong><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align:-2px;margin-right:4px;"><polyline points="20 6 9 17 4 12"></polyline></svg>Completed Objective:</strong> ${escapeHtml(obj.text)}</div>`);
                     }
                 });
 

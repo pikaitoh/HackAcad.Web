@@ -41,28 +41,28 @@
     <!-- Nav Tabs for Curriculum Modules -->
     <ul class="nav nav-pills mb-4" id="curriculumTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="lessons-tab" data-bs-toggle="pill" data-bs-target="#lessons-content" type="button" role="tab">
-                📚 Lessons (@Model.Lessons.Count)
+            <button class="nav-link active d-inline-flex align-items-center gap-1" id="lessons-tab" data-bs-toggle="pill" data-bs-target="#lessons-content" type="button" role="tab">
+                <img src="/images/file.svg" class="sim-icon me-1" alt="" /> Lessons (@Model.Lessons.Count)
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="challenges-tab" data-bs-toggle="pill" data-bs-target="#challenges-content" type="button" role="tab">
-                🚩 CTF Challenges (@Model.Challenges.Count)
+            <button class="nav-link d-inline-flex align-items-center gap-1" id="challenges-tab" data-bs-toggle="pill" data-bs-target="#challenges-content" type="button" role="tab">
+                <img src="/images/warning.svg" class="sim-icon me-1" alt="" /> CTF Challenges (@Model.Challenges.Count)
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="simulations-tab" data-bs-toggle="pill" data-bs-target="#simulations-content" type="button" role="tab">
-                💻 Terminal Labs (@Model.SimulationTasks.Count)
+            <button class="nav-link d-inline-flex align-items-center gap-1" id="simulations-tab" data-bs-toggle="pill" data-bs-target="#simulations-content" type="button" role="tab">
+                <img src="/images/terminal.svg" class="sim-icon me-1" alt="" /> Terminal Labs (@Model.SimulationTasks.Count)
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="notebooks-tab" data-bs-toggle="pill" data-bs-target="#notebooks-content" type="button" role="tab">
-                📓 Terminal Notebooks (@Model.CourseNotebooks.Count)
+            <button class="nav-link d-inline-flex align-items-center gap-1" id="notebooks-tab" data-bs-toggle="pill" data-bs-target="#notebooks-content" type="button" role="tab">
+                <img src="/images/notebook.svg" class="sim-icon me-1" alt="" /> Terminal Notebooks (@Model.CourseNotebooks.Count)
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="students-tab" data-bs-toggle="pill" data-bs-target="#students-content" type="button" role="tab">
-                👥 Enrolled Students (@Model.EnrolledStudents.Count)
+            <button class="nav-link d-inline-flex align-items-center gap-1" id="students-tab" data-bs-toggle="pill" data-bs-target="#students-content" type="button" role="tab">
+                <img src="/images/settings.svg" class="sim-icon me-1" alt="" /> Enrolled Students (@Model.EnrolledStudents.Count)
             </button>
         </li>
     </ul>
@@ -186,7 +186,10 @@
                                         <td>
                                             @if (!string.IsNullOrEmpty(ch.FilePath))
                                             {
-                                                <span class="text-success small">✓ @System.IO.Path.GetFileName(ch.FilePath)</span>
+                                                <span class="text-success small d-inline-flex align-items-center gap-1">
+                                                    <img src="/images/check.svg" class="sim-icon" alt="" style="width:13px;height:13px;" />
+                                                    @System.IO.Path.GetFileName(ch.FilePath)
+                                                </span>
                                             }
                                             else
                                             {

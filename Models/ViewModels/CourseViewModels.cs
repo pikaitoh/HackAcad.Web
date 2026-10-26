@@ -161,6 +161,10 @@ public class SimulationCreateEditModel
 {
     public int TaskId { get; set; }
     public int CourseId { get; set; }
+    public int? NotebookId { get; set; }
+    public int? CourseNotebookId { get; set; }
+    public string? BlockId { get; set; }
+    public string? ReturnUrl { get; set; }
 
     [Required(ErrorMessage = "Enter a task title."), StringLength(150, ErrorMessage = "Title cannot exceed 150 characters.")]
     public string Title { get; set; } = string.Empty;

@@ -173,4 +173,30 @@ assert(mountHtml.includes('Expected Command'), 'Expected Command label must be p
 assert(mountHtml.includes('Required Execution Directory'), 'Required Execution Directory label must be present');
 assert(mountHtml.includes('id="builderSequentialObjectives"'), 'Sequential objectives toggle must be present');
 
-console.log('PASS Visual Simulation Builder initialization, SVG icons, touch/nano commands, clean commands, and simplified objectives');
+// Test Notebook Block Mode (isNotebookBlock: true)
+elements['simulation-builder-mount'].innerHTML = '';
+elements['VirtualFileSystemJson'].value = JSON.stringify({
+    allowedCommands: ['pwd', 'ls', 'cd', 'cat', 'echo', 'touch', 'nano'],
+    initialDirectory: '/home/student',
+    fileSystem: { home: { student: { 'demo.txt': 'Sample' } } },
+    customCommands: [{ command: 'git status', output: 'On branch main' }]
+});
+
+context.window.initSimulationBuilder({
+    containerId: "simulation-builder-mount",
+    formId: "simulationForm",
+    hiddenJsonInputId: "VirtualFileSystemJson",
+    isNotebookBlock: true,
+    initialTitle: "Demo Sandbox Block",
+    initialDescription: "Sandbox for live demonstrations"
+});
+
+const nbMountHtml = elements['simulation-builder-mount'].innerHTML;
+assert(!emojiRegex.test(nbMountHtml), 'Notebook builder interface must not contain emoji icons');
+assert(nbMountHtml.includes('Demonstration Metadata'), 'Notebook builder must include metadata section');
+assert(nbMountHtml.includes('Notebook Sandbox Environment'), 'Notebook builder must include Section 5 sandbox info');
+assert(nbMountHtml.includes('id="notebookSaveBlockBtn"'), 'Notebook builder must render Save Configuration to Notebook Block button');
+assert(nbMountHtml.includes('id="notebookCancelBlockBtn"'), 'Notebook builder must render Cancel button');
+assert(!nbMountHtml.includes('builderSequentialObjectives'), 'Notebook builder should not display course sequential objectives toggle');
+
+console.log('PASS Visual Simulation Builder initialization, SVG icons, touch/nano commands, clean commands, simplified objectives, and notebook block sandbox mode');

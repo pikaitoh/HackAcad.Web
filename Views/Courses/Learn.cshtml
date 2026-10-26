@@ -43,7 +43,7 @@
                             </div>
                             @if (isDone)
                             {
-                                <span class="item-check" title="Completed">✓</span>
+                                <span class="item-check" title="Completed"><img src="~/images/check.svg" class="sim-icon" alt="" aria-hidden="true" /></span>
                             }
                         </a>
                     }
@@ -65,7 +65,7 @@
                             </div>
                             @if (isDone)
                             {
-                                <span class="item-check" title="Solved">✓</span>
+                                <span class="item-check" title="Solved"><img src="~/images/check.svg" class="sim-icon" alt="" aria-hidden="true" /></span>
                             }
                             else
                             {
@@ -91,7 +91,7 @@
                             </div>
                             @if (isDone)
                             {
-                                <span class="item-check" title="Completed">✓</span>
+                                <span class="item-check" title="Completed"><img src="~/images/check.svg" class="sim-icon" alt="" aria-hidden="true" /></span>
                             }
                         </a>
                     }
@@ -144,7 +144,7 @@
                     </div>
                     @if (Model.CurrentItemCompleted)
                     {
-                        <span class="badge bg-success p-2">Completed ✓</span>
+                        <span class="badge bg-success p-2 d-inline-flex align-items-center gap-1"><img src="~/images/check.svg" class="sim-icon" alt="" aria-hidden="true" /> Completed</span>
                     }
                 </div>
 
@@ -225,7 +225,7 @@
                     </div>
                     @if (Model.CurrentItemCompleted)
                     {
-                        <span class="badge bg-success p-2">Solved ✓</span>
+                        <span class="badge bg-success p-2 d-inline-flex align-items-center gap-1"><img src="~/images/check.svg" class="sim-icon" alt="" aria-hidden="true" /> Solved</span>
                     }
                 </div>
 
@@ -336,7 +336,7 @@
                     </div>
                     @if (Model.CurrentItemCompleted)
                     {
-                        <span class="badge bg-success p-2">Completed ✓</span>
+                        <span class="badge bg-success p-2 d-inline-flex align-items-center gap-1"><img src="~/images/check.svg" class="sim-icon" alt="" aria-hidden="true" /> Completed</span>
                     }
                 </div>
 
@@ -497,8 +497,8 @@
                                     <h2 class="h5 mb-0 font-monospace">@(string.IsNullOrWhiteSpace(block.Title) ? "Interactive Simulated Terminal" : block.Title)</h2>
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="badge bg-info-subtle text-info border">Interactive CLI</span>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetCourseInteractiveTerminal('@mountId', '@cfgId')">
-                                            ↺ Reset Terminal
+                                        <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" onclick="resetCourseInteractiveTerminal('@mountId', '@cfgId')">
+                                            <img src="~/images/reset.svg" class="sim-icon" alt="" aria-hidden="true" /> Reset Terminal
                                         </button>
                                     </div>
                                 </div>

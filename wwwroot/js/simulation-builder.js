@@ -583,26 +583,28 @@
                 }
             });
 
-            // Objectives check
-            if (state.objectives.length === 0) {
-                errors.push("Define at least one student task objective.");
-            }
+            // Objectives check (Bypassed for Notebook Blocks)
+            if (!isNotebookBlock) {
+                if (state.objectives.length === 0) {
+                    errors.push("Define at least one student task objective.");
+                }
 
-            state.objectives.forEach((obj, idx) => {
-                if (!obj.text || !obj.text.trim()) {
-                    errors.push(`Objective #${idx + 1} is missing a description.`);
-                }
-                const cmd = (obj.command || '').trim();
-                if (!cmd) {
-                    errors.push(`Objective #${idx + 1} requires an Expected Command.`);
-                }
-                if (obj.executionDirectory) {
-                    const normDir = normalizePath(obj.executionDirectory);
-                    if (!dirs.includes(normDir)) {
-                        errors.push(`Objective #${idx + 1} references non-existent execution directory "${obj.executionDirectory}".`);
+                state.objectives.forEach((obj, idx) => {
+                    if (!obj.text || !obj.text.trim()) {
+                        errors.push(`Objective #${idx + 1} is missing a description.`);
                     }
-                }
-            });
+                    const cmd = (obj.command || '').trim();
+                    if (!cmd) {
+                        errors.push(`Objective #${idx + 1} requires an Expected Command.`);
+                    }
+                    if (obj.executionDirectory) {
+                        const normDir = normalizePath(obj.executionDirectory);
+                        if (!dirs.includes(normDir)) {
+                            errors.push(`Objective #${idx + 1} references non-existent execution directory "${obj.executionDirectory}".`);
+                        }
+                    }
+                });
+            }
 
             return errors;
         }
@@ -695,7 +697,26 @@
                     </div>
 
                     <!-- Section 1: Lab Details -->
-                    ${!isNotebookBlock ? `
+                    ${isNotebookBlock ? `
+                    <div class="builder-card mb-4">
+                        <div class="builder-card-header">
+                            <h5 class="mb-0">1. Demonstration Metadata</h5>
+                            <small class="text-secondary">Set a title and description for this interactive notebook sandbox</small>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label fw-bold">Demonstration Title <span class="text-danger">*</span></label>
+                                    <input type="text" id="builderTitle" class="form-control" value="${escapeHtml(state.title)}" placeholder="e.g. Linux Navigation Sandbox" required />
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label fw-bold">Summary Description</label>
+                                    <input type="text" id="builderDescription" class="form-control" value="${escapeHtml(state.description)}" placeholder="Brief explanation of the terminal demonstration..." />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    ` : `
                     <div class="builder-card mb-4">
                         <div class="builder-card-header">
                             <h5 class="mb-0">1. Simulation Metadata</h5>
@@ -725,7 +746,7 @@
                             </div>
                         </div>
                     </div>
-                    ` : ''}
+                    `}
 
                     <!-- Section 2: Virtual Filesystem Builder -->
                     <div class="builder-card mb-4">
@@ -829,7 +850,26 @@
                         </div>
                     </div>
 
-                    ${!isNotebookBlock ? `
+                    ${isNotebookBlock ? `
+                    <!-- Section 5: Notebook Sandbox Info -->
+                    <div class="builder-card mb-4">
+                        <div class="builder-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <h5 class="mb-0">5. Notebook Sandbox Environment</h5>
+                                <small class="text-secondary">Open exploration and demonstration mode</small>
+                            </div>
+                            <span class="badge bg-info-subtle text-info border font-monospace small">Open Sandbox</span>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="alert alert-info py-3 px-3 mb-0 small d-flex align-items-center gap-2">
+                                <span>${svgIcon('terminal', 'me-1')}</span>
+                                <div>
+                                    <strong>Interactive Notebook Block:</strong> Notebook terminal blocks operate as open exploration sandboxes for demonstrations and practice. Lab objectives, flags, and completion tracking are bypassed for notebook blocks.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    ` : `
                     <!-- Section 5: Objective Builder -->
                     <div class="builder-card mb-4">
                         <div class="builder-card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
@@ -873,14 +913,14 @@
                             </div>
                         </div>
                     </div>
-                    ` : ''}
+                    `}
 
                     <!-- Action Bar -->
                     <div id="validationAlertContainer"></div>
                     <div class="d-flex gap-3 align-items-center mt-3 pt-3 border-top">
                         ${isNotebookBlock ? `
-                            <button type="button" id="notebookSaveBlockBtn" class="btn btn-success">
-                                ${svgIcon('save', 'me-1')} Apply Configuration to Block
+                            <button type="button" id="notebookSaveBlockBtn" class="btn btn-primary">
+                                ${svgIcon('save', 'me-1')} Save Configuration to Notebook Block
                             </button>
                             <button type="button" id="livePreviewActionBtn" class="btn btn-outline-primary">
                                 ${svgIcon('play', 'me-1')} Test in Live Preview
@@ -1573,15 +1613,31 @@
 
             // Action Buttons: Save Draft, Preview, Publish
             document.getElementById("notebookSaveBlockBtn")?.addEventListener("click", () => {
+                const bTitle = document.getElementById("builderTitle");
+                if (bTitle) {
+                    state.title = bTitle.value;
+                    const fTitle = document.getElementById("Title");
+                    if (fTitle) fTitle.value = state.title;
+                }
+                const bDesc = document.getElementById("builderDescription");
+                if (bDesc) {
+                    state.description = bDesc.value;
+                    const fDesc = document.getElementById("Description");
+                    if (fDesc) fDesc.value = state.description;
+                }
                 syncStateToInput();
                 if (typeof options.onSave === 'function') {
                     options.onSave(serializeConfiguration());
+                } else if (formEl) {
+                    formEl.submit();
                 }
             });
 
             document.getElementById("notebookCancelBlockBtn")?.addEventListener("click", () => {
                 if (typeof options.onCancel === 'function') {
                     options.onCancel();
+                } else if (options.cancelUrl) {
+                    window.location.href = options.cancelUrl;
                 }
             });
 

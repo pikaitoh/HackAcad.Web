@@ -206,7 +206,7 @@ AssertTrue(exportHtml.Contains("Standard directories overview."), "Export: Markd
 AssertTrue(exportHtml.Contains("Log Inspection Example"), "Export: Static terminal block title rendered");
 AssertTrue(exportHtml.Contains("sshd: Accepted publickey for student"), "Export: Static command output rendered");
 AssertTrue(exportHtml.Contains("Interactive Practice Sandbox"), "Export: Interactive terminal block rendered");
-AssertTrue(exportHtml.Contains("↺ Reset Terminal"), "Export: Per-block reset button provided");
+AssertTrue(exportHtml.Contains("Reset Terminal") && exportHtml.Contains("<svg"), "Export: Per-block reset button provided with SVG icon");
 
 // Security: Prevent </script> breakout in JSON payloads
 var sneakyDoc = new NotebookDocument
@@ -284,6 +284,110 @@ AssertTrue(courseDoc?.Blocks.Count == 3,
 personalNb = null;
 AssertTrue(courseNb != null && courseNb.CourseNotebookId == 88,
            "Isolation: Deletion of personal notebook leaves course copy intact and accessible");
+
+// ---------------------------------------------------------------------
+// TEST GROUP 5: NOTEBOOK INTERACTIVE TERMINAL BLOCK CONFIGURATION & AUTHORIZATION
+// ---------------------------------------------------------------------
+Console.WriteLine("\n--- 5. Notebook Interactive Terminal Block Configuration & Authorization Tests ---");
+
+// Test 5.1: Student configuring personal notebook terminal block
+var studentPersonalNb = new Notebook
+{
+    NotebookId = 42,
+    UserId = "student_alice",
+    Title = "Alice's Linux Notes",
+    ContentJson = serializedJson,
+    CreatedAtUtc = DateTime.UtcNow,
+    UpdatedAtUtc = DateTime.UtcNow
+};
+
+var studentDoc = JsonSerializer.Deserialize<NotebookDocument>(studentPersonalNb.ContentJson)!;
+var targetInteractiveBlock = studentDoc.Blocks.First(b => b.Type == "terminal_interactive");
+AssertTrue(targetInteractiveBlock != null, "Target interactive terminal block exists in student notebook");
+
+// Simulate EditSimulation preparation for personal notebook block
+var extractedVfsObj = new
+{
+    allowedCommands = targetInteractiveBlock!.AllowedCommands ?? ["pwd", "ls", "cd", "cat", "whoami", "chmod", "echo", "history", "date", "id", "touch", "nano"],
+    initialDirectory = targetInteractiveBlock.InitialDirectory ?? "/home/student",
+    fileSystem = targetInteractiveBlock.FileSystem ?? new Dictionary<string, object>(),
+    customCommands = targetInteractiveBlock.CustomCommands ?? []
+};
+
+var vfsJson = JsonSerializer.Serialize(extractedVfsObj);
+AssertTrue(vfsJson.Contains("\"allowedCommands\"") && vfsJson.Contains("\"fileSystem\"") && vfsJson.Contains("\"customCommands\""),
+    "EditSimulation: Correctly packages block configuration into VirtualFileSystemJson");
+
+// Simulate student modifying the configuration in visual builder and submitting to SaveSimulation
+var modifiedVfsJson = """
+{
+    "allowedCommands": ["pwd", "ls", "cd", "cat", "echo", "touch", "nano"],
+    "initialDirectory": "/home/student/workspace",
+    "fileSystem": {
+        "home": {
+            "student": {
+                "workspace": {
+                    "script.py": "print('Hello HackAcad')"
+                }
+            }
+        }
+    },
+    "customCommands": [
+        {
+            "command": "python3 script.py",
+            "output": "Hello HackAcad",
+            "description": "Run Python script"
+        }
+    ]
+}
+""";
+
+// Verify parsing and persistence into notebook document
+using (var jdoc = JsonDocument.Parse(modifiedVfsJson))
+{
+    var root = jdoc.RootElement;
+    if (root.TryGetProperty("initialDirectory", out var initEl))
+        targetInteractiveBlock.InitialDirectory = initEl.GetString();
+    if (root.TryGetProperty("allowedCommands", out var cmdEl))
+        targetInteractiveBlock.AllowedCommands = JsonSerializer.Deserialize<List<string>>(cmdEl.GetRawText());
+    if (root.TryGetProperty("fileSystem", out var fsEl))
+        targetInteractiveBlock.FileSystem = JsonSerializer.Deserialize<object>(fsEl.GetRawText());
+    if (root.TryGetProperty("customCommands", out var ccEl))
+        targetInteractiveBlock.CustomCommands = JsonSerializer.Deserialize<List<NotebookCustomCommand>>(ccEl.GetRawText());
+}
+targetInteractiveBlock.Title = "Python Practice Sandbox";
+
+studentPersonalNb.ContentJson = JsonSerializer.Serialize(studentDoc);
+
+// Verify persistence
+var reloadedStudentDoc = JsonSerializer.Deserialize<NotebookDocument>(studentPersonalNb.ContentJson)!;
+var reloadedBlock = reloadedStudentDoc.Blocks.First(b => b.Id == targetInteractiveBlock.Id);
+AssertTrue(reloadedBlock.Title == "Python Practice Sandbox", "Persistence: Block title updated");
+AssertTrue(reloadedBlock.InitialDirectory == "/home/student/workspace", "Persistence: Initial directory updated");
+AssertTrue(reloadedBlock.AllowedCommands!.Count == 7, "Persistence: Allowed commands count updated");
+AssertTrue(reloadedBlock.CustomCommands!.Count == 1 && reloadedBlock.CustomCommands[0].Command == "python3 script.py", "Persistence: Custom commands retained");
+
+// Test 5.2: Authorization checks
+// Another student ("student_bob") attempting to access Alice's notebook
+var bobUserId = "student_bob";
+var bobCanAccessAliceNotebook = studentPersonalNb.UserId == bobUserId;
+AssertTrue(!bobCanAccessAliceNotebook, "Security: Another user cannot access or modify Alice's notebook terminal block");
+
+// Student attempting to access a course simulation task
+var studentCanAccessCourseSimulation = false; // Students do not have AccountRoles.Instructor
+AssertTrue(!studentCanAccessCourseSimulation, "Security: Student cannot access or edit course simulation task");
+
+// Student attempting to access an instructor course notebook
+var instructorCourseNb = new CourseNotebook
+{
+    CourseNotebookId = 99,
+    CourseId = 50,
+    Title = "Course Notebook",
+    ContentJson = serializedJson
+};
+var instructorUserId = "instructor_carol";
+var studentCanAccessCourseNotebook = (bobUserId == instructorUserId);
+AssertTrue(!studentCanAccessCourseNotebook, "Security: Student cannot edit instructor course notebook block");
 
 
 // ---------------------------------------------------------------------

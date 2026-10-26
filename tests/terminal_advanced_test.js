@@ -187,7 +187,8 @@ function getLatestOutput() {
 
 // 1. Verify initial hint display for step 1
 let out = getLatestOutput();
-assert(out.includes('💡 Hint (Step #1)'), 'Initial Step #1 hint must be printed on startup');
+assert(out.includes('Hint (Step #1)'), 'Initial Step #1 hint must be printed on startup');
+assert(out.includes('<svg') && !out.includes('💡'), 'Hint should use SVG icon and not emoji');
 assert(out.includes('Type touch flag.txt'), 'Step #1 hint content must be displayed');
 
 // 2. Test touch command
@@ -289,19 +290,19 @@ assert.equal(completionCalled, 0, 'Lab must not be completed yet');
 // Complete Step 1
 enterCommand('touch flag.txt');
 out = getLatestOutput();
-assert(out.includes('✓ Completed Step #1'), 'Step 1 must be marked completed');
-assert(out.includes('💡 Hint (Step #2)'), 'Step 2 hint must be printed when Step 1 is completed');
+assert(out.includes('Completed Step #1'), 'Step 1 must be marked completed');
+assert(out.includes('Hint (Step #2)'), 'Step 2 hint must be printed when Step 1 is completed');
 
 // Complete Step 2 with redirection
 enterCommand('whois example.com > netscan.txt');
 out = getLatestOutput();
-assert(out.includes('✓ Completed Step #2'), 'Step 2 must be marked completed');
-assert(out.includes('💡 Hint (Step #3)'), 'Step 3 hint must be printed when Step 2 is completed');
+assert(out.includes('Completed Step #2'), 'Step 2 must be marked completed');
+assert(out.includes('Hint (Step #3)'), 'Step 3 hint must be printed when Step 2 is completed');
 
 // Complete Step 3
 enterCommand('cat netscan.txt');
 out = getLatestOutput();
-assert(out.includes('✓ Completed Step #3'), 'Step 3 must be marked completed');
+assert(out.includes('Completed Step #3'), 'Step 3 must be marked completed');
 
 // Assert verification callback invoked
 assert.equal(completionCalled, 1, 'All 3 sequential objectives satisfied must trigger verification callback once');

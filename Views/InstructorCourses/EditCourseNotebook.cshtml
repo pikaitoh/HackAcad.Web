@@ -35,9 +35,9 @@
         align-items: center;
         gap: 0.5rem;
     }
-    [data-appearance="dark"] .block-header {
-        background: #15282a;
-        color: #d1fae5;
+    :is(html[data-theme="dark"], html[data-appearance="dark"]) .block-header {
+        background: var(--ha-tint);
+        color: var(--ha-ink);
     }
     .block-body {
         padding: 1.25rem;
@@ -50,9 +50,9 @@
         text-align: center;
         margin-top: 1rem;
     }
-    [data-appearance="dark"] .add-block-tray {
-        background: #112224;
-        border-color: #2b494d;
+    :is(html[data-theme="dark"], html[data-appearance="dark"]) .add-block-tray {
+        background: var(--ha-surface);
+        border-color: var(--ha-line);
     }
     .cmd-out-row {
         background: var(--ha-canvas, #f2fbf7);
@@ -61,45 +61,9 @@
         padding: 0.75rem;
         margin-bottom: 0.75rem;
     }
-    [data-appearance="dark"] .cmd-out-row {
-        background: #132427;
-        border-color: #2b494d;
-    }
-    /* Modal styles */
-    .sim-modal-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0,0,0,0.75);
-        z-index: 1050;
-        display: none;
-        overflow-y: auto;
-        padding: 1.5rem;
-    }
-    .sim-modal-dialog {
-        background: var(--ha-surface, #ffffff);
-        color: var(--ha-ink, #193e46);
-        max-width: 1200px;
-        margin: 0 auto;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        border: 1px solid var(--ha-line, #cbded5);
-        display: flex;
-        flex-direction: column;
-    }
-    .sim-modal-header {
-        padding: 1rem 1.5rem;
-        border-bottom: 1px solid var(--ha-line, #cbded5);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .sim-modal-body {
-        padding: 1.5rem;
-        max-height: calc(85vh - 70px);
-        overflow-y: auto;
+    :is(html[data-theme="dark"], html[data-appearance="dark"]) .cmd-out-row {
+        background: var(--ha-surface);
+        border-color: var(--ha-line);
     }
 </style>
 
@@ -116,8 +80,8 @@
             <span id="saveStatusIndicator" class="small text-secondary fw-semibold">Saved</span>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <a asp-controller="Courses" asp-action="Learn" asp-route-id="@Model.CourseId" asp-route-notebookId="@Model.CourseNotebookId" class="btn btn-sm btn-outline-secondary" target="_blank" title="Preview student view">
-                👁 Preview in Course Player
+            <a asp-controller="Courses" asp-action="Learn" asp-route-id="@Model.CourseId" asp-route-notebookId="@Model.CourseNotebookId" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" target="_blank" title="Preview student view">
+                <img src="/images/eye.svg" class="sim-icon me-1" alt="" /> Preview in Course Player
             </a>
             <a asp-action="ExportCourseNotebook" asp-route-id="@Model.CourseNotebookId" class="btn btn-sm btn-outline-secondary" title="Download standalone HTML">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;" aria-hidden="true">
@@ -174,25 +138,8 @@
     </div>
 </div>
 
-<!-- Modal for Visual Simulation Builder (Used when editing interactive terminal block) -->
-<div id="simBuilderModal" class="sim-modal-overlay">
-    <div class="sim-modal-dialog">
-        <div class="sim-modal-header">
-            <div class="d-flex align-items-center gap-2">
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
-                <h3 class="h5 mb-0 fw-bold">Configure Interactive Terminal Sandbox</h3>
-            </div>
-            <button type="button" class="btn-close" aria-label="Close" onclick="closeSimBuilderModal()"></button>
-        </div>
-        <div class="sim-modal-body">
-            <div id="sim-builder-mount"></div>
-        </div>
-    </div>
-</div>
-
 @section Scripts {
     <script src="~/js/simulation-terminal.js" asp-append-version="true"></script>
-    <script src="~/js/simulation-builder.js" asp-append-version="true"></script>
     <script>
         var courseNotebookId = @Model.CourseNotebookId;
         var initialRawJson = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ContentJson ?? ""));
@@ -285,26 +232,26 @@
                 var typeLabel = "Block";
                 var typeBadgeClass = "bg-secondary";
                 if (blk.type === "markdown") {
-                    typeLabel = "📝 Markdown Notes";
+                    typeLabel = `<img src="/images/edit.svg" class="sim-icon me-1" alt="" /> Markdown Notes`;
                     typeBadgeClass = "bg-secondary-subtle text-secondary border";
                 } else if (blk.type === "terminal_interactive") {
-                    typeLabel = "💻 Interactive Terminal";
+                    typeLabel = `<img src="/images/terminal.svg" class="sim-icon me-1" alt="" /> Interactive Terminal`;
                     typeBadgeClass = "bg-info-subtle text-info border";
                 } else if (blk.type === "terminal_static") {
-                    typeLabel = "📋 Static Command Example";
+                    typeLabel = `<img src="/images/clipboard.svg" class="sim-icon me-1" alt="" /> Static Command Example`;
                     typeBadgeClass = "bg-warning-subtle text-warning-emphasis border";
                 }
 
                 var headerHtml = `
                     <div class="block-header">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="badge ${typeBadgeClass}">${typeLabel}</span>
+                            <span class="badge ${typeBadgeClass} d-inline-flex align-items-center">${typeLabel}</span>
                             <span class="small text-secondary font-monospace">#${idx + 1}</span>
                         </div>
                         <div class="d-flex align-items-center gap-1">
                             <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Move Up" ${isFirst ? 'disabled' : ''} onclick="moveBlock(${idx}, -1)">↑</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Move Down" ${isLast ? 'disabled' : ''} onclick="moveBlock(${idx}, 1)">↓</button>
-                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2" title="Delete Block" onclick="deleteBlock(${idx})">✕</button>
+                            <button type="button" class="btn btn-sm btn-outline-danger py-0 px-2 ms-2 d-inline-flex align-items-center" title="Delete Block" onclick="deleteBlock(${idx})"><img src="/images/x.svg" class="sim-icon" alt="" /></button>
                         </div>
                     </div>
                 `;
@@ -356,16 +303,18 @@
                                         ${cmdCount} allowed shell command(s) · ${customCmdCount} custom command(s) · virtual root filesystem
                                     </div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1" onclick="openSimBuilderForBlock(${idx})">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-                                    Configure Filesystem &amp; Commands
+                                <button type="button" class="btn btn-sm btn-primary d-inline-flex align-items-center gap-1" onclick="configureBlockInSimulationBuilder(${idx})">
+                                    <img src="/images/settings.svg" class="sim-icon me-1" alt="" />
+                                    Configure in Simulation Editor
                                 </button>
                             </div>
 
                             <div class="mt-3">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="small fw-bold text-secondary text-uppercase">Interactive Preview Sandbox</span>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0" onclick="mountInteractivePreview(${idx})">↺ Reset Preview</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 d-inline-flex align-items-center gap-1" onclick="mountInteractivePreview(${idx})">
+                                        <img src="/images/reset.svg" class="sim-icon me-1" alt="" /> Reset Preview
+                                    </button>
                                 </div>
                                 <div id="interactive_mount_${idx}" class="notebook-term-host" style="min-height: 240px;"></div>
                             </div>
@@ -646,54 +595,20 @@
             window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         }
 
-        function openSimBuilderForBlock(idx) {
+        // Visual Builder Integration (Uses the exact existing EditSimulation screen)
+        function configureBlockInSimulationBuilder(idx) {
             var blk = blocks[idx];
             if (!blk) return;
-            activeEditingBlockIdx = idx;
-
-            var modal = document.getElementById("simBuilderModal");
-            var mount = document.getElementById("sim-builder-mount");
-            mount.innerHTML = "";
-            modal.style.display = "block";
-
-            var blockConfig = {
-                fileSystem: blk.fileSystem || { home: { student: {} } },
-                allowedCommands: blk.allowedCommands || ["help", "clear", "pwd", "ls", "cd", "cat", "whoami", "chmod", "echo", "history", "date", "id", "touch", "nano"],
-                initialDirectory: blk.initialDirectory || "/home/student",
-                customCommands: blk.customCommands || []
-            };
-
-            if (typeof window.initSimulationBuilder === 'function') {
-                window.initSimulationBuilder({
-                    rootId: "sim-builder-mount",
-                    mode: "notebook_block",
-                    isNotebookBlock: true,
-                    initialConfig: blockConfig,
-                    onSave: function (savedCfg) {
-                        if (activeEditingBlockIdx !== null && blocks[activeEditingBlockIdx]) {
-                            blocks[activeEditingBlockIdx].fileSystem = savedCfg.fileSystem;
-                            blocks[activeEditingBlockIdx].allowedCommands = savedCfg.allowedCommands;
-                            blocks[activeEditingBlockIdx].initialDirectory = savedCfg.initialDirectory;
-                            blocks[activeEditingBlockIdx].customCommands = savedCfg.customCommands;
-                            markUnsaved();
-                        }
-                        closeSimBuilderModal();
-                        renderBlocks();
-                    },
-                    onCancel: function () {
-                        closeSimBuilderModal();
+            var targetUrl = '/InstructorCourses/EditSimulation?courseNotebookId=' + courseNotebookId + '&blockId=' + encodeURIComponent(blk.id);
+            if (isDirty) {
+                saveNotebook().then(function (success) {
+                    if (success !== false) {
+                        window.location.href = targetUrl;
                     }
                 });
             } else {
-                mount.innerHTML = '<div class="alert alert-warning">Simulation builder library is not loaded.</div>';
+                window.location.href = targetUrl;
             }
-        }
-
-        function closeSimBuilderModal() {
-            var modal = document.getElementById("simBuilderModal");
-            modal.style.display = "none";
-            document.getElementById("sim-builder-mount").innerHTML = "";
-            activeEditingBlockIdx = null;
         }
 
         var isDirty = false;
@@ -710,7 +625,7 @@
             isDirty = false;
             var indicator = document.getElementById("saveStatusIndicator");
             if (indicator) {
-                indicator.textContent = "✓ Saved " + (timeStr ? "at " + new Date(timeStr).toLocaleTimeString() : "");
+                indicator.textContent = "Saved " + (timeStr ? "at " + new Date(timeStr).toLocaleTimeString() : "");
                 indicator.className = "small text-success fw-semibold";
             }
         }
@@ -724,7 +639,7 @@
             if (!title) {
                 alert("Please enter a notebook title.");
                 titleInput.focus();
-                return;
+                return false;
             }
 
             if (saveBtn) saveBtn.disabled = true;
@@ -757,12 +672,14 @@
                 var res = await resp.json();
                 if (resp.ok && res.success) {
                     markSaved(res.updatedAt);
+                    return true;
                 } else {
                     alert("Failed to save course notebook: " + (res.message || "Unknown error"));
                     if (indicator) {
                         indicator.textContent = "Save failed";
                         indicator.className = "small text-danger fw-semibold";
                     }
+                    return false;
                 }
             } catch (err) {
                 console.error("Save error:", err);
@@ -771,6 +688,7 @@
                     indicator.textContent = "Save error";
                     indicator.className = "small text-danger fw-semibold";
                 }
+                return false;
             } finally {
                 if (saveBtn) saveBtn.disabled = false;
             }

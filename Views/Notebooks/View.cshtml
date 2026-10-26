@@ -146,8 +146,8 @@
                         <h2 class="h5 mb-0 font-monospace">@(string.IsNullOrWhiteSpace(block.Title) ? "Interactive Simulated Terminal" : block.Title)</h2>
                         <div class="d-flex align-items-center gap-2">
                             <span class="badge bg-info-subtle text-info border">Interactive CLI</span>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetInteractiveTerminal('@mountId', '@cfgId')">
-                                ↺ Reset Terminal
+                            <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" onclick="resetInteractiveTerminal('@mountId', '@cfgId')">
+                                <img src="/images/reset.svg" class="sim-icon me-1" alt="" /> Reset Terminal
                             </button>
                         </div>
                     </div>

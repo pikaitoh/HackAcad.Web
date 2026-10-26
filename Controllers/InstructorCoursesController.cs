@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HackAcad.Web.Controllers;
 
-[Authorize(Roles = AccountRoles.Instructor)]
+[Authorize]
 public class InstructorCoursesController(
     ApplicationDbContext db,
     IWebHostEnvironment environment,
@@ -21,6 +21,7 @@ public class InstructorCoursesController(
     // ==========================================
     // 1. INSTRUCTOR STUDIO DASHBOARD
     // ==========================================
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpGet]
     public async Task<IActionResult> Index()
     {
@@ -79,6 +80,7 @@ public class InstructorCoursesController(
     // ==========================================
     // 2. CREATE COURSE
     // ==========================================
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpGet]
     public IActionResult Create()
     {
@@ -89,6 +91,7 @@ public class InstructorCoursesController(
         });
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CourseCreateEditModel model)
@@ -118,6 +121,7 @@ public class InstructorCoursesController(
     // ==========================================
     // 3. EDIT COURSE
     // ==========================================
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
@@ -138,6 +142,7 @@ public class InstructorCoursesController(
         return View(model);
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(CourseCreateEditModel model)
@@ -162,6 +167,7 @@ public class InstructorCoursesController(
     // ==========================================
     // 4. CURRICULUM MANAGEMENT HUB
     // ==========================================
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpGet]
     public async Task<IActionResult> Curriculum(int id)
     {
@@ -276,6 +282,7 @@ public class InstructorCoursesController(
     // ==========================================
     // 5. LESSONS AUTHORING
     // ==========================================
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpGet]
     public async Task<IActionResult> AddLesson(int courseId)
     {
@@ -292,6 +299,7 @@ public class InstructorCoursesController(
         });
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpGet]
     public async Task<IActionResult> EditLesson(int id)
     {
@@ -313,6 +321,7 @@ public class InstructorCoursesController(
         });
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveLesson(LessonCreateEditModel model)
@@ -352,6 +361,7 @@ public class InstructorCoursesController(
         return RedirectToAction(nameof(Curriculum), new { id = model.CourseId });
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteLesson(int id)
@@ -387,6 +397,7 @@ public class InstructorCoursesController(
     // ==========================================
     // 6. CTF CHALLENGES AUTHORING
     // ==========================================
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpGet]
     public async Task<IActionResult> AddChallenge(int courseId)
     {
@@ -404,6 +415,7 @@ public class InstructorCoursesController(
         });
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpGet]
     public async Task<IActionResult> EditChallenge(int id)
     {
@@ -428,6 +440,7 @@ public class InstructorCoursesController(
         });
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveChallenge(ChallengeCreateEditModel model)
@@ -504,6 +517,7 @@ public class InstructorCoursesController(
         return RedirectToAction(nameof(Curriculum), new { id = model.CourseId });
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteChallenge(int id)
@@ -539,6 +553,7 @@ public class InstructorCoursesController(
     // ==========================================
     // 7. SIMULATION TASKS AUTHORING
     // ==========================================
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpGet]
     public async Task<IActionResult> AddSimulation(int courseId)
     {
@@ -593,13 +608,131 @@ public class InstructorCoursesController(
     }
 
     [HttpGet]
-    public async Task<IActionResult> EditSimulation(int id)
+    public async Task<IActionResult> EditSimulation(int? id, int? notebookId, int? courseNotebookId, string? blockId)
     {
-        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var task = await db.SimulationTasks.FindAsync(id);
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+        // 1. Personal notebook terminal block mode (Student or Instructor)
+        if (notebookId.HasValue && notebookId.Value > 0)
+        {
+            var notebook = await db.Notebooks
+                .FirstOrDefaultAsync(n => n.NotebookId == notebookId.Value && n.UserId == currentUserId);
+            if (notebook == null) return NotFound("Notebook not found or you do not have permission.");
+
+            NotebookDocument doc;
+            try
+            {
+                doc = JsonSerializer.Deserialize<NotebookDocument>(notebook.ContentJson) ?? new NotebookDocument();
+            }
+            catch
+            {
+                doc = new NotebookDocument();
+            }
+
+            var block = doc.Blocks.FirstOrDefault(b => b.Id == blockId);
+            if (block == null) return NotFound("Terminal block not found.");
+
+            var vfsObj = new
+            {
+                allowedCommands = block.AllowedCommands ?? ["help", "clear", "pwd", "ls", "cd", "cat", "whoami", "chmod", "echo", "history", "date", "id", "touch", "nano"],
+                initialDirectory = block.InitialDirectory ?? "/home/student",
+                fileSystem = block.FileSystem ?? new Dictionary<string, object>
+                {
+                    ["home"] = new Dictionary<string, object>
+                    {
+                        ["student"] = new Dictionary<string, object>
+                        {
+                            ["notes.txt"] = "Welcome to your personal terminal sandbox.\nPractice commands here freely."
+                        }
+                    }
+                },
+                customCommands = block.CustomCommands ?? []
+            };
+
+            var returnUrl = Url.Action("Edit", "Notebooks", new { id = notebook.NotebookId });
+            var model = new SimulationCreateEditModel
+            {
+                NotebookId = notebook.NotebookId,
+                BlockId = block.Id,
+                Title = block.Title ?? "Interactive Terminal Demonstration",
+                Description = "Personal interactive sandbox block.",
+                Difficulty = "Beginner",
+                VirtualFileSystemJson = JsonSerializer.Serialize(vfsObj, new JsonSerializerOptions { WriteIndented = true }),
+                IsPublished = true,
+                ReturnUrl = returnUrl
+            };
+
+            return View("SimulationForm", model);
+        }
+
+        // 2. Course notebook terminal block mode (Instructor only)
+        if (courseNotebookId.HasValue && courseNotebookId.Value > 0)
+        {
+            if (!User.IsInRole(AccountRoles.Instructor)) return Forbid();
+
+            var courseNotebook = await db.CourseNotebooks
+                .FirstOrDefaultAsync(cn => cn.CourseNotebookId == courseNotebookId.Value);
+            if (courseNotebook == null) return NotFound("Course notebook not found.");
+
+            var isOwner = await db.Courses.AnyAsync(c => c.CourseId == courseNotebook.CourseId && c.InstructorId == currentUserId);
+            if (!isOwner) return Forbid();
+
+            NotebookDocument doc;
+            try
+            {
+                doc = JsonSerializer.Deserialize<NotebookDocument>(courseNotebook.ContentJson) ?? new NotebookDocument();
+            }
+            catch
+            {
+                doc = new NotebookDocument();
+            }
+
+            var block = doc.Blocks.FirstOrDefault(b => b.Id == blockId);
+            if (block == null) return NotFound("Terminal block not found.");
+
+            var vfsObj = new
+            {
+                allowedCommands = block.AllowedCommands ?? ["help", "clear", "pwd", "ls", "cd", "cat", "whoami", "chmod", "echo", "history", "date", "id", "touch", "nano"],
+                initialDirectory = block.InitialDirectory ?? "/home/student",
+                fileSystem = block.FileSystem ?? new Dictionary<string, object>
+                {
+                    ["home"] = new Dictionary<string, object>
+                    {
+                        ["student"] = new Dictionary<string, object>
+                        {
+                            ["welcome.txt"] = "Welcome to the course demonstration sandbox."
+                        }
+                    }
+                },
+                customCommands = block.CustomCommands ?? []
+            };
+
+            var returnUrl = Url.Action("EditCourseNotebook", "InstructorCourses", new { id = courseNotebook.CourseNotebookId });
+            var model = new SimulationCreateEditModel
+            {
+                CourseId = courseNotebook.CourseId,
+                CourseNotebookId = courseNotebook.CourseNotebookId,
+                BlockId = block.Id,
+                Title = block.Title ?? "Interactive Course Terminal Sandbox",
+                Description = "Course interactive sandbox block.",
+                Difficulty = "Beginner",
+                VirtualFileSystemJson = JsonSerializer.Serialize(vfsObj, new JsonSerializerOptions { WriteIndented = true }),
+                IsPublished = true,
+                ReturnUrl = returnUrl
+            };
+
+            return View("SimulationForm", model);
+        }
+
+        // 3. Course simulation task mode (Instructor only)
+        if (!User.IsInRole(AccountRoles.Instructor)) return Forbid();
+
+        if (!id.HasValue || id.Value <= 0) return BadRequest("Task ID is required.");
+
+        var task = await db.SimulationTasks.FindAsync(id.Value);
         if (task == null) return NotFound("Simulation task not found.");
 
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == task.CourseId && c.InstructorId == instructorId);
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == task.CourseId && c.InstructorId == currentUserId);
         if (course == null) return NotFound("You do not own this course.");
 
         string? description = null;
@@ -627,7 +760,8 @@ public class InstructorCoursesController(
             Instructions = task.Instructions,
             VirtualFileSystemJson = task.VirtualFileSystemJson,
             RewardFlag = task.RewardFlagHash,
-            IsPublished = task.IsPublished
+            IsPublished = task.IsPublished,
+            ReturnUrl = Url.Action("Curriculum", "InstructorCourses", new { id = task.CourseId })
         });
     }
 
@@ -635,8 +769,129 @@ public class InstructorCoursesController(
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveSimulation(SimulationCreateEditModel model)
     {
-        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+        // 1. Personal notebook terminal block mode (Student or Instructor)
+        if (model.NotebookId.HasValue && model.NotebookId.Value > 0)
+        {
+            var notebook = await db.Notebooks
+                .FirstOrDefaultAsync(n => n.NotebookId == model.NotebookId.Value && n.UserId == currentUserId);
+            if (notebook == null) return NotFound("Notebook not found or you do not have permission.");
+
+            NotebookDocument doc;
+            try
+            {
+                doc = JsonSerializer.Deserialize<NotebookDocument>(notebook.ContentJson) ?? new NotebookDocument();
+            }
+            catch
+            {
+                doc = new NotebookDocument();
+            }
+
+            var block = doc.Blocks.FirstOrDefault(b => b.Id == model.BlockId);
+            if (block == null) return NotFound("Terminal block not found.");
+
+            if (!string.IsNullOrWhiteSpace(model.VirtualFileSystemJson))
+            {
+                try
+                {
+                    using var jdoc = JsonDocument.Parse(model.VirtualFileSystemJson);
+                    var root = jdoc.RootElement;
+                    if (root.TryGetProperty("initialDirectory", out var initEl) && initEl.ValueKind == JsonValueKind.String)
+                        block.InitialDirectory = initEl.GetString();
+                    if (root.TryGetProperty("allowedCommands", out var cmdEl) && cmdEl.ValueKind == JsonValueKind.Array)
+                        block.AllowedCommands = JsonSerializer.Deserialize<List<string>>(cmdEl.GetRawText());
+                    if (root.TryGetProperty("fileSystem", out var fsEl) && fsEl.ValueKind == JsonValueKind.Object)
+                        block.FileSystem = JsonSerializer.Deserialize<object>(fsEl.GetRawText());
+                    if (root.TryGetProperty("customCommands", out var ccEl) && ccEl.ValueKind == JsonValueKind.Array)
+                        block.CustomCommands = JsonSerializer.Deserialize<List<NotebookCustomCommand>>(ccEl.GetRawText());
+                }
+                catch (JsonException ex)
+                {
+                    ModelState.AddModelError(nameof(model.VirtualFileSystemJson), "Invalid JSON format: " + ex.Message);
+                    return View("SimulationForm", model);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Title))
+                block.Title = model.Title.Trim();
+
+            notebook.ContentJson = JsonSerializer.Serialize(doc);
+            notebook.UpdatedAtUtc = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+
+            TempData["Success"] = "Terminal block configuration applied to notebook.";
+            var retUrl = !string.IsNullOrWhiteSpace(model.ReturnUrl)
+                ? model.ReturnUrl
+                : Url.Action("Edit", "Notebooks", new { id = notebook.NotebookId });
+            return Redirect(retUrl!);
+        }
+
+        // 2. Course notebook terminal block mode (Instructor only)
+        if (model.CourseNotebookId.HasValue && model.CourseNotebookId.Value > 0)
+        {
+            if (!User.IsInRole(AccountRoles.Instructor)) return Forbid();
+
+            var courseNotebook = await db.CourseNotebooks
+                .FirstOrDefaultAsync(cn => cn.CourseNotebookId == model.CourseNotebookId.Value);
+            if (courseNotebook == null) return NotFound("Course notebook not found.");
+
+            var isOwner = await db.Courses.AnyAsync(c => c.CourseId == courseNotebook.CourseId && c.InstructorId == currentUserId);
+            if (!isOwner) return Forbid();
+
+            NotebookDocument doc;
+            try
+            {
+                doc = JsonSerializer.Deserialize<NotebookDocument>(courseNotebook.ContentJson) ?? new NotebookDocument();
+            }
+            catch
+            {
+                doc = new NotebookDocument();
+            }
+
+            var block = doc.Blocks.FirstOrDefault(b => b.Id == model.BlockId);
+            if (block == null) return NotFound("Terminal block not found.");
+
+            if (!string.IsNullOrWhiteSpace(model.VirtualFileSystemJson))
+            {
+                try
+                {
+                    using var jdoc = JsonDocument.Parse(model.VirtualFileSystemJson);
+                    var root = jdoc.RootElement;
+                    if (root.TryGetProperty("initialDirectory", out var initEl) && initEl.ValueKind == JsonValueKind.String)
+                        block.InitialDirectory = initEl.GetString();
+                    if (root.TryGetProperty("allowedCommands", out var cmdEl) && cmdEl.ValueKind == JsonValueKind.Array)
+                        block.AllowedCommands = JsonSerializer.Deserialize<List<string>>(cmdEl.GetRawText());
+                    if (root.TryGetProperty("fileSystem", out var fsEl) && fsEl.ValueKind == JsonValueKind.Object)
+                        block.FileSystem = JsonSerializer.Deserialize<object>(fsEl.GetRawText());
+                    if (root.TryGetProperty("customCommands", out var ccEl) && ccEl.ValueKind == JsonValueKind.Array)
+                        block.CustomCommands = JsonSerializer.Deserialize<List<NotebookCustomCommand>>(ccEl.GetRawText());
+                }
+                catch (JsonException ex)
+                {
+                    ModelState.AddModelError(nameof(model.VirtualFileSystemJson), "Invalid JSON format: " + ex.Message);
+                    return View("SimulationForm", model);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Title))
+                block.Title = model.Title.Trim();
+
+            courseNotebook.ContentJson = JsonSerializer.Serialize(doc);
+            courseNotebook.UpdatedAtUtc = DateTime.UtcNow;
+            await db.SaveChangesAsync();
+
+            TempData["Success"] = "Terminal block configuration applied to course notebook.";
+            var retUrl = !string.IsNullOrWhiteSpace(model.ReturnUrl)
+                ? model.ReturnUrl
+                : Url.Action("EditCourseNotebook", "InstructorCourses", new { id = courseNotebook.CourseNotebookId });
+            return Redirect(retUrl!);
+        }
+
+        // 3. Course simulation task mode (Instructor only)
+        if (!User.IsInRole(AccountRoles.Instructor)) return Forbid();
+
+        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == currentUserId);
         if (course == null) return NotFound("Course not found.");
 
         // Inject description and difficulty into JSON root if not present
@@ -726,6 +981,7 @@ public class InstructorCoursesController(
         return RedirectToAction(nameof(Curriculum), new { id = model.CourseId });
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteSimulation(int id)
@@ -761,6 +1017,7 @@ public class InstructorCoursesController(
     // ==========================================
     // 8. PUBLISH / UNPUBLISH TOGGLE & DELETE COURSE
     // ==========================================
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> TogglePublish(int id)
@@ -779,6 +1036,7 @@ public class InstructorCoursesController(
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
@@ -804,6 +1062,7 @@ public class InstructorCoursesController(
     // ==========================================
     // 9. COURSE NOTEBOOKS MANAGEMENT
     // ==========================================
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddNotebookToCourse(AddNotebookToCourseModel model)
@@ -871,6 +1130,7 @@ public class InstructorCoursesController(
         return RedirectToAction(nameof(EditCourseNotebook), new { id = courseNotebook.CourseNotebookId });
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpGet]
     public async Task<IActionResult> EditCourseNotebook(int id)
     {
@@ -886,6 +1146,7 @@ public class InstructorCoursesController(
         return View(notebook);
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveCourseNotebook(int id, [FromBody] NotebookSaveModel model)
@@ -943,6 +1204,7 @@ public class InstructorCoursesController(
         });
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleCourseNotebookPublish(int id)
@@ -967,6 +1229,7 @@ public class InstructorCoursesController(
         return RedirectToAction(nameof(Curriculum), new { id = notebook.CourseId });
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteCourseNotebook(int id)
@@ -989,6 +1252,7 @@ public class InstructorCoursesController(
         return RedirectToAction(nameof(Curriculum), new { id = courseId });
     }
 
+    [Authorize(Roles = AccountRoles.Instructor)]
     [HttpGet]
     public async Task<IActionResult> ExportCourseNotebook(int id)
     {

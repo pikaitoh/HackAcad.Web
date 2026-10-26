@@ -233,6 +233,11 @@ html[data-theme="dark"] img.sim-icon {
     filter: brightness(0) invert(0.85);
 }
 
+.btn-primary img.sim-icon,
+html[data-theme="dark"] .btn-primary img.sim-icon {
+    filter: none !important;
+}
+
 html[data-theme="dark"] svg.sim-icon {
     filter: none;
 }
