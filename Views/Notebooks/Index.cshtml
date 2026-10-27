@@ -4,22 +4,14 @@
     ViewData["Title"] = "Terminal Notebooks";
 }
 
+<link rel="stylesheet" href="~/css/terminal-notebooks.css" asp-append-version="true" />
+
 <div class="container module-shell">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
             <h1 class="mb-1">Terminal Notebooks</h1>
             <p class="text-secondary mb-0">Create personal interactive notebooks combining Markdown notes and simulated Linux terminal sandboxes.</p>
         </div>
-        <form asp-action="Create" method="post">
-            @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-primary d-inline-flex align-items-center gap-2">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <line x1="12" y1="5" x2="12" y2="19"></line>
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                </svg>
-                + New Notebook
-            </button>
-        </form>
     </div>
 
     @if (Model.Count == 0)
@@ -32,9 +24,10 @@
             <p class="text-secondary mb-4 mx-auto" style="max-width: 520px;">
                 Notebooks allow you to write formatted study notes, include static terminal examples, and practice directly in live simulated Linux environments.
             </p>
-            <form asp-action="Create" method="post">
+            <form asp-action="Create" method="post" id="createFirstNotebookForm">
                 @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-primary px-4 py-2">
+                <button type="submit" class="btn btn-primary px-4 py-2 d-inline-flex align-items-center gap-2">
+                    <img src="/images/plus.svg" class="sim-icon" alt="" style="width:16px;height:16px;filter:none;" />
                     Create Your First Notebook
                 </button>
             </form>
@@ -42,84 +35,169 @@
     }
     else
     {
-        <div class="row g-3">
+        <div class="notebook-list" role="list">
             @foreach (var nb in Model)
             {
-                <div class="col-md-6 col-lg-4">
-                    <div class="surface-panel p-4 h-100 d-flex flex-column justify-content-between border rounded-3 shadow-sm hover-shadow transition">
-                        <div>
-                            <div class="d-flex justify-content-between align-items-start mb-2">
-                                <span class="badge bg-secondary-subtle text-secondary border font-monospace small">NOTEBOOK</span>
-                                <span class="text-secondary small" title="Updated @nb.UpdatedAtUtc.ToString("u")">
-                                    @UserTime.Format(nb.UpdatedAtUtc)
-                                </span>
+                var totalBlocks = nb.MarkdownBlockCount + nb.InteractiveTerminalCount + nb.StaticExampleCount;
+                <article class="notebook-row" role="listitem" data-notebook-id="@nb.NotebookId">
+                    <!-- Zone 1: Notebook Identity (Left) -->
+                    <div class="notebook-identity-zone">
+                        <a asp-action="View" asp-route-id="@nb.NotebookId" class="notebook-row-link" title="Open notebook: @nb.Title">
+                            <div class="notebook-icon-wrap" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"></path>
+                                    <path d="M6 6h10"></path>
+                                    <path d="M6 10h10"></path>
+                                    <path d="M6 14h6"></path>
+                                </svg>
                             </div>
-                            <h2 class="h5 mb-3 text-truncate" title="@nb.Title">
-                                <a asp-action="View" asp-route-id="@nb.NotebookId" class="text-decoration-none" style="color:var(--ha-ink);">
-                                    @nb.Title
-                                </a>
-                            </h2>
-                            <div class="d-flex flex-wrap gap-2 mb-3">
-                                @if (nb.MarkdownBlockCount > 0)
-                                {
-                                    <span class="badge bg-secondary-subtle text-secondary border d-inline-flex align-items-center">
-                                        <img src="/images/edit.svg" class="sim-icon me-1" alt="" style="width:13px;height:13px;" />
-                                        @nb.MarkdownBlockCount @(nb.MarkdownBlockCount == 1 ? "Note" : "Notes")
+                            <div class="notebook-title-group">
+                                <h2 class="notebook-row-title">@nb.Title</h2>
+                                <p class="notebook-meta-line">
+                                    <span>
+                                        @if (totalBlocks == 0)
+                                        {
+                                            <span>0 blocks</span>
+                                        }
+                                        else
+                                        {
+                                            var parts = new List<string>();
+                                            if (nb.MarkdownBlockCount > 0)
+                                            {
+                                                parts.Add($"{nb.MarkdownBlockCount} {(nb.MarkdownBlockCount == 1 ? "note" : "notes")}");
+                                            }
+                                            if (nb.InteractiveTerminalCount > 0)
+                                            {
+                                                parts.Add($"{nb.InteractiveTerminalCount} {(nb.InteractiveTerminalCount == 1 ? "interactive terminal" : "interactive terminals")}");
+                                            }
+                                            if (nb.StaticExampleCount > 0)
+                                            {
+                                                parts.Add($"{nb.StaticExampleCount} {(nb.StaticExampleCount == 1 ? "example" : "examples")}");
+                                            }
+                                            @string.Join(" · ", parts)
+                                        }
                                     </span>
-                                }
-                                @if (nb.InteractiveTerminalCount > 0)
-                                {
-                                    <span class="badge bg-info-subtle text-info border d-inline-flex align-items-center">
-                                        <img src="/images/terminal.svg" class="sim-icon me-1" alt="" style="width:13px;height:13px;" />
-                                        @nb.InteractiveTerminalCount @(nb.InteractiveTerminalCount == 1 ? "Interactive CLI" : "Interactive CLIs")
-                                    </span>
-                                }
-                                @if (nb.StaticExampleCount > 0)
-                                {
-                                    <span class="badge bg-secondary-subtle text-secondary border d-inline-flex align-items-center">
-                                        <img src="/images/clipboard.svg" class="sim-icon me-1" alt="" style="width:13px;height:13px;" />
-                                        @nb.StaticExampleCount @(nb.StaticExampleCount == 1 ? "Example" : "Examples")
-                                    </span>
-                                }
-                                @if (nb.MarkdownBlockCount == 0 && nb.InteractiveTerminalCount == 0 && nb.StaticExampleCount == 0)
-                                {
-                                    <span class="badge bg-secondary-subtle text-muted border">Empty Draft</span>
-                                }
+                                    <span class="meta-dot" aria-hidden="true">•</span>
+                                    <span title="Updated @nb.UpdatedAtUtc.ToString("u")">Updated @UserTime.Format(nb.UpdatedAtUtc)</span>
+                                </p>
                             </div>
-                        </div>
+                        </a>
+                    </div>
 
-                        <div class="pt-3 border-top d-flex flex-wrap justify-content-between align-items-center gap-2">
-                            <div class="d-flex gap-2">
-                                <a asp-action="View" asp-route-id="@nb.NotebookId" class="btn btn-sm btn-outline-secondary" title="View notebook notes and run terminal">
-                                    Open
+                    <!-- Zone 2: Optional Badges / Tags (Middle) -->
+                    <div class="notebook-middle-zone">
+                        @if (nb.InteractiveTerminalCount > 0)
+                        {
+                            <span class="notebook-badge notebook-badge-terminal" title="@nb.InteractiveTerminalCount interactive terminal environment(s)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <polyline points="4 17 10 11 4 5"></polyline>
+                                    <line x1="12" y1="19" x2="20" y2="19"></line>
+                                </svg>
+                                <span>Interactive CLI</span>
+                            </span>
+                        }
+                        @if (nb.StaticExampleCount > 0)
+                        {
+                            <span class="notebook-badge notebook-badge-example" title="@nb.StaticExampleCount static command example(s)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
+                                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
+                                </svg>
+                                <span>Examples</span>
+                            </span>
+                        }
+                        @if (totalBlocks == 0)
+                        {
+                            <span class="notebook-badge text-muted">Empty Draft</span>
+                        }
+                    </div>
+
+                    <!-- Zone 3: Actions (Right) -->
+                    <div class="notebook-actions-zone">
+                        <a asp-action="View" asp-route-id="@nb.NotebookId" class="notebook-open-btn" title="Open and read notebook">
+                            <span>Open</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                        </a>
+
+                        <!-- Contextual Overflow Menu -->
+                        <details class="notebook-menu-details" data-notebook-menu>
+                            <summary class="notebook-menu-trigger" aria-label="More options for @nb.Title" title="More options">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="1.5"></circle>
+                                    <circle cx="12" cy="5" r="1.5"></circle>
+                                    <circle cx="12" cy="19" r="1.5"></circle>
+                                </svg>
+                            </summary>
+                            <div class="notebook-menu-dropdown" role="menu">
+                                <a asp-action="Edit" asp-route-id="@nb.NotebookId" class="notebook-menu-item" role="menuitem">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                    </svg>
+                                    <span>Edit Notebook</span>
                                 </a>
-                                <a asp-action="Edit" asp-route-id="@nb.NotebookId" class="btn btn-sm btn-primary" title="Edit content, Markdown and terminal blocks">
-                                    Edit
-                                </a>
-                            </div>
-                            <div class="d-flex gap-1">
-                                <a asp-action="Export" asp-route-id="@nb.NotebookId" class="btn btn-sm btn-outline-secondary" title="Download standalone offline HTML file">
-                                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;" aria-hidden="true">
+                                <a asp-action="Export" asp-route-id="@nb.NotebookId" class="notebook-menu-item" role="menuitem" title="Download standalone offline HTML file">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                         <polyline points="7 10 12 15 17 10"></polyline>
                                         <line x1="12" y1="15" x2="12" y2="3"></line>
                                     </svg>
-                                    HTML
+                                    <span>Export Standalone HTML</span>
                                 </a>
-                                <form asp-action="Delete" asp-route-id="@nb.NotebookId" method="post" onsubmit="return confirm('Are you sure you want to delete this notebook?');">
+                                <div class="notebook-menu-divider" role="separator"></div>
+                                <form asp-action="Delete" asp-route-id="@nb.NotebookId" method="post" onsubmit="return confirm('Are you sure you want to delete this notebook? This action cannot be undone.');">
                                     @Html.AntiForgeryToken()
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete notebook">
-                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;" aria-hidden="true">
+                                    <button type="submit" class="notebook-menu-item notebook-menu-item-danger" role="menuitem">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                                             <polyline points="3 6 5 6 21 6"></polyline>
                                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                                         </svg>
+                                        <span>Delete Notebook</span>
                                     </button>
                                 </form>
                             </div>
-                        </div>
+                        </details>
                     </div>
-                </div>
+                </article>
             }
         </div>
     }
+
+    <!-- Floating Action Button: Create New Notebook (Expand-on-hover & focus) -->
+    <div class="fab-container">
+        <form asp-action="Create" method="post" id="fabCreateNotebookForm" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="fab-primary-btn" id="fabCreateNotebookBtn" aria-label="Create New Notebook">
+                <span class="fab-icon-wrap" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"></line>
+                        <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                </span>
+                <span class="fab-label">Create New Notebook</span>
+            </button>
+        </form>
+    </div>
 </div>
+
+@section Scripts {
+    <script>
+        // Dismiss overflow menus on outside click or Escape key
+        document.querySelectorAll('[data-notebook-menu]').forEach(function (menu) {
+            document.addEventListener('click', function (event) {
+                if (!menu.contains(event.target)) {
+                    menu.open = false;
+                }
+            });
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && menu.open) {
+                    menu.open = false;
+                    var summary = menu.querySelector('summary');
+                    if (summary) summary.focus();
+                }
+            });
+        });
+    </script>
+}
