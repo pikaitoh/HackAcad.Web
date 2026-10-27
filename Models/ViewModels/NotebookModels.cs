@@ -63,8 +63,14 @@ public class NotebookCustomCommand
     [JsonPropertyName("description")]
     public string? Description { get; set; }
 
+    [JsonPropertyName("hint")]
+    public string? Hint { get; set; }
+
     [JsonPropertyName("enabled")]
     public bool Enabled { get; set; } = true;
+
+    [JsonPropertyName("requiredFiles")]
+    public List<string>? RequiredFiles { get; set; }
 }
 
 public class NotebookStaticExample

@@ -161,6 +161,27 @@ const labConfig = {
             command: 'service audit status',
             output: 'audit.service: active (running)',
             enabled: false // Disabled
+        },
+        {
+            id: 'cc_py',
+            command: 'python main.py',
+            output: 'Hello, World from Python!',
+            enabled: true,
+            requiredFiles: ['main.py']
+        },
+        {
+            id: 'cc_dir',
+            command: 'inspect data/',
+            output: 'data directory contents verified',
+            enabled: true,
+            requiredFiles: ['data/']
+        },
+        {
+            id: 'cc_bad_traversal',
+            command: 'read secret',
+            output: 'traversal bypassed',
+            enabled: true,
+            requiredFiles: ['../../etc/shadow']
         }
     ],
     objectives: [
@@ -320,4 +341,39 @@ context.window.resetSimulationAttempt();
 const remainingStorageKeys = Object.keys(mockSessionStorage).filter(k => k.includes('hackacad_introduced_hints'));
 assert.equal(remainingStorageKeys.length, 0, 'resetSimulationAttempt should clear session storage hints');
 
-console.log('PASS Simulated Terminal: touch, nano editor, output redirection (>), exact-match custom commands, sequential objectives, and SVG icons');
+// 9. Test Custom Command Required Files and Directories validation
+// 9.1 Fails when required file main.py is absent from /home/student
+enterCommand('python main.py');
+out = getLatestOutput();
+assert(out.includes("python:") && out.includes("main.py") && out.includes("No such file or directory"), 'python main.py must fail with simulated Linux error when main.py does not exist');
+assert(!out.includes('Hello, World from Python!'), 'Success output must NOT be printed when prerequisite file is missing');
+
+// 9.2 Create main.py via touch
+enterCommand('touch main.py');
+enterCommand('python main.py');
+out = getLatestOutput();
+assert(out.includes('Hello, World from Python!'), 'python main.py must succeed when main.py exists in cwd');
+
+// 9.3 Change directory to /var/log where main.py does not exist
+enterCommand('cd /var/log');
+enterCommand('python main.py');
+out = getLatestOutput();
+assert(out.includes("python:") && out.includes("main.py") && out.includes("No such file or directory"), 'python main.py must fail from /var/log even though main.py exists in /home/student');
+
+// 9.4 Change back to /home/student where main.py exists
+enterCommand('cd /home/student');
+enterCommand('python main.py');
+out = getLatestOutput();
+assert(out.includes('Hello, World from Python!'), 'python main.py must succeed again after returning to /home/student');
+
+// 9.5 Missing directory requirement
+enterCommand('inspect data/');
+out = getLatestOutput();
+assert(out.includes('inspect:') && out.includes('data/') && out.includes('No such directory'), 'Missing directory prerequisite must fail with directory error');
+
+// 9.6 Traversal attempt
+enterCommand('read secret');
+out = getLatestOutput();
+assert(out.includes('Invalid path'), 'Path traversal prerequisite must be rejected with Invalid path error');
+
+console.log('PASS Simulated Terminal: touch, nano editor, output redirection (>), exact-match custom commands, sequential objectives, SVG icons, and custom command file prerequisites');
