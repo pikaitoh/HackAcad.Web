@@ -503,4 +503,19 @@ Check(SimulationVerifier.IsComplete(dynamicReqConfig, new[] {
     "python script.py"
 }), "File created with touch satisfies requiredFiles requirement");
 
+// Match browser prerequisite rules: a file requirement cannot be satisfied by a directory.
+var directoryInsteadOfFile = reqFilesConfig.Replace("\"main.py\": \"print('hello')\"", "\"main.py\": {}");
+Check(!SimulationVerifier.IsComplete(directoryInsteadOfFile, new[] { "python main.py" }),
+    "A directory named main.py cannot satisfy a required file or complete its command objective");
+
+// Optional null values remain compatible with serialized NotebookCustomCommand models.
+var nullRequirements = reqFilesConfig.Replace("\"requiredFiles\": [\"main.py\"]", "\"requiredFiles\": null");
+Check(SimulationVerifier.TryConfiguration(nullRequirements, out _, out _), "Null optional prerequisites remain valid");
+foreach (var malformed in new[] { "\"main.py\"", "42", "true", "{}" })
+{
+    var malformedConfig = reqFilesConfig.Replace("\"requiredFiles\": [\"main.py\"]", "\"requiredFiles\": " + malformed);
+    Check(!SimulationVerifier.TryConfiguration(malformedConfig, out _, out _),
+        "Non-array prerequisites are rejected instead of silently ignored: " + malformed);
+}
+
 Console.WriteLine("ALL SIMULATION VERIFIER TESTS PASSED!");

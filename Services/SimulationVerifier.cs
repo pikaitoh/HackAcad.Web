@@ -58,9 +58,9 @@ public static class SimulationVerifier
                     }
 
                     // Validate optional requiredFiles if present
-                    if (cc.TryGetProperty("requiredFiles", out var rfProp) && rfProp.ValueKind == JsonValueKind.Array)
+                    if (cc.TryGetProperty("requiredFiles", out var rfProp) && rfProp.ValueKind != JsonValueKind.Null)
                     {
-                        if (rfProp.GetArrayLength() > 64) return false;
+                        if (rfProp.ValueKind != JsonValueKind.Array || rfProp.GetArrayLength() > 64) return false;
                         foreach (var rf in rfProp.EnumerateArray())
                         {
                             if (rf.ValueKind != JsonValueKind.String) return false;
@@ -268,7 +268,8 @@ public static class SimulationVerifier
                     }
                     else
                     {
-                        if (!FileExists(normReq) && !DirExists(normReq))
+                        // Match the browser: only a trailing slash requests a directory.
+                        if (!FileExists(normReq))
                         {
                             requirementsMet = false;
                             break;
