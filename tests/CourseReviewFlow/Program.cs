@@ -1,3 +1,4 @@
+// ADMIN - Course approval evidence: role checks, mandatory rejection feedback, resubmission, publication and stale-version protection.
 using System.Net;
 using System.Text;
 using System.Text.RegularExpressions;

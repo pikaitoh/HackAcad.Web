@@ -3,6 +3,8 @@ using HackAcad.Web.Models.Entities;
 
 namespace HackAcad.Web.Models.ViewModels;
 
+// ADMIN - Page/input models for Admin screens. These are UI projections, not additional database tables.
+
 public class UserRow
 {
     public string Id { get; set; } = "";
@@ -93,13 +95,22 @@ public class EditCourseModel
 {
     public int CourseId { get; set; }
     [Required(ErrorMessage = "Enter a course title."), StringLength(150, ErrorMessage = "Use no more than 150 characters for the title.")]
-    public string Title { get => title; set => title = value?.Trim() ?? ""; }
+    public string Title
+    {
+        get => title; set => title = value?.Trim() ?? "";
+    }
     private string title = "";
     [StringLength(1000, ErrorMessage = "Use no more than 1,000 characters for the description.")]
-    public string? Description { get => description; set => description = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
+    public string? Description
+    {
+        get => description; set => description = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
     private string? description;
     [Required(ErrorMessage = "Choose a course category."), StringLength(50, ErrorMessage = "Use no more than 50 characters for the category.")]
-    public string? Category { get => category; set => category = string.IsNullOrWhiteSpace(value) ? null : value.Trim(); }
+    public string? Category
+    {
+        get => category; set => category = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+    }
     private string? category;
     [Display(Name = "Publish this course")]
     public bool IsPublished { get; set; }

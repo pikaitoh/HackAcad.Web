@@ -3,6 +3,8 @@ using HackAcad.Web.Models.Entities;
 
 namespace HackAcad.Web.Models.ViewModels;
 
+// ADMIN - Keep the review form separate from the course entity so posted fields cannot overwrite course ownership.
+
 public class CourseReviewInput : IValidatableObject
 {
     [Required, StringLength(32)] public string Version { get; set; } = "";
@@ -12,6 +14,7 @@ public class CourseReviewInput : IValidatableObject
     public string? Reason { get; set; }
     public IEnumerable<ValidationResult> Validate(ValidationContext context)
     {
+        // ADMIN - Rejection needs actionable feedback; approval feedback is optional.
         if (Decision == CourseReviewStatus.Rejected && string.IsNullOrWhiteSpace(Reason))
             yield return new ValidationResult("Explain why this course is rejected so the instructor can revise it.", [nameof(Reason)]);
     }

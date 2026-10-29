@@ -28,7 +28,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         if (User.Identity?.IsAuthenticated == true) return RedirectToAction(nameof(Dashboard));
         if (!ModelState.IsValid) return View(input);
         var user = new ApplicationUser { UserName = input.Email.Trim(), Email = input.Email.Trim(), DisplayName = input.DisplayName.Trim() };
-        // The public form cannot choose or bind a privileged role.
+        // ADMIN - Public registration always creates Student access; posted fields cannot grant a privileged role.
         var result = await accounts.CreateAsync(user, input.Password, AccountRoles.Student);
         if (!result.Succeeded) { AccountValidation.AddIdentityErrors(ModelState, result); return View(input); }
         TempData["VerificationEmail"] = user.Email;
@@ -189,7 +189,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
     [HttpGet]
     public async Task<IActionResult> Dashboard(int? activityYear)
     {
-        // Build the learner's progress summary, activity calendar, and badges.
+        // ADMIN - Route administrators to their management dashboard before building learner-only statistics.
         if (User.IsInRole(AccountRoles.Admin)) return RedirectToAction("Index", "Admin");
         var id = users.GetUserId(User)!;
         var isInstructor = User.IsInRole(AccountRoles.Instructor);

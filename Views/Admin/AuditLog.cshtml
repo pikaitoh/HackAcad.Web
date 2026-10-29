@@ -1,3 +1,4 @@
+@* ADMIN - Read-only history: summaries stay compact, while expandable rows expose evidence and technical metadata. *@
 @model AuditLogModel
 @{ ViewData["Title"] = "Audit logs"; }
 <div class="admin-content">
@@ -27,6 +28,7 @@
                         <button type="button" class="audit-toggle" data-audit-toggle aria-expanded="false" aria-controls="audit-event-@record.Id">View details<span class="visually-hidden"> for event @record.Id</span></button>
                     </td>
                 </tr>
+                @* ADMIN - The expanded row preserves original snapshots and shows missing legacy fields explicitly. *@
                 <tr id="audit-event-@record.Id" class="audit-detail-row" hidden><td colspan="5">
                             <div class="audit-event-content">
                                 <h2 class="h6">Reason / details</h2><p class="preserve-lines">@AuditPresentation.Recorded(record.Details)</p>

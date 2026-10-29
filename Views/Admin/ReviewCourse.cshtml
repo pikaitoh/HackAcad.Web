@@ -1,3 +1,4 @@
+@* ADMIN - Course approval screen: inspect every curriculum type before deciding on the submitted version. *@
 @model CourseReviewModel
 @{ ViewData["Title"] = "Course approval"; }
 <div class="admin-content">
@@ -10,6 +11,7 @@
         @if (Model.Course.SubmittedForReviewUtc is DateTime submitted) { <p class="text-secondary small">Submitted @UserTime.Format(submitted, "dd MMM yyyy, HH:mm")</p> }
         @if (!string.IsNullOrWhiteSpace(Model.Course.ReviewReason)) { <p><strong>Latest feedback:</strong> @Model.Course.ReviewReason</p> }
     </section>
+    @* ADMIN - Review lesson text, CTFs, simulations and notebook documents; do not execute submitted content. *@
     <section class="surface-panel p-4 mb-4">
         <h2 class="h4">Curriculum</h2><p class="text-secondary">Expand each item to inspect its content. Hidden activities are labelled.</p>
         @foreach (var lesson in Model.Lessons) {
@@ -37,6 +39,7 @@
         }
         @if (Model.Lessons.Count + Model.Challenges.Count + Model.Simulations.Count + Model.Notebooks.Count == 0) { <p>No curriculum has been added yet.</p> }
     </section>
+    @* ADMIN - Only a pending submission exposes decision controls; the controller also checks version and ownership. *@
     @if (Model.Course.ReviewStatus == CourseReviewStatus.Pending) {
         <section class="surface-panel p-4 form-measure">
             <h2 class="h4">Review decision</h2>

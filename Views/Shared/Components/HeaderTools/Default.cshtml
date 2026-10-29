@@ -1,3 +1,4 @@
+@* ADMIN - Keep appearance/notification controls and the role-specific dashboard return link in the shared header. *@
 @model HeaderToolsModel
 @{ var headerUser = ViewData["HeaderUser"] as System.Security.Claims.ClaimsPrincipal ?? User; var admin = headerUser.IsInRole(AccountRoles.Admin); var instructor = headerUser.IsInRole(AccountRoles.Instructor); var controller = ViewContext.RouteData.Values["controller"]?.ToString(); }
 @if (ViewData["PageClass"] as string != "workspace-area" && (controller is "Education" or "Notifications" or "Support" || controller == "Account" && ViewContext.RouteData.Values["action"]?.ToString() != "Dashboard")) {

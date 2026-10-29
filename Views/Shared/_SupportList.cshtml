@@ -1,3 +1,4 @@
+@* ADMIN - Shared request rows: Admin and requester routes differ, but conversation status has the same meaning. *@
 @model SupportListModel
 @{ var admin = ViewData["SupportAdmin"] as bool? == true; }
 <div class="table-responsive surface-table"><table class="table module-table @(admin ? "admin-status-table admin-support-table" : "")"><caption class="visually-hidden">Account support requests. Times shown in @UserTime.Id.</caption><thead><tr><th scope="col">Request</th>@if (admin) { <th scope="col">User</th><th scope="col">Type</th> }<th scope="col">Status</th><th scope="col">Updated</th>@if (admin) { <th scope="col">Action</th> }</tr></thead><tbody>

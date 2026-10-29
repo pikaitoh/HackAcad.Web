@@ -1,3 +1,4 @@
+// ADMIN - Dashboard evidence: real EF aggregates, local-date boundaries and charts inside a rolled-back test transaction.
 using System.Net;
 using System.Security.Claims;
 using HackAcad.Web.Controllers;

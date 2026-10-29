@@ -1,3 +1,4 @@
+@* ADMIN - Deletion confirmation: courses referenced by student learning records cannot be permanently deleted. *@
 @model Course
 @{ var blocked = ViewData["HasLearningData"] as bool? == true; ViewData["Title"] = blocked ? "Course cannot be deleted" : "Delete course"; }
 <div class="admin-content admin-confirm-page"><div class="form-measure"><h1>@ViewData["Title"]</h1>

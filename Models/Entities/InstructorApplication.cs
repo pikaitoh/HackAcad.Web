@@ -2,6 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace HackAcad.Web.Models.Entities;
 
+// ADMIN - Application revisions preserve submitted evidence; separate review records preserve Admin decisions.
+
 public static class ApplicationStatus
 {
     public const string Pending = "Pending";

@@ -1,5 +1,7 @@
 namespace HackAcad.Web.Models.Entities;
 
+// ADMIN - Course moderation states are independent of the instructor's publication choice.
+
 public static class CourseReviewStatus
 {
     public const string Draft = "Draft";

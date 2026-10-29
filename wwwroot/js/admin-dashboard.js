@@ -1,3 +1,4 @@
+// ADMIN - Enhance server-rendered chart values with keyboard-accessible tooltips.
 (() => {
     document.querySelectorAll('[data-chart]').forEach(chart => {
         const tooltip = chart.querySelector('[role="tooltip"]');
@@ -6,17 +7,20 @@
         const show = point => {
             const title = document.createElement('strong');
             const value = document.createElement('span');
+            // ADMIN - Course names and labels are text, never interpreted as HTML.
             title.textContent = point.dataset.chartLabel;
             value.textContent = point.dataset.chartValue;
             tooltip.replaceChildren(title, value);
             tooltip.hidden = false;
             const area = chart.getBoundingClientRect();
             const target = point.getBoundingClientRect();
+            // ADMIN - Keep the tooltip within the chart, including the first and last data points.
             const left = target.left - area.left + target.width / 2 - tooltip.offsetWidth / 2;
             tooltip.style.left = `${Math.max(0, Math.min(left, area.width - tooltip.offsetWidth))}px`;
             tooltip.style.top = `${Math.max(0, target.top - area.top - tooltip.offsetHeight - 8)}px`;
         };
         const points = [...chart.querySelectorAll('[data-chart-label]')];
+        // ADMIN - One Tab stop per chart; arrow keys, Home and End move between the same plotted values.
         points.forEach((point, index) => {
             point.addEventListener('pointerenter', () => show(point));
             point.addEventListener('pointerleave', hide);

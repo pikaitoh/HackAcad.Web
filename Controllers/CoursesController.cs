@@ -756,6 +756,7 @@ public class CoursesController(
     // ==========================================
     // HELPERS
     // ==========================================
+    // ADMIN - Moderators may inspect unpublished course/activity evidence; ordinary learners need published content.
     private bool CanReadCourse(Course course) => course.IsPublished
         || User.IsInRole(AccountRoles.Admin) || IsCourseOwner(course.InstructorId);
 

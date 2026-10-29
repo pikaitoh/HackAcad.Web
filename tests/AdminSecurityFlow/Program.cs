@@ -1,3 +1,4 @@
+// ADMIN - Security evidence: exercise real HTTP/MFA/CSRF/session/support paths using disposable users and local delivery captures.
 using System.Net;
 using System.Security.Cryptography;
 using System.Buffers.Binary;
@@ -92,8 +93,9 @@ try {
      var obsolete=await db.Database.SqlQueryRaw<int>("SELECT COUNT(*) AS Value FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND LOWER(TABLE_NAME) IN ('aspnetroles','aspnetuserroles','aspnetroleclaims')").SingleAsync();
      Check(obsolete==0,"authentication and permission scenarios run with all three unused role tables absent");
      var tableNames=await db.Database.SqlQueryRaw<string>("SELECT TABLE_NAME AS Value FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME <> '__EFMigrationsHistory'").ToListAsync();
-     var expectedNames=new[]{"users","user_claims","user_logins","user_tokens","students","instructors","admins","courses","lessons","enrollments","saved_courses","progress_records","challenges","challenge_submissions","simulation_tasks","login_records","admin_activities","account_sessions","instructor_applications","instructor_reviews","user_notifications","banner_rewards","security_events","security_alerts","support_accesses","support_tickets","support_messages"};
-     Check(tableNames.Order().SequenceEqual(expectedNames.Order()),"all 27 application tables use readable names without the AspNet prefix");
+     // ADMIN - Include the badge and notebook tables added after the original 27-table naming check.
+     var expectedNames=new[]{"users","user_claims","user_logins","user_tokens","students","instructors","admins","courses","lessons","enrollments","saved_courses","progress_records","challenges","challenge_submissions","simulation_tasks","login_records","admin_activities","account_sessions","instructor_applications","instructor_reviews","user_notifications","banner_rewards","security_events","security_alerts","support_accesses","support_tickets","support_messages","user_badge_awards","notebooks","course_notebooks"};
+     Check(tableNames.Order().SequenceEqual(expectedNames.Order()),"all application tables use readable names without the AspNet prefix");
 
  }
  var administrator=await UserFixture("manager",AccountRoles.Admin,true);manager=administrator;var disabled=await UserFixture("disabled",disabled:true);var other=await UserFixture("other");

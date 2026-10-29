@@ -187,6 +187,7 @@ html[data-theme="dark"] .table-light { --bs-table-bg: var(--ha-tint); --bs-table
 .login-history-table .status-label { white-space: normal; }
 .status-label::before { flex-shrink: 0; }
 .course-review-content { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 24rem; overflow: auto; }
+/* ADMIN - Keep Instructor application, Account support and Security list badges at the same visual size. */
 .application-status,.admin-status-table .support-status { display: inline-block; border-radius: 999px; padding: .25rem .7rem; font-size: .75rem; font-weight: 650; line-height: 1.5; }
 .application-status[data-status="Pending"] { background: #e4effb; color: #245c91; }
 .application-status[data-status="Needs more information"] { background: #fff0d6; color: #865015; }
@@ -243,11 +244,13 @@ html[data-theme="dark"] .support-status[data-status="New"],html[data-theme="dark
 html[data-theme="dark"] .support-status[data-status="Investigating"],html[data-theme="dark"] .support-status[data-status="Awaiting user"] { background:#253e50; color:#bde1f5; }
 html[data-theme="dark"] .support-status[data-status="Resolved"] { background:#244a3d; color:#b1efcf; }
 
+/* ADMIN - Shared sensitive-operation dialog and backdrop; empty errors stay hidden until validation provides a message. */
 .admin-verify-dialog { width:min(34rem,calc(100% - 4rem)); border:1px solid var(--ha-line); border-radius:var(--ha-radius); padding:2rem; color:var(--ha-ink); background:var(--ha-surface,#fff); }
 .admin-verify-dialog::backdrop { background:rgb(8 25 30 / .55); }
 .admin-verify-dialog [hidden] { display:none !important; }
 .admin-verify-dialog [data-verify-errors]:empty,.admin-verify-dialog [data-verify-notice]:empty { display:none; }
 
+/* ADMIN - Audit summaries, expanded evidence and metadata are styled separately for readable history. */
 /* Expand audit metadata only when requested; keep the default list easy to scan. */
 .audit-table > thead th:nth-child(1) { width: 10rem; }
 .audit-table > thead th:nth-child(2) { width: 11rem; }

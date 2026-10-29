@@ -1,5 +1,7 @@
 namespace HackAcad.Web.Models.ViewModels;
 
+// ADMIN - Shared count/pluralization text keeps filtered Admin lists consistent.
+
 public static class ListPresentation
 {
     public static string Count(int total, string noun) => $"{total} {noun}{(total == 1 ? "" : "s")}";

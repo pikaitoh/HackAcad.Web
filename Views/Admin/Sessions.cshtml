@@ -1,3 +1,4 @@
+@* ADMIN - Account session management: active means usable credentials, not proof that a browser is online. *@
 @model AdminSessionsModel
 @{ ViewData["Title"] = "Account sessions"; }
 <div class="admin-content"><div class="page-heading"><div><h1>Account sessions</h1><p class="text-secondary">@Model.DisplayName · Active means usable, not necessarily online. Times shown in @UserTime.Id.</p></div><a asp-action="UserDetails" asp-route-id="@Model.UserId" class="btn btn-outline-secondary">Back to user</a></div>

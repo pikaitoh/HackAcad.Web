@@ -1,3 +1,4 @@
+@* ADMIN - Role-aware account menu: Admins keep profile/settings/logout controls and do not receive the requester support entry. *@
 @inject Microsoft.AspNetCore.Identity.UserManager<ApplicationUser> UserManager
 @{ var headerUser = ViewData["HeaderUser"] as System.Security.Claims.ClaimsPrincipal ?? User; var currentController = ViewContext.RouteData.Values["controller"]?.ToString(); var currentAction = ViewContext.RouteData.Values["action"]?.ToString(); }
 @if (headerUser.Identity?.IsAuthenticated == true)

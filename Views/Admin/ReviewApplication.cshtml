@@ -1,3 +1,4 @@
+@* ADMIN - Application review: inspect immutable submitted evidence before recording eligibility checks and a decision. *@
 @model ApplicationDetailsModel
 @{
     ViewData["Title"] = "Review Instructor application";
@@ -21,6 +22,7 @@
     </div>
 }
 <div class="@(canReview ? "application-review-grid" : "application-review-record")"><div><partial name="_ApplicationRecord" model="Model" /></div>
+@* ADMIN - Eligibility checkboxes support the review; mandatory approval requirements are validated again on the server. *@
 @if (canReview) {
 <section class="surface-panel application-review-form"><h2 class="h5">Record a decision</h2>
 <form data-admin-operation method="post" data-validated-form novalidate asp-action="ReviewApplication" asp-route-id="@Model.Application.Id"><div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>

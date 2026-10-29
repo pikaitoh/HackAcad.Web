@@ -12,6 +12,7 @@ public class Personalization(ApplicationDbContext db, TimeProvider clock)
         // The unique recipient/event key makes retries and concurrent tabs idempotent.
         await db.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO `user_notifications` (UserId, EventKey, Title, Message, Link, CreatedUtc) VALUES ({userId}, {key}, {title}, {message}, {link}, {now}) ON DUPLICATE KEY UPDATE Id = Id");
     }
+    // ADMIN - Each Admin gets a separate notification, so reading one copy does not mark others as read.
     public async Task NotifyAdmins(long applicationId, string applicant, bool revised)
     {
         foreach (var id in await db.Admins.Select(a => a.UserId).ToListAsync())

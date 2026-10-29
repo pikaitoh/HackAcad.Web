@@ -72,6 +72,7 @@ builder.Services.AddScoped<AccountRecords>();
 builder.Services.AddScoped<SecurityMonitor>();
 builder.Services.AddScoped<AdminSecurity>();
 builder.Services.AddScoped<AdminOperations>();
+// ADMIN - Register the shared Admin gate and its verification/operation dependencies in request scope.
 builder.Services.AddScoped<AdminSecurityFilter>();
 builder.Services.AddScoped<SupportAccessService>();
 builder.Services.AddAuthentication().AddCookie(SupportAccessService.Scheme, options => {
@@ -160,6 +161,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 builder.Services.AddControllersWithViews(options => {
     options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+    // ADMIN - Apply the Admin policy centrally so new actions cannot bypass it by omitting a local check.
     options.Filters.AddService<AdminSecurityFilter>();
 });
 builder.Services.AddRazorPages();

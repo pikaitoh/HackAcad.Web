@@ -1,3 +1,4 @@
+@* ADMIN - Display role-aware navigation and pending counts; the server filter independently enforces access. *@
 @inject HackAcad.Web.Data.ApplicationDbContext NavigationDb
 @using Microsoft.EntityFrameworkCore
 @{ var action = ViewContext.RouteData.Values["action"]?.ToString() ?? ""; }

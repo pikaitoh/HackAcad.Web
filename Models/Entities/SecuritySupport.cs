@@ -1,10 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 namespace HackAcad.Web.Models.Entities;
 
+// ADMIN - Store investigation signals and support conversations independently of normal account sign-in access.
+
 public class SecurityEvent
 {
     public long Id { get; set; }
-    [MaxLength(255)] public string? UserId { get; set; }
+    [MaxLength(255)]
+    public string? UserId { get; set; }
     [MaxLength(64)] public string SubjectHash { get; set; } = "";
     [MaxLength(45)] public string IpAddress { get; set; } = "";
     [MaxLength(80)] public string Device { get; set; } = "";
@@ -18,7 +21,8 @@ public class SecurityAlert
     [MaxLength(180)] public string EventKey { get; set; } = "";
     [MaxLength(100)] public string Title { get; set; } = "";
     [MaxLength(600)] public string Explanation { get; set; } = "";
-    [MaxLength(255)] public string? UserId { get; set; }
+    [MaxLength(255)]
+    public string? UserId { get; set; }
     [MaxLength(45)] public string IpAddress { get; set; } = "";
     [MaxLength(20)] public string Status { get; set; } = "New";
     [MaxLength(1000)] public string Notes { get; set; } = "";
@@ -65,6 +69,7 @@ public class SupportMessage
     [MaxLength(255)] public string AuthorId { get; set; } = "";
     [MaxLength(80)] public string AuthorName { get; set; } = "";
     public bool ByAdmin { get; set; }
+    // ADMIN - Internal messages belong to the Admin conversation view and are excluded from the user thread.
     public bool Internal { get; set; }
     [MaxLength(3000)] public string Body { get; set; } = "";
     public DateTime CreatedUtc { get; set; }

@@ -1020,6 +1020,7 @@ public class InstructorCoursesController(
     // ==========================================
     [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost, ValidateAntiForgeryToken]
+    // ADMIN - Instructor entry into Admin approval: only a revised draft with learner-visible content can be submitted.
     public async Task<IActionResult> SubmitForReview(int id, string version, [FromServices] Personalization notifications)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -1062,6 +1063,7 @@ public class InstructorCoursesController(
         var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == id && c.InstructorId == instructorId);
         if (course == null) return NotFound();
 
+        // ADMIN - Keep publication enforcement on the server; posting a hidden/forged Publish button cannot bypass approval.
         if (!course.IsPublished && course.ReviewStatus != CourseReviewStatus.Approved)
         {
             TempData["CourseError"] = "Admin approval is required before publishing this course.";

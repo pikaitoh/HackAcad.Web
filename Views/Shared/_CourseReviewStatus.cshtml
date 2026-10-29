@@ -1,2 +1,3 @@
+@* ADMIN - One visual label for each moderation state; approval is independent of publication. *@
 @model string
 <span class="application-status" data-status="@(Model == CourseReviewStatus.Draft ? "Needs more information" : Model)">@Model</span>

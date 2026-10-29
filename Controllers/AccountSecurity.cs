@@ -169,6 +169,7 @@ public partial class AccountController
         if (user is null) return Challenge();
         if (!user.TwoFactorEnabled) return Forbid();
         if (operation != "disable" && operation != "regenerate") return BadRequest();
+        // ADMIN - An administrator must keep MFA enabled even through the normal account-settings endpoint.
         if (operation == "disable" && User.IsInRole(AccountRoles.Admin)) {
             ModelState.AddModelError("", "Administrators must keep two-factor authentication enabled.");
             return View("TwoFactor", await TwoFactorData(user));
@@ -257,6 +258,7 @@ public partial class AccountController
                 : await signIn.TwoFactorAuthenticatorSignInAsync(code.Replace("-", ""), input.RememberMe, rememberClient: false);
             if (result.Succeeded)
             {
+                // ADMIN - Bind successful login MFA to the current browser session for the shared Admin request filter.
                 await adminSecurity.MarkMfaAsync(HttpContext, user);
                 await records.LoginAsync(user.Id, recovery ? "Signed in with recovery code" : "Signed in with 2FA");
                 return Url.IsLocalUrl(input.ReturnUrl) ? LocalRedirect(input.ReturnUrl!) : RedirectToAction(nameof(Dashboard));

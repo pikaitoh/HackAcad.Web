@@ -57,6 +57,7 @@ public partial class ApplicationDbContext : IdentityUserContext<ApplicationUser>
         builder.Entity<Instructor>().ToTable("instructors");
         builder.Entity<Admin>().ToTable("admins");
         builder.Entity<Course>().ToTable("courses");
+        // ADMIN - The course version is checked in UPDATE predicates, preventing approval of overwritten content.
         builder.Entity<Course>().Property(c => c.ReviewVersion).IsConcurrencyToken();
         builder.Entity<Course>().HasIndex(c => new { c.ReviewStatus, c.SubmittedForReviewUtc });
         builder.Entity<Lesson>().ToTable("lessons");
@@ -114,6 +115,7 @@ public partial class ApplicationDbContext : IdentityUserContext<ApplicationUser>
         builder.Entity<AccountSession>().HasOne<ApplicationUser>().WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
         builder.Entity<AdminActivity>().HasIndex(r => new { r.ActorUserId, r.OccurredUtc });
         // Keep the audit entry when its actor/target is removed; only the actor relation is cleared.
+        // ADMIN - Deleting an account must not erase its audit history; nullable actors preserve the event.
         builder.Entity<AdminActivity>().HasOne<ApplicationUser>().WithMany().HasForeignKey(r => r.ActorUserId).OnDelete(DeleteBehavior.SetNull);
 
         builder.Entity<InstructorApplication>().HasIndex(a => new { a.UserId, a.Revision }).IsUnique();

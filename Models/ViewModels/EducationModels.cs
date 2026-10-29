@@ -4,33 +4,52 @@ using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace HackAcad.Web.Models.ViewModels;
 
+// ADMIN - Application validation and review contracts shared by the applicant and Admin evidence screens.
+
 public class TeachingExperience
 {
     [Required, StringLength(150)] public string Institution { get; set; } = "";
     [Required, StringLength(100)] public string Position { get; set; } = "";
     [Required, StringLength(200, MinimumLength = 10, ErrorMessage = "Describe the subjects you taught using 10–200 characters.")]
-    public string Subjects { get => subjects; set => subjects = value?.Trim() ?? ""; }
+    public string Subjects
+    {
+        get => subjects; set => subjects = value?.Trim() ?? "";
+    }
     private string subjects = "";
-    [Required(ErrorMessage = "Enter a start date."), DataType(DataType.Date)] public DateOnly? StartDate { get; set; }
-    [DataType(DataType.Date)] public DateOnly? EndDate { get; set; }
+    [Required(ErrorMessage = "Enter a start date."), DataType(DataType.Date)]
+    public DateOnly? StartDate { get; set; }
+    [DataType(DataType.Date)]
+    public DateOnly? EndDate { get; set; }
 }
 
 public class InstructorApplicationInput
 {
     [Required, StringLength(100), Display(Name = "Full name")]
     [RegularExpression(@"^(?=.*\p{L})[\p{L}\p{M}\p{Zs} .'\u2019/()\u00B7-]+$", ErrorMessage = "Enter your name using letters, spaces and name punctuation, without numbers.")]
-    public string FullName { get => fullName; set => fullName = value?.Trim() ?? ""; }
+    public string FullName
+    {
+        get => fullName; set => fullName = value?.Trim() ?? "";
+    }
     private string fullName = "";
-    [Required(ErrorMessage = "Enter your work or professional email."), EmailAddress(ErrorMessage = "Please enter a valid email address."), EmailDomainTypo, StringLength(256), Display(Name = "Work / professional email")] public string WorkEmail { get => workEmail; set => workEmail = value?.Trim() ?? ""; }
+    [Required(ErrorMessage = "Enter your work or professional email."), EmailAddress(ErrorMessage = "Please enter a valid email address."), EmailDomainTypo, StringLength(256), Display(Name = "Work / professional email")]
+    public string WorkEmail
+    {
+        get => workEmail; set => workEmail = value?.Trim() ?? "";
+    }
     private string workEmail = "";
     [Required, StringLength(200, MinimumLength = 10, ErrorMessage = "Describe the topics you want to teach using 10–200 characters."), Display(Name = "Topics you want to teach")]
-    public string TeachingTopics { get => teachingTopics; set => teachingTopics = value?.Trim() ?? ""; }
+    public string TeachingTopics
+    {
+        get => teachingTopics; set => teachingTopics = value?.Trim() ?? "";
+    }
     private string teachingTopics = "";
     [Required, MinLength(1), MaxLength(10)] public List<TeachingExperience> Experience { get; set; } = [new()];
     [StringLength(3000), Display(Name = "Supporting qualifications, projects or teaching samples (optional)")]
     public string? SupportingInformation { get; set; }
-    [StringLength(2000), Display(Name = "Response to the previous review (optional)")] public string? SubmissionNote { get; set; }
-    [Display(Name = "Teaching experience evidence (PDF, up to 5 MB)")] public IFormFile? Evidence { get; set; }
+    [StringLength(2000), Display(Name = "Response to the previous review (optional)")]
+    public string? SubmissionNote { get; set; }
+    [Display(Name = "Teaching experience evidence (PDF, up to 5 MB)")]
+    public IFormFile? Evidence { get; set; }
     [Range(typeof(bool), "true", "true", ErrorMessage = "Confirm that the information and evidence are accurate.")]
     public bool Declaration { get; set; }
 }

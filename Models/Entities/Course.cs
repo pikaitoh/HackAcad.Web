@@ -20,6 +20,7 @@ public class Course
 
     public bool IsPublished { get; set; }
 
+    // ADMIN - Review status and publication are independent; a review version protects concurrent approval decisions.
     [Required, StringLength(20)]
     public string ReviewStatus { get; set; } = CourseReviewStatus.Draft;
     [StringLength(1000)]

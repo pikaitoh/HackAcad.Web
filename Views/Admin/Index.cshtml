@@ -1,8 +1,10 @@
+@* ADMIN - Dashboard presentation: totals, selected-period activity, course enrolments and review shortcuts. *@
 @using System.Globalization
 @model AdminOverviewModel
 @{
     ViewData["Title"] = "Admin dashboard";
     string N(double value) => value.ToString("0.##", CultureInfo.InvariantCulture);
+    // ADMIN - Scale existing counts into SVG coordinates; these helpers do not query or invent statistics.
     var lineMax = Math.Max(4, (int)Math.Ceiling(Model.Activity.Max(a => a.Users) / 4d) * 4);
     var barMax = Math.Max(4, (int)Math.Ceiling(Model.CourseEnrollments.Select(c => Math.Max(c.Current, c.Previous)).DefaultIfEmpty().Max() / 4d) * 4);
     double X(int i) => 44 + 508d * i / Math.Max(1, Model.Activity.Count - 1);
@@ -22,12 +24,14 @@
             <div class="dashboard-period-controls"><label class="visually-hidden" for="dashboard-days">Activity period</label><select id="dashboard-days" name="days" class="form-select"><option value="7" selected="@(Model.Days == 7)">Last 7 days</option><option value="30" selected="@(Model.Days == 30)">Last 30 days</option><option value="90" selected="@(Model.Days == 90)">Last 90 days</option></select><button type="submit" class="btn btn-outline-secondary btn-sm">Apply</button></div>
         </form>
     </div>
+    @* ADMIN - Each metric links to its matching management page or filtered evidence. *@
     <div class="dashboard-metrics" aria-label="Platform statistics">
         <a asp-action="Users" class="dashboard-metric"><span class="dashboard-metric-icon"><partial name="_DashboardIcon" model='@("users")' /></span><div><h2>Total users</h2><strong class="dashboard-metric-value">@Model.Users</strong><span class="dashboard-metric-note">@ListPresentation.Count(Model.NewUsers, "new account") in this period</span></div></a>
         <a asp-action="LoginLogs" asp-route-result="success" asp-route-from="@Model.From.ToString("yyyy-MM-dd")" asp-route-to="@Model.To.ToString("yyyy-MM-dd")" class="dashboard-metric"><span class="dashboard-metric-icon"><partial name="_DashboardIcon" model='@("activity")' /></span><div><h2>Active users</h2><strong class="dashboard-metric-value">@Model.ActiveUsers</strong><span class="dashboard-metric-note">Signed in during this period</span><span class="dashboard-metric-comparison">@Model.PreviousActiveUsers in the previous @Model.Days days</span></div></a>
         <a asp-action="Courses" class="dashboard-metric"><span class="dashboard-metric-icon dashboard-icon-courses"><partial name="_DashboardIcon" model='@("courses")' /></span><div><h2>Courses</h2><strong class="dashboard-metric-value">@Model.Courses</strong><span class="dashboard-metric-note">@Model.PublishedCourses published · @(Model.Courses - Model.PublishedCourses) drafts</span></div></a>
         <a asp-action="SupportRequests" asp-route-status="Awaiting admin" class="dashboard-metric"><span class="dashboard-metric-icon dashboard-icon-support"><partial name="_DashboardIcon" model='@("support")' /></span><div><h2>Pending requests</h2><strong class="dashboard-metric-value">@Model.PendingSupport</strong><span class="dashboard-metric-note">Awaiting an administrator reply</span></div></a>
     </div>
+    @* ADMIN - Server-rendered charts have keyboard tooltips and expandable tables containing the same values. *@
     <div class="dashboard-chart-grid">
         <section class="dashboard-panel" aria-labelledby="activity-heading">
             <div class="dashboard-section-heading"><h2 id="activity-heading"><partial name="_DashboardIcon" model='@("activity")' />User activity over time</h2><span class="dashboard-legend-item"><i class="dashboard-key-current"></i>Active users</span></div>
@@ -66,6 +70,7 @@
             <details class="dashboard-data"><summary>View enrolment data</summary><div class="dashboard-data-scroll"><table class="table"><thead><tr><th>Course</th><th>This period</th><th>Previous period</th></tr></thead><tbody>@foreach (var course in Model.CourseEnrollments) { <tr><td><a asp-action="EditCourse" asp-route-id="@course.CourseId">@course.Title</a></td><td>@course.Current</td><td>@course.Previous</td></tr> }</tbody></table></div></details>
         </section>
     </div>
+    @* ADMIN - Role distribution and recent activity provide context below the period charts. *@
     <div class="dashboard-detail-grid">
         <section class="dashboard-panel" aria-labelledby="roles-heading">
             <div class="dashboard-section-heading"><h2 id="roles-heading"><partial name="_DashboardIcon" model='@("users")' />User roles &amp; account status</h2><a asp-action="Users">View users</a></div>

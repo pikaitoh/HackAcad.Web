@@ -105,6 +105,7 @@ public class EducationController(ApplicationDbContext db, InstructorApplications
     public async Task<IActionResult> Evidence(long id)
     {
         var application = await db.InstructorApplications.AsNoTracking().SingleOrDefaultAsync(a => a.Id == id);
+        // ADMIN - Submitted evidence is private to the applicant and authorized administrators.
         if (application is null || (application.UserId != User.FindFirstValue(ClaimTypes.NameIdentifier) && !User.IsInRole(AccountRoles.Admin))) return NotFound();
         Response.Headers["X-Content-Type-Options"] = "nosniff";
         return File(application.EvidencePdf, "application/pdf", application.EvidenceName);

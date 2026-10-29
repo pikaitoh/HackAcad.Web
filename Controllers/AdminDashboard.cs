@@ -5,12 +5,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HackAcad.Web.Controllers;
 
+// ADMIN - Dashboard menu: aggregate persisted statistics for a selected local-calendar period.
+
 public partial class AdminController
 {
+    // Build statistics and chart series from persisted data for the selected 7, 30 or 90 local days.
     [HttpGet]
     public async Task<IActionResult> Index([FromServices] TimeProvider clock, int days = 30)
     {
-        if (days is not (7 or 30 or 90)) return BadRequest("Choose a 7, 30 or 90 day period.");
+        if (days is not (7 or 30 or 90))
+            return BadRequest("Choose a 7, 30 or 90 day period.");
+        // ADMIN - Use the viewer's local calendar for boundaries, then query stored UTC timestamps.
         var today = DateOnly.FromDateTime(userTime.Convert(clock.GetUtcNow().UtcDateTime).DateTime);
         var from = today.AddDays(1 - days);
         var start = userTime.StartOfDayUtc(from);
@@ -22,9 +27,13 @@ public partial class AdminController
         // Group in the viewer's time zone, including local 23/25-hour DST days.
         var daily = signIns.GroupBy(r => DateOnly.FromDateTime(userTime.Convert(r.OccurredUtc).DateTime))
             .ToDictionary(g => g.Key, g => g.Select(r => r.UserId).Distinct().Count());
-        var model = new AdminOverviewModel {
+        // ADMIN - Current totals, period activity and previous-period comparisons represent different measurements.
+        var model = new AdminOverviewModel
+        {
             AdminName = await db.Users.Where(u => u.Id == users.GetUserId(User)).Select(u => u.DisplayName).FirstOrDefaultAsync() ?? "Admin",
-            Days = days, From = from, To = today,
+            Days = days,
+            From = from,
+            To = today,
             Users = await db.Users.CountAsync(),
             NewUsers = await db.Users.CountAsync(u => u.JoinedDate >= start && u.JoinedDate < end),
             DisabledUsers = await db.Users.CountAsync(u => u.IsDisabled),
@@ -37,8 +46,10 @@ public partial class AdminController
             PendingSupport = await db.SupportTickets.CountAsync(t => t.Status == "Awaiting admin"),
             OpenAlerts = await db.SecurityAlerts.CountAsync(a => a.Status != "Resolved"),
             Activity = Enumerable.Range(0, days).Select(i => new DashboardActivityDay(from.AddDays(i), daily.GetValueOrDefault(from.AddDays(i)))).ToList(),
-            CourseEnrollments = await db.Courses.AsNoTracking().Select(c => new DashboardCourseEnrollments {
-                CourseId = c.CourseId, Title = c.Title,
+            CourseEnrollments = await db.Courses.AsNoTracking().Select(c => new DashboardCourseEnrollments
+            {
+                CourseId = c.CourseId,
+                Title = c.Title,
                 Current = db.Enrollments.Count(e => e.CourseId == c.CourseId && e.EnrolledDate >= start && e.EnrolledDate < end),
                 Previous = db.Enrollments.Count(e => e.CourseId == c.CourseId && e.EnrolledDate >= previous && e.EnrolledDate < start)
             }).OrderByDescending(c => c.Current).ThenByDescending(c => c.Previous).ThenBy(c => c.CourseId).Take(5).ToListAsync(),

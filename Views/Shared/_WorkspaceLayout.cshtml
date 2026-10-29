@@ -1,3 +1,4 @@
+@* ADMIN - Shared authenticated shell: select Admin or learner navigation while retaining the normal account header. *@
 @{ Layout = "_Layout"; ViewData["PageClass"] = "workspace-area"; ViewData["StatusMessageHandled"] = true; }
 <div class="workspace-shell"><aside class="workspace-sidebar"><div class="workspace-title">@(User.IsInRole(AccountRoles.Admin) ? "Administration" : User.IsInRole(AccountRoles.Instructor) ? "Instructor workspace" : "Student workspace")</div>
 @if (User.IsInRole(AccountRoles.Admin)) { <partial name="_AdminNav" /> }
