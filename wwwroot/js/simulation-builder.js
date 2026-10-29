@@ -156,7 +156,24 @@
                     state.sequentialObjectives = parsed.sequentialObjectives;
                 }
                 if (Array.isArray(parsed.customCommands)) {
-                    state.customCommands = JSON.parse(JSON.stringify(parsed.customCommands));
+                    state.customCommands = parsed.customCommands.map(cc => {
+                        let reqFiles = [];
+                        if (Array.isArray(cc.requiredFiles)) {
+                            reqFiles = cc.requiredFiles.map(s => String(s).trim()).filter(Boolean);
+                        } else if (typeof cc.requiredFiles === 'string') {
+                            reqFiles = cc.requiredFiles.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+                        }
+                        return {
+                            id: cc.id || `cc_${Math.random().toString(36).substring(2, 9)}`,
+                            command: cc.command || "",
+                            output: cc.output || "",
+                            description: cc.description || "",
+                            hint: cc.hint || "",
+                            enabled: cc.enabled !== false,
+                            requiredFiles: reqFiles,
+                            _advancedOpen: false
+                        };
+                    });
                 }
                 if (Array.isArray(parsed.objectives)) {
                     state.objectives = parsed.objectives.map((o, idx) => {
@@ -422,7 +439,16 @@
             state.allowedCommands = [...t.allowedCommands];
             ensureMandatoryCommands();
             state.initialDirectory = t.initialDirectory || "/home/student";
-            state.customCommands = t.customCommands ? JSON.parse(JSON.stringify(t.customCommands)) : [];
+            state.customCommands = (t.customCommands && Array.isArray(t.customCommands)) ? t.customCommands.map(cc => ({
+                id: cc.id || `cc_${Math.random().toString(36).substring(2, 9)}`,
+                command: cc.command || "",
+                output: cc.output || "",
+                description: cc.description || "",
+                hint: cc.hint || "",
+                enabled: cc.enabled !== false,
+                requiredFiles: Array.isArray(cc.requiredFiles) ? [...cc.requiredFiles] : [],
+                _advancedOpen: false
+            })) : [];
             state.sequentialObjectives = t.sequentialObjectives !== false;
             state.objectives = JSON.parse(JSON.stringify(t.objectives));
             state.selectedPath = state.initialDirectory;
@@ -441,7 +467,9 @@
                 output: "",
                 description: "",
                 hint: "",
-                enabled: true
+                enabled: true,
+                requiredFiles: [],
+                _advancedOpen: false
             });
             syncStateToInput();
             render();
@@ -512,7 +540,23 @@
                 allowedCommands: state.allowedCommands,
                 initialDirectory: state.initialDirectory,
                 fileSystem: state.fileSystem,
-                customCommands: state.customCommands,
+                customCommands: state.customCommands.map(cc => {
+                    let reqFiles = [];
+                    if (Array.isArray(cc.requiredFiles)) {
+                        reqFiles = cc.requiredFiles.map(s => String(s).trim()).filter(Boolean);
+                    } else if (typeof cc.requiredFiles === 'string') {
+                        reqFiles = cc.requiredFiles.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+                    }
+                    return {
+                        id: cc.id || `cc_${Math.random().toString(36).substring(2, 9)}`,
+                        command: (cc.command || "").trim(),
+                        output: cc.output || "",
+                        description: (cc.description || "").trim(),
+                        hint: (cc.hint || "").trim(),
+                        enabled: cc.enabled !== false,
+                        requiredFiles: reqFiles
+                    };
+                }),
                 isNotebook: isNotebookBlock
             };
             if (!isNotebookBlock) {
@@ -579,6 +623,25 @@
                         if (rootBuiltins.includes(cmdStr.toLowerCase())) {
                             errors.push(`Custom Command #${idx + 1}: "${cmdStr}" conflicts with the built-in system command of the same name.`);
                         }
+
+                        // Validate Required Files and Directories
+                        const reqFiles = Array.isArray(cc.requiredFiles)
+                            ? cc.requiredFiles
+                            : (typeof cc.requiredFiles === 'string' ? cc.requiredFiles.split(/[\r\n,]+/) : []);
+                        reqFiles.forEach(rf => {
+                            const pathStr = String(rf).trim();
+                            if (!pathStr) return;
+                            if (pathStr.startsWith('/')) {
+                                errors.push(`Custom Command #${idx + 1}: Required file '${pathStr}' must be a relative path, not an absolute path.`);
+                            }
+                            if (pathStr.includes('\\')) {
+                                errors.push(`Custom Command #${idx + 1}: Required file '${pathStr}' contains invalid backslashes.`);
+                            }
+                            const segs = pathStr.split('/').filter(Boolean);
+                            if (segs.some(s => s === '..' || s === '.')) {
+                                errors.push(`Custom Command #${idx + 1}: Required file '${pathStr}' contains traversal segments ('..' or '.').`);
+                            }
+                        });
                     }
                 }
             });
@@ -1150,6 +1213,13 @@
             const isFirst = idx === 0;
             const isLast = idx === state.customCommands.length - 1;
             const isEnabled = cc.enabled !== false;
+            const isAdvancedOpen = cc._advancedOpen === true;
+
+            const reqFilesList = Array.isArray(cc.requiredFiles)
+                ? cc.requiredFiles
+                : (typeof cc.requiredFiles === 'string' ? cc.requiredFiles.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean) : []);
+            const reqFilesText = reqFilesList.join('\n');
+            const hasAdvancedSettings = reqFilesList.length > 0 || !!(cc.description && cc.description.trim()) || !!(cc.hint && cc.hint.trim());
 
             return `
                 <div class="custom-cmd-card p-3 rounded mb-2 border ${isEnabled ? '' : 'opacity-75'}" data-idx="${idx}">
@@ -1174,27 +1244,51 @@
                         </div>
                     </div>
 
-                    <div class="row g-2">
+                    <!-- 2.1 Always-visible Essential Fields -->
+                    <div class="row g-2 mb-2">
                         <div class="col-md-12">
                             <label class="form-label small text-muted mb-1">Exact Command String <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control form-control-sm font-monospace cc-command-input" data-idx="${idx}" value="${escapeHtml(cc.command)}" placeholder="e.g. whois target.com" maxlength="512" required />
+                            <input type="text" class="form-control form-control-sm font-monospace cc-command-input" data-idx="${idx}" value="${escapeHtml(cc.command)}" placeholder="e.g. python main.py" maxlength="512" required />
                             <div class="form-text small">Must be matched exactly by the student (case-sensitive, order of arguments preserved).</div>
                         </div>
 
                         <div class="col-md-12">
                             <label class="form-label small text-muted mb-1">Predefined Simulated Output <span class="text-danger">*</span></label>
-                            <textarea class="form-control form-control-sm font-monospace cc-output-input" data-idx="${idx}" rows="4" placeholder="Simulated CLI response returned when this exact command is submitted...">${escapeHtml(cc.output)}</textarea>
+                            <textarea class="form-control form-control-sm font-monospace cc-output-input" data-idx="${idx}" rows="3" placeholder="Simulated CLI response returned when this exact command is submitted...">${escapeHtml(cc.output)}</textarea>
                             <div class="form-text small">This simulated text is printed to the terminal or written to file when redirection (>) is used.</div>
                         </div>
+                    </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label small text-muted mb-1">Teacher Description (Optional)</label>
-                            <input type="text" class="form-control form-control-sm cc-desc-input" data-idx="${idx}" value="${escapeHtml(cc.description || '')}" placeholder="e.g. Query domain registration records" />
-                        </div>
+                    <!-- 2.2 Collapsible Advanced Options -->
+                    <div class="pt-2 border-top">
+                        <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 d-inline-flex align-items-center gap-1 cc-advanced-toggle" data-idx="${idx}">
+                            <svg class="cc-advanced-chevron" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" style="transition: transform 180ms ease; ${isAdvancedOpen ? 'transform: rotate(90deg);' : ''}">
+                                <polyline points="9 18 15 12 9 6"></polyline>
+                            </svg>
+                            <span class="fw-semibold small">Advanced Options</span>
+                            ${hasAdvancedSettings ? `<span class="badge bg-secondary-subtle text-secondary ms-1 font-monospace" style="font-size:0.65rem;">Configured</span>` : ''}
+                        </button>
 
-                        <div class="col-md-6">
-                            <label class="form-label small text-muted mb-1">Student Hint (Optional)</label>
-                            <input type="text" class="form-control form-control-sm cc-hint-input" data-idx="${idx}" value="${escapeHtml(cc.hint || '')}" placeholder="e.g. Try using whois" />
+                        <div class="cc-advanced-pane mt-2 ${isAdvancedOpen ? '' : 'd-none'}" id="cc-advanced-pane-${idx}">
+                            <div class="row g-2">
+                                <div class="col-md-12">
+                                    <label class="form-label small text-muted mb-1">Required Files and Directories</label>
+                                    <textarea class="form-control form-control-sm font-monospace cc-required-files-input" data-idx="${idx}" rows="2" placeholder="e.g. main.py&#10;src/utils.py&#10;data/">${escapeHtml(reqFilesText)}</textarea>
+                                    <div class="form-text small">
+                                        Optional files or directories that must exist in the simulated current working directory for this command to succeed. End with a slash (e.g. <code>data/</code>) to explicitly require a directory. Multiple entries must be separated by newlines or commas.
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted mb-1">Teacher Description (Optional)</label>
+                                    <input type="text" class="form-control form-control-sm cc-desc-input" data-idx="${idx}" value="${escapeHtml(cc.description || '')}" placeholder="e.g. Query domain registration records" />
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted mb-1">Student Hint (Optional)</label>
+                                    <input type="text" class="form-control form-control-sm cc-hint-input" data-idx="${idx}" value="${escapeHtml(cc.hint || '')}" placeholder="e.g. Try using whois" />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1525,31 +1619,70 @@
             });
 
             rootContainer.querySelectorAll(".cc-command-input").forEach(inp => {
-                inp.addEventListener("change", () => {
+                const handler = () => {
                     const idx = parseInt(inp.getAttribute("data-idx"), 10);
                     updateCustomCommand(idx, "command", inp.value);
-                });
+                };
+                inp.addEventListener("change", handler);
+                inp.addEventListener("input", handler);
             });
 
             rootContainer.querySelectorAll(".cc-output-input").forEach(inp => {
-                inp.addEventListener("change", () => {
+                const handler = () => {
                     const idx = parseInt(inp.getAttribute("data-idx"), 10);
                     updateCustomCommand(idx, "output", inp.value);
+                };
+                inp.addEventListener("change", handler);
+                inp.addEventListener("input", handler);
+            });
+
+            // Collapsible Advanced Options Toggle
+            rootContainer.querySelectorAll(".cc-advanced-toggle").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const idx = parseInt(btn.getAttribute("data-idx"), 10);
+                    const pane = document.getElementById(`cc-advanced-pane-${idx}`);
+                    const chevron = btn.querySelector(".cc-advanced-chevron");
+                    if (pane) {
+                        const isHidden = pane.classList.contains("d-none");
+                        if (isHidden) {
+                            pane.classList.remove("d-none");
+                            if (chevron) chevron.style.transform = "rotate(90deg)";
+                            if (state.customCommands[idx]) state.customCommands[idx]._advancedOpen = true;
+                        } else {
+                            pane.classList.add("d-none");
+                            if (chevron) chevron.style.transform = "";
+                            if (state.customCommands[idx]) state.customCommands[idx]._advancedOpen = false;
+                        }
+                    }
                 });
+            });
+
+            rootContainer.querySelectorAll(".cc-required-files-input").forEach(inp => {
+                const handler = () => {
+                    const idx = parseInt(inp.getAttribute("data-idx"), 10);
+                    const lines = inp.value.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+                    updateCustomCommand(idx, "requiredFiles", lines);
+                };
+                inp.addEventListener("change", handler);
+                inp.addEventListener("input", handler);
             });
 
             rootContainer.querySelectorAll(".cc-desc-input").forEach(inp => {
-                inp.addEventListener("change", () => {
+                const handler = () => {
                     const idx = parseInt(inp.getAttribute("data-idx"), 10);
                     updateCustomCommand(idx, "description", inp.value);
-                });
+                };
+                inp.addEventListener("change", handler);
+                inp.addEventListener("input", handler);
             });
 
             rootContainer.querySelectorAll(".cc-hint-input").forEach(inp => {
-                inp.addEventListener("change", () => {
+                const handler = () => {
                     const idx = parseInt(inp.getAttribute("data-idx"), 10);
                     updateCustomCommand(idx, "hint", inp.value);
-                });
+                };
+                inp.addEventListener("change", handler);
+                inp.addEventListener("input", handler);
             });
 
             // Section 5: Objective Listeners
@@ -1692,7 +1825,8 @@
             if (formEl) formEl.submit();
         }
 
-        // Initial render
+        // Initial sync and render
+        syncStateToInput();
         render();
     };
 })();

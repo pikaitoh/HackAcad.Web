@@ -56,6 +56,22 @@ public static class SimulationVerifier
                         if (!customCommandNames.Add(ccCmd)) return false; // Duplicate custom command
                         if (Supported.Contains(ccCmd.ToLowerInvariant())) return false; // Conflicts with built-in
                     }
+
+                    // Validate optional requiredFiles if present
+                    if (cc.TryGetProperty("requiredFiles", out var rfProp) && rfProp.ValueKind == JsonValueKind.Array)
+                    {
+                        if (rfProp.GetArrayLength() > 64) return false;
+                        foreach (var rf in rfProp.EnumerateArray())
+                        {
+                            if (rf.ValueKind != JsonValueKind.String) return false;
+                            var pathStr = rf.GetString()?.Trim() ?? "";
+                            if (string.IsNullOrEmpty(pathStr) || pathStr.Length > 512) return false;
+                            if (pathStr.StartsWith('/') || pathStr.Contains('\\')) return false; // Must be relative
+                            var segments = pathStr.Split('/', StringSplitOptions.RemoveEmptyEntries);
+                            if (segments.Any(s => s is ".." or "." || s.Any(c => char.IsControl(c) || c is '<' or '>' or '|' or '&' or ';')))
+                                return false; // Traversal and illegal characters rejected
+                        }
+                    }
                 }
             }
 
@@ -137,7 +153,7 @@ public static class SimulationVerifier
                 .ToHashSet() : Supported;
 
         // Collect enabled custom commands
-        var customCommands = new Dictionary<string, string>(StringComparer.Ordinal);
+        var customCommands = new Dictionary<string, (string Output, List<string> RequiredFiles)>(StringComparer.Ordinal);
         if (config.TryGetProperty("customCommands", out var customArray) && customArray.ValueKind == JsonValueKind.Array)
         {
             foreach (var cc in customArray.EnumerateArray())
@@ -149,7 +165,21 @@ public static class SimulationVerifier
                     {
                         var cStr = Text(cc, "command").Trim();
                         if (!string.IsNullOrEmpty(cStr))
-                            customCommands[cStr] = Text(cc, "output");
+                        {
+                            var reqList = new List<string>();
+                            if (cc.TryGetProperty("requiredFiles", out var rfProp) && rfProp.ValueKind == JsonValueKind.Array)
+                            {
+                                foreach (var rf in rfProp.EnumerateArray())
+                                {
+                                    if (rf.ValueKind == JsonValueKind.String)
+                                    {
+                                        var s = rf.GetString()?.Trim();
+                                        if (!string.IsNullOrEmpty(s)) reqList.Add(s);
+                                    }
+                                }
+                            }
+                            customCommands[cStr] = (Text(cc, "output"), reqList);
+                        }
                     }
                 }
             }
@@ -211,17 +241,57 @@ public static class SimulationVerifier
             string generatedOutput = "";
 
             // 1. Check exact-match custom commands (case-sensitive)
-            if (customCommands.TryGetValue(commandToRun, out var customOutput))
+            if (customCommands.TryGetValue(commandToRun, out var customCmdInfo))
             {
-                commandSuccess = true;
-                generatedOutput = customOutput;
-                if (!string.IsNullOrEmpty(redirectDest))
+                bool requirementsMet = true;
+                foreach (var req in customCmdInfo.RequiredFiles)
                 {
-                    var destPath = Normalize(redirectDest, cwd);
-                    var pPath = destPath.Contains('/') ? destPath.Substring(0, destPath.LastIndexOf('/')) : "";
-                    if (string.IsNullOrEmpty(pPath)) pPath = "/";
-                    if (!DirExists(pPath) || DirExists(destPath)) commandSuccess = false;
-                    else dynamicFiles[destPath] = customOutput;
+                    var cleanReq = req.Trim();
+                    bool requiresDir = cleanReq.EndsWith('/');
+                    var normReq = Normalize(cleanReq, cwd);
+
+                    // Check that the prerequisite path is relative to cwd and does not escape cwd
+                    var normCwdPrefix = cwd == "/" ? "/" : cwd + "/";
+                    if (!normReq.StartsWith(normCwdPrefix) && normReq != cwd)
+                    {
+                        requirementsMet = false;
+                        break;
+                    }
+
+                    if (requiresDir)
+                    {
+                        if (!DirExists(normReq))
+                        {
+                            requirementsMet = false;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        if (!FileExists(normReq) && !DirExists(normReq))
+                        {
+                            requirementsMet = false;
+                            break;
+                        }
+                    }
+                }
+
+                if (!requirementsMet)
+                {
+                    commandSuccess = false;
+                }
+                else
+                {
+                    commandSuccess = true;
+                    generatedOutput = customCmdInfo.Output;
+                    if (!string.IsNullOrEmpty(redirectDest))
+                    {
+                        var destPath = Normalize(redirectDest, cwd);
+                        var pPath = destPath.Contains('/') ? destPath.Substring(0, destPath.LastIndexOf('/')) : "";
+                        if (string.IsNullOrEmpty(pPath)) pPath = "/";
+                        if (!DirExists(pPath) || DirExists(destPath)) commandSuccess = false;
+                        else dynamicFiles[destPath] = customCmdInfo.Output;
+                    }
                 }
             }
             else

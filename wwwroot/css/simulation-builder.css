@@ -167,6 +167,42 @@
     border-color: var(--ha-primary, #33796e);
 }
 
+.cc-advanced-toggle {
+    color: var(--ha-ink, #193e46);
+    cursor: pointer;
+    border: none;
+    background: none;
+}
+
+.cc-advanced-toggle:hover {
+    color: var(--ha-primary, #33796e);
+}
+
+.cc-advanced-chevron {
+    transition: transform 180ms ease;
+    vertical-align: -2px;
+}
+
+.cc-advanced-pane {
+    background: var(--ha-canvas, #f8fafc);
+    border: 1px solid var(--ha-line, #e2e8f0);
+    border-radius: 8px;
+    padding: 0.85rem;
+}
+
+html[data-theme="dark"] .cc-advanced-pane {
+    background: var(--ha-tint, #142b32);
+    border-color: var(--ha-line, #3e5b61);
+}
+
+html[data-theme="dark"] .cc-advanced-toggle {
+    color: var(--ha-ink, #e4f0ec);
+}
+
+html[data-theme="dark"] .cc-advanced-toggle:hover {
+    color: var(--ha-primary, #51a699);
+}
+
 /* Warning & Error Badges in Builder */
 .badge-builder-warning {
     background-color: #fef3c7;

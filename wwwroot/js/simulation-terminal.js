@@ -131,7 +131,18 @@
                 }
 
                 if (parsed.customCommands && Array.isArray(parsed.customCommands)) {
-                    customCommands = parsed.customCommands.filter(c => c && c.enabled !== false && typeof c.command === 'string' && c.command.trim());
+                    customCommands = parsed.customCommands.filter(c => c && c.enabled !== false && typeof c.command === 'string' && c.command.trim()).map(c => {
+                        let reqFiles = [];
+                        if (Array.isArray(c.requiredFiles)) {
+                            reqFiles = c.requiredFiles.map(s => String(s).trim()).filter(Boolean);
+                        } else if (typeof c.requiredFiles === 'string') {
+                            reqFiles = c.requiredFiles.split(/[\r\n,]+/).map(s => s.trim()).filter(Boolean);
+                        }
+                        return {
+                            ...c,
+                            requiredFiles: reqFiles
+                        };
+                    });
                 }
             } catch (e) {
                 console.warn("Using default simulation environment:", e);
@@ -438,6 +449,120 @@
             });
         }
 
+        // Validate custom command required files and directories
+        function checkCustomCommandPrerequisites(cmdLine, requiredFiles) {
+            if (!requiredFiles || !Array.isArray(requiredFiles) || requiredFiles.length === 0) {
+                return { satisfied: true };
+            }
+
+            const cmdFirstWord = (cmdLine || '').trim().split(/\s+/)[0] || 'hackacad-sh';
+            const isPythonCmd = cmdFirstWord === 'python' || cmdFirstWord === 'python3' || cmdFirstWord.endsWith('/python') || cmdFirstWord.endsWith('/python3');
+
+            for (const req of requiredFiles) {
+                if (!req || typeof req !== 'string' || !req.trim()) continue;
+                const cleanReq = req.trim();
+                const requiresDir = cleanReq.endsWith('/');
+
+                // Reject absolute path bypass or illegal characters
+                // Strip leading slashes to force relative resolution against cwd
+                const rawClean = cleanReq.replace(/^\/+/, '');
+                const rawParts = rawClean.split('/').filter(Boolean);
+
+                // Check for traversal escaping above currentPath
+                let depth = 0;
+                let escapesCwd = false;
+                for (const seg of rawParts) {
+                    if (seg === '.') continue;
+                    if (seg === '..') {
+                        depth--;
+                        if (depth < 0) {
+                            escapesCwd = true;
+                            break;
+                        }
+                    } else {
+                        depth++;
+                    }
+                }
+
+                if (escapesCwd || cleanReq.includes('\\')) {
+                    return {
+                        satisfied: false,
+                        error: `${cmdFirstWord}: ${cleanReq}: Invalid path`
+                    };
+                }
+
+                // Resolve target path strictly against currentPath
+                const targetParts = [...currentPath];
+                for (const seg of rawParts) {
+                    if (seg === '.') continue;
+                    if (seg === '..') {
+                        targetParts.pop();
+                    } else {
+                        targetParts.push(seg);
+                    }
+                }
+
+                // Walk virtualFS to check existence and node type
+                let curr = virtualFS;
+                let missing = false;
+
+                for (let i = 0; i < targetParts.length; i++) {
+                    const part = targetParts[i];
+                    if (!curr || typeof curr !== 'object' || !Object.hasOwn(curr, part)) {
+                        missing = true;
+                        break;
+                    }
+                    curr = curr[part];
+                }
+
+                if (missing || curr === null || curr === undefined) {
+                    if (requiresDir) {
+                        return {
+                            satisfied: false,
+                            error: `${cmdFirstWord}: ${cleanReq}: No such directory`
+                        };
+                    } else if (isPythonCmd) {
+                        return {
+                            satisfied: false,
+                            error: `${cmdFirstWord}: can't open file '${cleanReq}': [Errno 2] No such file or directory`
+                        };
+                    } else {
+                        return {
+                            satisfied: false,
+                            error: `${cmdFirstWord}: ${cleanReq}: No such file or directory`
+                        };
+                    }
+                }
+
+                const isDir = typeof curr === 'object';
+                const isFile = typeof curr === 'string';
+
+                if (requiresDir && !isDir) {
+                    return {
+                        satisfied: false,
+                        error: `${cmdFirstWord}: ${cleanReq}: Not a directory`
+                    };
+                }
+
+                if (!requiresDir && isDir && (cleanReq.includes('.') || !cleanReq.endsWith('/'))) {
+                    // Item exists, but it's a directory when a file was expected
+                    if (isPythonCmd) {
+                        return {
+                            satisfied: false,
+                            error: `${cmdFirstWord}: can't open file '${cleanReq}': [Errno 21] Is a directory`
+                        };
+                    } else {
+                        return {
+                            satisfied: false,
+                            error: `${cmdFirstWord}: ${cleanReq}: Is a directory`
+                        };
+                    }
+                }
+            }
+
+            return { satisfied: true };
+        }
+
         // Handle Command Execution
         function executeCommand(rawInput) {
             const trimmed = rawInput.trim();
@@ -490,6 +615,13 @@
             // 1. Check Exact-Match Custom Commands (case-sensitive)
             const matchedCustom = customCommands.find(c => c && c.enabled !== false && c.command === commandToRun);
             if (matchedCustom) {
+                // Validate Required Files and Directories prerequisite
+                const reqResult = checkCustomCommandPrerequisites(commandToRun, matchedCustom.requiredFiles);
+                if (!reqResult.satisfied) {
+                    printLine(escapeHtml(reqResult.error), 'term-error');
+                    return;
+                }
+
                 if (redirectDest) {
                     const writeOk = writeOutputFile(redirectDest, matchedCustom.output);
                     if (writeOk) {

@@ -1,0 +1,820 @@
+/* ==========================================================================
+   HackAcad Terminal Notebooks: Horizontal Rows, Floating Action Buttons & Speed-Dial
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Horizontal Notebook List Layout
+   -------------------------------------------------------------------------- */
+.notebook-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.notebook-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--ha-surface, #ffffff);
+    color: var(--ha-ink, #193e46);
+    border: 1px solid var(--ha-line, #cbded5);
+    border-radius: 12px;
+    padding: 0.875rem 1.25rem;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background-color 0.18s ease;
+    gap: 1.25rem;
+}
+
+.notebook-row:hover,
+.notebook-row:focus-within {
+    border-color: var(--ha-primary, #0c7c59);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Zone 1: Identity (Left) */
+.notebook-identity-zone {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1 1 auto;
+    min-width: 0; /* Enables text truncation inside flexbox */
+}
+
+.notebook-row-link {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    text-decoration: none;
+    color: inherit;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.notebook-row-link:focus-visible {
+    outline: 2px solid var(--ha-primary, #0c7c59);
+    outline-offset: 4px;
+    border-radius: 8px;
+}
+
+.notebook-icon-wrap {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: var(--ha-tint, #e3f1eb);
+    color: var(--ha-primary, #0c7c59);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+.notebook-row:hover .notebook-icon-wrap {
+    background: var(--ha-primary, #0c7c59);
+    color: #ffffff;
+}
+
+.notebook-icon-wrap svg {
+    width: 22px;
+    height: 22px;
+    stroke: currentColor;
+    fill: none;
+}
+
+.notebook-title-group {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.notebook-row-title {
+    font-size: 1.05rem;
+    font-weight: 650;
+    margin: 0 0 0.2rem 0;
+    color: var(--ha-ink, #193e46);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+}
+
+.notebook-meta-line {
+    font-size: 0.8125rem;
+    color: var(--ha-muted, #60757c);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.6rem;
+    margin: 0;
+}
+
+.notebook-meta-line .meta-dot {
+    opacity: 0.5;
+    font-size: 0.75rem;
+}
+
+/* Zone 2: Badges (Middle) */
+.notebook-middle-zone {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.notebook-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 550;
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    border: 1px solid var(--ha-line, #cbded5);
+    background: var(--ha-canvas, #f2fbf7);
+    color: var(--ha-ink, #193e46);
+    white-space: nowrap;
+}
+
+.notebook-badge svg {
+    width: 13px;
+    height: 13px;
+    stroke: currentColor;
+}
+
+.notebook-badge-terminal {
+    background: rgba(14, 165, 233, 0.09);
+    color: #0284c7;
+    border-color: rgba(14, 165, 233, 0.25);
+}
+
+.notebook-badge-example {
+    background: rgba(245, 158, 11, 0.09);
+    color: #b45309;
+    border-color: rgba(245, 158, 11, 0.25);
+}
+
+/* Zone 3: Actions (Right) */
+.notebook-actions-zone {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    flex-shrink: 0;
+}
+
+.notebook-open-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--ha-ink, #193e46);
+    background: var(--ha-tint, #e3f1eb);
+    border: 1px solid var(--ha-line, #cbded5);
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.notebook-open-btn:hover,
+.notebook-open-btn:focus-visible {
+    background: var(--ha-primary, #0c7c59);
+    color: #ffffff;
+    border-color: var(--ha-primary, #0c7c59);
+}
+
+.notebook-open-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    transition: transform 0.15s ease;
+}
+
+.notebook-row:hover .notebook-open-btn svg {
+    transform: translateX(2px);
+}
+
+/* Overflow Menu (Native Details/Summary Dropdown) */
+.notebook-menu-details {
+    position: relative;
+}
+
+.notebook-menu-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--ha-muted, #60757c);
+    cursor: pointer;
+    list-style: none;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.notebook-menu-trigger::-webkit-details-marker {
+    display: none;
+}
+
+.notebook-menu-trigger::marker {
+    content: "";
+}
+
+.notebook-menu-trigger:hover,
+.notebook-menu-trigger:focus-visible,
+.notebook-menu-details[open] .notebook-menu-trigger {
+    background: var(--ha-tint, #e3f1eb);
+    color: var(--ha-ink, #193e46);
+    border-color: var(--ha-line, #cbded5);
+    outline: none;
+}
+
+.notebook-menu-trigger svg {
+    width: 18px;
+    height: 18px;
+    stroke: currentColor;
+}
+
+.notebook-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 0.35rem);
+    right: 0;
+    z-index: 1040;
+    min-width: 180px;
+    background: var(--ha-surface, #ffffff);
+    color: var(--ha-ink, #193e46);
+    border: 1px solid var(--ha-line, #cbded5);
+    border-radius: 10px;
+    padding: 0.35rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    animation: notebookMenuFadeIn 0.15s ease;
+}
+
+@keyframes notebookMenuFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.notebook-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.84375rem;
+    font-weight: 550;
+    color: var(--ha-ink, #193e46);
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    text-decoration: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.notebook-menu-item svg {
+    width: 16px;
+    height: 16px;
+    stroke: currentColor;
+    flex-shrink: 0;
+}
+
+.notebook-menu-item:hover,
+.notebook-menu-item:focus-visible {
+    background: var(--ha-tint, #e3f1eb);
+    color: var(--ha-ink, #193e46);
+    outline: none;
+}
+
+.notebook-menu-item-danger {
+    color: #dc2626;
+}
+
+.notebook-menu-item-danger:hover,
+.notebook-menu-item-danger:focus-visible {
+    background: rgba(220, 38, 38, 0.1);
+    color: #dc2626;
+}
+
+.notebook-menu-divider {
+    height: 1px;
+    background: var(--ha-line, #cbded5);
+    margin: 0.25rem 0;
+}
+
+/* --------------------------------------------------------------------------
+   2. Floating Action Button (Listing Page: Expand-on-hover)
+   -------------------------------------------------------------------------- */
+.fab-container {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 1050;
+    pointer-events: none; /* children enable pointer events */
+}
+
+.fab-primary-btn {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    height: 56px;
+    min-width: 56px;
+    max-width: 56px;
+    padding: 0 16px;
+    border-radius: 28px;
+    background: var(--ha-primary, #0c7c59);
+    color: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 24px rgba(12, 124, 89, 0.35), 0 2px 6px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    text-decoration: none;
+    overflow: hidden;
+    white-space: nowrap;
+    transition: max-width 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+                box-shadow 0.25s ease,
+                background-color 0.2s ease,
+                transform 0.2s ease;
+}
+
+.fab-primary-btn:hover,
+.fab-primary-btn:focus-visible,
+.fab-primary-btn.expanded {
+    max-width: 260px;
+    background: var(--ha-primary-hover, #096347);
+    box-shadow: 0 12px 28px rgba(12, 124, 89, 0.45), 0 4px 10px rgba(0, 0, 0, 0.15);
+    outline: none;
+}
+
+.fab-primary-btn:focus-visible {
+    outline: 3px solid var(--ha-ink, #193e46);
+    outline-offset: 3px;
+}
+
+.fab-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    transition: transform 0.25s ease;
+}
+
+.fab-icon-wrap svg {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    stroke-width: 2.5;
+}
+
+.fab-label {
+    font-size: 0.95rem;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    margin-left: 0.65rem;
+    opacity: 0;
+    transform: translateX(-6px);
+    transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fab-primary-btn:hover .fab-label,
+.fab-primary-btn:focus-visible .fab-label,
+.fab-primary-btn.expanded .fab-label {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+/* --------------------------------------------------------------------------
+   3. Speed-Dial Floating Action Button (Notebook Editor Page)
+   -------------------------------------------------------------------------- */
+.speed-dial-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1045;
+    background: rgba(16, 43, 50, 0.45);
+    backdrop-filter: blur(2px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+}
+
+.speed-dial-backdrop.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.speed-dial-container {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    pointer-events: none;
+}
+
+.speed-dial-fab {
+    pointer-events: auto;
+    position: relative;
+    width: 56px;
+    height: 56px;
+    border-radius: 28px;
+    background: var(--ha-primary, #0c7c59);
+    color: #ffffff;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 24px rgba(12, 124, 89, 0.35), 0 2px 6px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.2s ease, transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+    z-index: 2;
+}
+
+.speed-dial-fab:hover,
+.speed-dial-fab:focus-visible {
+    background: var(--ha-primary-hover, #096347);
+    box-shadow: 0 12px 28px rgba(12, 124, 89, 0.45), 0 4px 10px rgba(0, 0, 0, 0.15);
+    outline: none;
+}
+
+.speed-dial-fab:focus-visible {
+    outline: 3px solid var(--ha-ink, #193e46);
+    outline-offset: 3px;
+}
+
+.speed-dial-fab-icon {
+    width: 24px;
+    height: 24px;
+    stroke: currentColor;
+    stroke-width: 2.5;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Rotate plus into an "x" close indicator when active */
+.speed-dial-container.open .speed-dial-fab-icon {
+    transform: rotate(135deg);
+}
+
+.speed-dial-container.open .speed-dial-fab {
+    background: #e11d48;
+    box-shadow: 0 8px 24px rgba(225, 29, 72, 0.4);
+}
+
+.speed-dial-menu {
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 0.85rem;
+    margin-bottom: 0.85rem;
+    pointer-events: none;
+}
+
+.speed-dial-container.open .speed-dial-menu {
+    pointer-events: auto;
+}
+
+.speed-dial-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    opacity: 0;
+    transform: translateY(16px) scale(0.85);
+    transition: opacity 0.22s cubic-bezier(0.4, 0, 0.2, 1),
+                transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Staggered entry transitions */
+.speed-dial-container.open .speed-dial-item:nth-child(1) {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition-delay: 0.05s;
+}
+
+.speed-dial-container.open .speed-dial-item:nth-child(2) {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition-delay: 0.1s;
+}
+
+.speed-dial-container.open .speed-dial-item:nth-child(3) {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition-delay: 0.15s;
+}
+
+.speed-dial-label {
+    background: var(--ha-surface, #ffffff);
+    color: var(--ha-ink, #193e46);
+    border: 1px solid var(--ha-line, #cbded5);
+    border-radius: 8px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+    transition: background 0.15s ease, color 0.15s ease;
+    user-select: none;
+}
+
+.speed-dial-item-btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 23px;
+    border: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.speed-dial-item-btn:hover,
+.speed-dial-item:hover .speed-dial-label,
+.speed-dial-item-btn:focus-visible {
+    transform: scale(1.08);
+    outline: none;
+}
+
+.speed-dial-item-btn:focus-visible {
+    outline: 2px solid var(--ha-ink, #193e46);
+    outline-offset: 3px;
+}
+
+.speed-dial-item-btn svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+}
+
+/* Distinct Action Colors */
+.speed-dial-btn-markdown {
+    background: #059669;
+}
+.speed-dial-btn-markdown:hover {
+    background: #047857;
+}
+
+.speed-dial-btn-terminal {
+    background: #0284c7;
+}
+.speed-dial-btn-terminal:hover {
+    background: #0369a1;
+}
+
+.speed-dial-btn-static {
+    background: #d97706;
+}
+.speed-dial-btn-static:hover {
+    background: #b45309;
+}
+
+/* --------------------------------------------------------------------------
+   4. Responsive Breakpoints
+   -------------------------------------------------------------------------- */
+@media (max-width: 991px) {
+    .notebook-row {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding: 0.875rem 1rem;
+    }
+    .notebook-identity-zone {
+        flex: 1 1 100%;
+    }
+    .notebook-middle-zone {
+        margin-left: 54px; /* Align with title */
+    }
+    .notebook-actions-zone {
+        margin-left: auto;
+    }
+}
+
+@media (max-width: 576px) {
+    .notebook-row {
+        padding: 0.75rem;
+    }
+    .notebook-icon-wrap {
+        width: 36px;
+        height: 36px;
+    }
+    .notebook-icon-wrap svg {
+        width: 18px;
+        height: 18px;
+    }
+    .notebook-row-title {
+        font-size: 0.975rem;
+    }
+    .notebook-meta-line {
+        font-size: 0.75rem;
+    }
+    .notebook-middle-zone {
+        display: none; /* Hide middle zone on very narrow screens */
+    }
+    .notebook-open-btn {
+        padding: 0.35rem 0.65rem;
+        font-size: 0.8125rem;
+    }
+    .fab-container,
+    .speed-dial-container {
+        bottom: 1.25rem;
+        right: 1.25rem;
+    }
+    .fab-primary-btn {
+        height: 50px;
+        min-width: 50px;
+        max-width: 50px;
+        border-radius: 25px;
+    }
+    .speed-dial-fab {
+        width: 50px;
+        height: 50px;
+        border-radius: 25px;
+    }
+    .speed-dial-item-btn {
+        width: 42px;
+        height: 42px;
+        border-radius: 21px;
+    }
+    .speed-dial-label {
+        font-size: 0.8125rem;
+        padding: 0.3rem 0.6rem;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   5. Dark Mode Overrides
+   -------------------------------------------------------------------------- */
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-row {
+    background: var(--ha-surface, #1b343b);
+    color: var(--ha-ink, #e4f0ec);
+    border-color: var(--ha-line, #3e5b61);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-row:hover,
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-row:focus-within {
+    border-color: var(--ha-primary, #8dd3bc);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-icon-wrap {
+    background: var(--ha-tint, #29484c);
+    color: var(--ha-primary, #8dd3bc);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-row:hover .notebook-icon-wrap {
+    background: var(--ha-primary, #8dd3bc);
+    color: #11252b;
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-row-title {
+    color: var(--ha-ink, #e4f0ec);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-meta-line {
+    color: var(--ha-muted, #aec4bf);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-badge {
+    background: var(--ha-canvas, #11252b);
+    border-color: var(--ha-line, #3e5b61);
+    color: var(--ha-ink, #e4f0ec);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-badge-terminal {
+    background: rgba(56, 189, 248, 0.16);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.35);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-badge-example {
+    background: rgba(251, 191, 36, 0.16);
+    color: #fbbf24;
+    border-color: rgba(251, 191, 36, 0.35);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-open-btn {
+    background: var(--ha-tint, #29484c);
+    border-color: var(--ha-line, #3e5b61);
+    color: var(--ha-ink, #e4f0ec);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-open-btn:hover,
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-open-btn:focus-visible {
+    background: var(--ha-primary, #8dd3bc);
+    color: #11252b;
+    border-color: var(--ha-primary, #8dd3bc);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-menu-trigger {
+    color: var(--ha-muted, #aec4bf);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-menu-trigger:hover,
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-menu-trigger:focus-visible,
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-menu-details[open] .notebook-menu-trigger {
+    background: var(--ha-tint, #29484c);
+    color: var(--ha-ink, #e4f0ec);
+    border-color: var(--ha-line, #3e5b61);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-menu-dropdown {
+    background: var(--ha-surface, #1b343b);
+    border-color: var(--ha-line, #3e5b61);
+    color: var(--ha-ink, #e4f0ec);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-menu-item {
+    color: var(--ha-ink, #e4f0ec);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-menu-item:hover,
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-menu-item:focus-visible {
+    background: var(--ha-tint, #29484c);
+    color: var(--ha-ink, #e4f0ec);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-menu-item-danger {
+    color: var(--ha-danger, #ff9caf);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-menu-item-danger:hover,
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-menu-item-danger:focus-visible {
+    background: rgba(255, 156, 175, 0.15);
+    color: var(--ha-danger, #ff9caf);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .notebook-menu-divider {
+    background: var(--ha-line, #3e5b61);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .fab-primary-btn {
+    background: var(--ha-primary, #8dd3bc);
+    color: #11252b;
+    border-color: rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .fab-primary-btn:hover,
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .fab-primary-btn:focus-visible {
+    background: var(--ha-primary-hover, #b1e9d6);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .speed-dial-fab {
+    background: var(--ha-primary, #8dd3bc);
+    color: #11252b;
+    border-color: rgba(0, 0, 0, 0.2);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .speed-dial-fab:hover,
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .speed-dial-fab:focus-visible {
+    background: var(--ha-primary-hover, #b1e9d6);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .speed-dial-label {
+    background: var(--ha-surface, #1b343b);
+    color: var(--ha-ink, #e4f0ec);
+    border-color: var(--ha-line, #3e5b61);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+:is(html[data-theme="dark"], html[data-appearance="dark"]) .speed-dial-backdrop {
+    background: rgba(0, 0, 0, 0.65);
+}
+
+/* --------------------------------------------------------------------------
+   6. Prefers-Reduced-Motion Accessibility
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .notebook-row,
+    .fab-primary-btn,
+    .fab-label,
+    .fab-icon-wrap,
+    .speed-dial-fab,
+    .speed-dial-fab-icon,
+    .speed-dial-backdrop,
+    .speed-dial-item,
+    .speed-dial-item-btn,
+    .notebook-menu-dropdown {
+        transition: none !important;
+        animation: none !important;
+    }
+}

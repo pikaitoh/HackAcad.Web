@@ -336,7 +336,8 @@ var modifiedVfsJson = """
         {
             "command": "python3 script.py",
             "output": "Hello HackAcad",
-            "description": "Run Python script"
+            "description": "Run Python script",
+            "requiredFiles": ["script.py"]
         }
     ]
 }
@@ -366,6 +367,11 @@ AssertTrue(reloadedBlock.Title == "Python Practice Sandbox", "Persistence: Block
 AssertTrue(reloadedBlock.InitialDirectory == "/home/student/workspace", "Persistence: Initial directory updated");
 AssertTrue(reloadedBlock.AllowedCommands!.Count == 7, "Persistence: Allowed commands count updated");
 AssertTrue(reloadedBlock.CustomCommands!.Count == 1 && reloadedBlock.CustomCommands[0].Command == "python3 script.py", "Persistence: Custom commands retained");
+AssertTrue(reloadedBlock.CustomCommands[0].RequiredFiles?.Contains("script.py") == true, "Persistence: Custom commands retained requiredFiles prerequisite");
+
+// Verify Standalone Export embedding requiredFiles
+var exportHtmlWithReq = exportService.GenerateStandaloneHtml("Student Notebook", studentPersonalNb.ContentJson);
+AssertTrue(exportHtmlWithReq.Contains("\"requiredFiles\":[\"script.py\"]") || exportHtmlWithReq.Contains("script.py"), "Export: RequiredFiles embedded in standalone HTML config");
 
 // Test 5.2: Authorization checks
 // Another student ("student_bob") attempting to access Alice's notebook

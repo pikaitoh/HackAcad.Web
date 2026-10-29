@@ -307,4 +307,200 @@ Check(SimulationVerifier.IsComplete(legacyConfig, new[] {
     "cat audit.sh"
 }), "Legacy simulation executes and verifies without regressions");
 
+// 8. Custom Command Required Files and Directories Tests
+const string reqFilesConfig = """
+{
+  "allowedCommands": ["cd", "cat", "touch", "ls", "pwd"],
+  "initialDirectory": "/home/student",
+  "fileSystem": {
+    "home": {
+      "student": {
+        "main.py": "print('hello')",
+        "src": {
+          "helper.py": "def help(): pass"
+        },
+        "data": {
+          "items.csv": "a,b,c"
+        }
+      }
+    },
+    "var": {
+      "log": {}
+    }
+  },
+  "customCommands": [
+    {
+      "id": "cc_py",
+      "command": "python main.py",
+      "output": "hello from python",
+      "enabled": true,
+      "requiredFiles": ["main.py"]
+    },
+    {
+      "id": "cc_nested",
+      "command": "python src/helper.py",
+      "output": "helper executed",
+      "enabled": true,
+      "requiredFiles": ["src/helper.py"]
+    },
+    {
+      "id": "cc_multi",
+      "command": "python run.py",
+      "output": "multi-file success",
+      "enabled": true,
+      "requiredFiles": ["main.py", "data/"]
+    },
+    {
+      "id": "cc_dynamic",
+      "command": "python dynamic.py",
+      "output": "dynamic file success",
+      "enabled": true,
+      "requiredFiles": ["created.py"]
+    }
+  ],
+  "objectives": [
+    { "id": "step1", "command": "python main.py", "executionDirectory": "/home/student" }
+  ]
+}
+""";
+
+Check(SimulationVerifier.TryConfiguration(reqFilesConfig, out _, out _), "Custom command with valid requiredFiles accepted");
+
+// Reject absolute path in requiredFiles
+const string invalidAbsPathConfig = """
+{
+  "allowedCommands": ["ls"],
+  "initialDirectory": "/home/student",
+  "fileSystem": { "home": { "student": {} } },
+  "customCommands": [
+    { "id": "cc1", "command": "python test.py", "output": "ok", "enabled": true, "requiredFiles": ["/etc/passwd"] }
+  ],
+  "objectives": [{ "id": "g1", "command": "ls" }]
+}
+""";
+Check(!SimulationVerifier.TryConfiguration(invalidAbsPathConfig, out _, out _), "Custom command with absolute path in requiredFiles rejected");
+
+// Reject traversal path in requiredFiles
+const string invalidTraversalConfig = """
+{
+  "allowedCommands": ["ls"],
+  "initialDirectory": "/home/student",
+  "fileSystem": { "home": { "student": {} } },
+  "customCommands": [
+    { "id": "cc1", "command": "python test.py", "output": "ok", "enabled": true, "requiredFiles": ["../main.py"] }
+  ],
+  "objectives": [{ "id": "g1", "command": "ls" }]
+}
+""";
+Check(!SimulationVerifier.TryConfiguration(invalidTraversalConfig, out _, out _), "Custom command with traversal path in requiredFiles rejected");
+
+// 8.1 Command succeeds when required file exists in current directory
+Check(SimulationVerifier.IsComplete(reqFilesConfig, new[] {
+    "python main.py"
+}), "python main.py succeeds when main.py exists in cwd (/home/student)");
+
+// 8.2 Command fails when required file does not exist in cwd (/var/log) even though it exists in /home/student
+Check(!SimulationVerifier.IsComplete(reqFilesConfig, new[] {
+    "cd /var/log",
+    "python main.py"
+}), "python main.py fails when executed from /var/log where main.py is absent");
+
+// 8.3 Changing cwd back to directory with file allows command to succeed
+Check(SimulationVerifier.IsComplete(reqFilesConfig, new[] {
+    "cd /var/log",
+    "cd /home/student",
+    "python main.py"
+}), "Changing back to /home/student allows python main.py to succeed");
+
+// 8.4 Nested relative path requirement
+const string nestedObjConfig = """
+{
+  "allowedCommands": ["cd"],
+  "initialDirectory": "/home/student",
+  "fileSystem": {
+    "home": {
+      "student": {
+        "src": { "helper.py": "content" }
+      }
+    }
+  },
+  "customCommands": [
+    { "id": "cc1", "command": "python src/helper.py", "output": "ok", "enabled": true, "requiredFiles": ["src/helper.py"] }
+  ],
+  "objectives": [{ "id": "g1", "command": "python src/helper.py" }]
+}
+""";
+Check(SimulationVerifier.IsComplete(nestedObjConfig, new[] {
+    "python src/helper.py"
+}), "Nested relative path requirement src/helper.py resolves correctly");
+
+// 8.5 Multiple requirements: both file and directory must exist
+const string multiReqConfig = """
+{
+  "allowedCommands": ["cd"],
+  "initialDirectory": "/home/student",
+  "fileSystem": {
+    "home": {
+      "student": {
+        "main.py": "content",
+        "data": {}
+      }
+    }
+  },
+  "customCommands": [
+    { "id": "cc1", "command": "python run.py", "output": "ok", "enabled": true, "requiredFiles": ["main.py", "data/"] }
+  ],
+  "objectives": [{ "id": "g1", "command": "python run.py" }]
+}
+""";
+Check(SimulationVerifier.IsComplete(multiReqConfig, new[] {
+    "python run.py"
+}), "Multiple requirements (main.py and data/) succeed when both exist");
+
+// Fails if directory is missing
+const string missingDirConfig = """
+{
+  "allowedCommands": ["cd"],
+  "initialDirectory": "/home/student",
+  "fileSystem": {
+    "home": {
+      "student": {
+        "main.py": "content"
+      }
+    }
+  },
+  "customCommands": [
+    { "id": "cc1", "command": "python run.py", "output": "ok", "enabled": true, "requiredFiles": ["main.py", "data/"] }
+  ],
+  "objectives": [{ "id": "g1", "command": "python run.py" }]
+}
+""";
+Check(!SimulationVerifier.IsComplete(missingDirConfig, new[] {
+    "python run.py"
+}), "Multiple requirements fail when directory data/ is missing");
+
+// 8.6 Dynamically created file via touch satisfies requirement
+const string dynamicReqConfig = """
+{
+  "allowedCommands": ["touch"],
+  "initialDirectory": "/home/student",
+  "fileSystem": {
+    "home": {
+      "student": {}
+    }
+  },
+  "customCommands": [
+    { "id": "cc1", "command": "python script.py", "output": "script ok", "enabled": true, "requiredFiles": ["script.py"] }
+  ],
+  "objectives": [{ "id": "g1", "command": "python script.py" }]
+}
+""";
+Check(!SimulationVerifier.IsComplete(dynamicReqConfig, new[] {
+    "python script.py"
+}), "Custom command fails before file is created");
+Check(SimulationVerifier.IsComplete(dynamicReqConfig, new[] {
+    "touch script.py",
+    "python script.py"
+}), "File created with touch satisfies requiredFiles requirement");
+
 Console.WriteLine("ALL SIMULATION VERIFIER TESTS PASSED!");
