@@ -1,0 +1,197 @@
+
+@model ChallengePreviewViewModel
+
+@{
+    ViewData["Title"] = $"Preview - {Model.Title}";
+}
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <span class="text-secondary small">@Model.CourseTitle</span>
+            <h2 class="h4 mb-0">Student Challenge Preview</h2>
+        </div>
+        <a asp-controller="InstructorCourses"
+           asp-action="Curriculum"
+           asp-route-id="@Model.CourseId"
+           class="btn btn-outline-secondary">
+            ← Back to Curriculum
+        </a>
+    </div>
+
+    <div class="learn-main-pane">
+        <div class="learn-header-bar">
+            <div>
+                <div class="ctf-meta-bar mb-2">
+                    <span class="item-badge-pill badge-ctf">CTF Challenge</span>
+                    <span class="difficulty-badge diff-@Model.Difficulty.ToLowerInvariant()">
+                        @Model.Difficulty
+                    </span>
+                    <span class="points-pill">+@Model.Points Points</span>
+                    <span class="text-secondary small">
+                        Category: <strong>@Model.Category</strong>
+                    </span>
+                </div>
+
+                <h1>@Model.Title</h1>
+            </div>
+        </div>
+
+        @if (!Model.IsPublished)
+        {
+            <div class="alert alert-warning">
+                <strong>Draft preview:</strong>
+                Students cannot see this challenge until it is published.
+            </div>
+        }
+
+        <div class="ctf-card-interactive">
+            <h3 style="font-size: 1.15rem; font-weight:700; margin-bottom: 0.75rem;">
+                Challenge Description
+            </h3>
+
+            <div class="lesson-body mb-3">
+                @if (!string.IsNullOrWhiteSpace(Model.Description))
+                {
+                    @Html.Raw(FormatPreviewContent(Model.Description))
+                }
+                else
+                {
+                    <p class="text-secondary">
+                        Analyze the target, recover the confidential token,
+                        and submit the flag.
+                    </p>
+                }
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.FileName))
+            {
+                <div class="ctf-file-box">
+                    <div class="d-flex align-items-center gap-3">
+                        <span style="font-size: 2rem;">📦</span>
+                        <div>
+                            <strong style="font-size: 1rem; color:var(--ha-ink);">
+                                @Model.FileName
+                            </strong>
+                            <div class="text-secondary small">
+                                Required Challenge Artifact / Evidence File
+                            </div>
+                        </div>
+                    </div>
+                    <span class="text-secondary small">Preview only</span>
+                </div>
+            }
+
+            <!-- CyberChef Tool -->
+            <div class="mt-4 p-3 border rounded-3">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div>
+                        <h3 class="h5 mb-1">CyberChef Workbench</h3>
+                        <p class="text-secondary small mb-0">
+                            Need help analysing the challenge? Use CyberChef
+                            to decode, encode, or transform suspicious strings
+                            and data.
+                        </p>
+                    </div>
+                    <span class="badge bg-info text-dark">Analysis Tool</span>
+                </div>
+
+                <div class="ratio" style="--bs-aspect-ratio: 65%;">
+                    <iframe
+                        src="https://gchq.github.io/CyberChef/"
+                        title="CyberChef Data Analysis Tool"
+                        loading="lazy"
+                        allowfullscreen
+                        style="width:100%; height:100%; border:1px solid #dee2e6; border-radius:8px;">
+                    </iframe>
+                </div>
+            </div>
+
+            <!-- Disabled Flag Submission -->
+            <div class="mt-4 pt-3 border-top">
+                <h4 style="font-size: 1.05rem; font-weight:700; margin-bottom: 0.5rem;">
+                    Submit Flag
+                </h4>
+
+                <div class="ctf-flag-input-group">
+                    <input type="text"
+                           class="form-control ctf-flag-input"
+                           placeholder="flag{...}"
+                           disabled />
+                    <button type="button"
+                            class="btn btn-primary"
+                            disabled>
+                        Submit Flag
+                    </button>
+                </div>
+
+                <div class="form-text mt-1">
+                    This is a preview. Flag submission is disabled.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@functions {
+    public static string FormatPreviewContent(string content)
+    {
+        if (string.IsNullOrWhiteSpace(content))
+            return "";
+
+        var html = System.Net.WebUtility.HtmlEncode(content)
+            .Replace("\r\n", "\n")
+            .Replace("\r", "\n");
+
+        // Code blocks
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html,
+            @"```(?:[a-zA-Z0-9]+)?\n([\s\S]*?)```",
+            m => $"<pre><code>{m.Groups[1].Value}</code></pre>");
+
+        // Inline code
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html,
+            @"`([^`]+)`",
+            m => $"<code>{m.Groups[1].Value}</code>");
+
+        // Headings
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html,
+            @"^### (.*?)$",
+            "<h3>$1</h3>",
+            System.Text.RegularExpressions.RegexOptions.Multiline);
+
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html,
+            @"^## (.*?)$",
+            "<h2>$1</h2>",
+            System.Text.RegularExpressions.RegexOptions.Multiline);
+
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html,
+            @"^# (.*?)$",
+            "<h2>$1</h2>",
+            System.Text.RegularExpressions.RegexOptions.Multiline);
+
+        // Bold text
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html,
+            @"\*\*(.*?)\*\*",
+            "<strong>$1</strong>");
+
+        // Separate paragraphs
+        var paragraphs = System.Text.RegularExpressions.Regex
+            .Split(html, @"\n\s*\n")
+            .Where(p => !string.IsNullOrWhiteSpace(p))
+            .Select(p =>
+            {
+                if (p.StartsWith("<pre>"))
+                    return p;
+
+                return "<p>" + p.Replace("\n", "<br/>") + "</p>";
+            });
+
+        return string.Join("\n", paragraphs);
+    }
+}

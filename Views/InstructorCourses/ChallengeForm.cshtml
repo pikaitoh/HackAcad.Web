@@ -81,6 +81,7 @@
             <div class="mb-3">
                 <label asp-for="UploadFile" class="form-label">Challenge Evidence / Artifact File (Optional)</label>
                 <input asp-for="UploadFile" type="file" class="form-control" />
+                <input type="hidden" id="PreviewFileName" name="PreviewFileName" />
                 <div class="form-text">Upload a PCAP capture, log file, binary, source code, or ZIP archive students will download to solve offline.</div>
                 @if (!string.IsNullOrEmpty(Model.ExistingFilePath))
                 {
@@ -97,10 +98,86 @@
                 </label>
             </div>
 
-            <div class="d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2">
+                <button type="button" id="previewChallengeBtn" class="btn btn-outline-primary">
+                    Preview Challenge
+                </button>
+
                 <button type="submit" class="btn btn-primary">Save CTF Challenge</button>
-                <a asp-action="Curriculum" asp-route-id="@Model.CourseId" class="btn btn-outline-secondary">Cancel</a>
+
+                <a asp-action="Curriculum" asp-route-id="@Model.CourseId" class="btn btn-outline-secondary">
+                    Cancel
+                </a>
             </div>
         </form>
     </div>
 </div>
+@section Scripts {
+    <script>
+        document.getElementById("previewChallengeBtn").addEventListener("click", function () {
+            const form = this.closest("form");
+            const fileInput = form.querySelector('[name="UploadFile"]');
+            const previewFileName = form.querySelector('[name="PreviewFileName"]');
+
+            if (fileInput.files.length > 0) {
+                previewFileName.value = fileInput.files[0].name;
+            } else {
+                previewFileName.value = "";
+            }
+
+            const previewForm = document.createElement("form");
+            previewForm.method = "POST";
+            previewForm.action = "/InstructorCourses/PreviewChallenge";
+            previewForm.target = "_blank";
+            previewForm.enctype = "application/x-www-form-urlencoded";
+
+           const fields = [
+            "ChallengeId",
+            "CourseId",
+            "Title",
+            "Category",
+            "Difficulty",
+            "Points",
+            "Description",
+            "IsPublished"
+        ];
+
+            const fileNameInput = document.createElement("input");
+            fileNameInput.type = "hidden";
+            fileNameInput.name = "PreviewFileName";
+            fileNameInput.value = previewFileName.value;
+            previewForm.appendChild(fileNameInput);
+
+            fields.forEach(name => {
+                const original = form.querySelector(`[name="${name}"]`);
+                if (!original) return;
+
+                const input = document.createElement("input");
+                input.type = "hidden";
+                input.name = name;
+
+                if (name === "IsPublished") {
+                    input.value = original.checked ? "true" : "false";
+                } else {
+                    input.value = original.value;
+                }
+
+                previewForm.appendChild(input);
+            });
+
+            const token = form.querySelector('input[name="__RequestVerificationToken"]');
+
+            if (token) {
+                const tokenInput = document.createElement("input");
+                tokenInput.type = "hidden";
+                tokenInput.name = token.name;
+                tokenInput.value = token.value;
+                previewForm.appendChild(tokenInput);
+            }
+
+            document.body.appendChild(previewForm);
+            previewForm.submit();
+            previewForm.remove();
+                });
+    </script>
+}

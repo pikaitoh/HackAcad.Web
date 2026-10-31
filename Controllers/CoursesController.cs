@@ -666,6 +666,48 @@ public class CoursesController(
     }
 
     // ==========================================
+    // INSTRUCTOR - PREVIEW CTF CHALLENGE
+    // ==========================================
+    [Authorize(Roles = AccountRoles.Instructor)]
+    [HttpGet]
+    public async Task<IActionResult> PreviewChallenge(int id)
+    {
+        var challenge = await db.Challenges
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.ChallengeId == id);
+
+        if (challenge == null) return NotFound("Challenge not found.");
+
+        var course = await db.Courses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.CourseId == challenge.CourseId);
+
+        if (course == null) return NotFound("Course not found.");
+
+        // Only the instructor who owns this course may preview it.
+        if (!IsCourseOwner(course.InstructorId))
+            return Forbid();
+
+        var model = new ChallengePreviewViewModel
+        {
+            CourseId = challenge.CourseId,
+            ChallengeId = challenge.ChallengeId,
+            CourseTitle = course.Title,
+            Title = challenge.Title,
+            Category = challenge.Category ?? "Uncategorised",
+            Difficulty = challenge.Difficulty ?? "Not specified",
+            Description = challenge.Description,
+            Points = challenge.Points,
+            FileName = string.IsNullOrEmpty(challenge.FilePath)
+                ? null
+                : Path.GetFileName(challenge.FilePath),
+            IsPublished = challenge.IsPublished
+        };
+
+        return View("~/Views/InstructorCourses/ChallengePreview.cshtml", model);
+    }
+
+    // ==========================================
     // 7. DOWNLOAD CTF CHALLENGE FILE
     // ==========================================
     [Authorize]

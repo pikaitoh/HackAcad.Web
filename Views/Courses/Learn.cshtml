@@ -256,26 +256,59 @@
                         {
                             <p class="text-secondary">Analyze the target, recover the confidential token, and submit the flag.</p>
                         }
-                    </div>
+                        </div>
+
+                        <p class="form-text mt-2 mb-0">
+                            You can also open
+                            <a href="https://gchq.github.io/CyberChef/" target="_blank" rel="noopener noreferrer">
+                                CyberChef in a new tab
+                            </a>
+                            for a larger workspace.
+                        </p>
 
                     <!-- Challenge File Download Box -->
-                    @if (!string.IsNullOrEmpty(Model.CurrentChallenge.FilePath))
-                    {
-                        var fileName = System.IO.Path.GetFileName(Model.CurrentChallenge.FilePath);
-                        <div class="ctf-file-box">
-                            <div class="d-flex align-items-center gap-3">
-                                <span style="font-size: 2rem;">📦</span>
-                                <div>
-                                    <strong style="font-size: 1rem; color:var(--ha-ink);">@fileName</strong>
-                                    <div class="text-secondary small">Required Challenge Artifact / Evidence File</div>
-                                </div>
-                            </div>
-                            <a asp-action="DownloadChallengeFile" asp-route-id="@Model.CurrentChallenge.ChallengeId" class="btn btn-outline-secondary">
-                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:0.35rem; vertical-align:-2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download File
-                            </a>
-                        </div>
-                    }
+                        @if (!string.IsNullOrEmpty(Model.CurrentChallenge.FilePath))
+                        {
+                            var fileName = System.IO.Path.GetFileName(Model.CurrentChallenge.FilePath);
 
+                            <div class="ctf-file-box">
+                                <div class="d-flex align-items-center gap-3">
+                                    <span style="font-size: 2rem;">📦</span>
+                                    <div>
+                                        <strong style="font-size: 1rem; color:var(--ha-ink);">@fileName</strong>
+                                        <div class="text-secondary small">Required Challenge Artifact / Evidence File</div>
+                                    </div>
+                                </div>
+                                <a asp-action="DownloadChallengeFile"
+                                asp-route-id="@Model.CurrentChallenge.ChallengeId"
+                                class="btn btn-outline-secondary">
+                                    Download File
+                                </a>
+                            </div>
+                        }
+
+                            <!-- CyberChef Tool -->
+                    <div class="mt-4 p-3 border rounded-3">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                            <div>
+                                <h3 class="h5 mb-1">CyberChef Workbench</h3>
+                                <p class="text-secondary small mb-0">
+                                    Need help analysing the challenge? Use CyberChef to decode, encode, or transform suspicious strings and data. Download the challenge file above and upload its contents into CyberChef where applicable.
+                                </p>
+                            </div>
+                            <span class="badge bg-info text-dark">Analysis Tool</span>
+                        </div>
+
+                        <div class="ratio" style="--bs-aspect-ratio: 65%;">
+                            <iframe
+                                src="https://gchq.github.io/CyberChef/"
+                                title="CyberChef Data Analysis Tool"
+                                loading="lazy"
+                                allowfullscreen
+                                style="width:100%; height:100%; border:1px solid #dee2e6; border-radius:8px;">
+                            </iframe>
+                        </div>
+                    </div>
                     <!-- Flag Submission Box -->
                     <div class="mt-4 pt-3 border-top">
                         <h4 style="font-size: 1.05rem; font-weight:700; margin-bottom: 0.5rem;">Submit Flag</h4>
@@ -298,7 +331,6 @@
                             </form>
                         }
                     </div>
-
                     <!-- Submission History -->
                     @if (Model.ChallengeHistory.Any())
                     {

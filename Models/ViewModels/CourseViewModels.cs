@@ -252,3 +252,17 @@ public class CourseNotebookCreateEditModel
     public bool IsPublished { get; set; } = true;
     public int OrderIndex { get; set; }
 }
+
+public class ChallengePreviewViewModel
+{
+    public int CourseId { get; set; }
+    public int ChallengeId { get; set; }
+    public string CourseTitle { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string Difficulty { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public int Points { get; set; }
+    public string? FileName { get; set; }
+    public bool IsPublished { get; set; }
+}

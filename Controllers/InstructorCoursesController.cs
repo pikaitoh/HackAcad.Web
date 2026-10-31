@@ -519,6 +519,58 @@ public class InstructorCoursesController(
         await db.SaveChangesAsync();
         return RedirectToAction(nameof(Curriculum), new { id = model.CourseId });
     }
+    [Authorize(Roles = AccountRoles.Instructor)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> PreviewChallenge(
+        ChallengeCreateEditModel model,
+        string? PreviewFileName)
+    {
+        var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+        // Verify that the instructor owns the course.
+        var course = await db.Courses.FirstOrDefaultAsync(
+            c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
+
+        if (course == null)
+            return NotFound("Course not found or you do not own it.");
+
+        // Retrieve and verify the existing challenge when editing.
+        Challenge? existingChallenge = null;
+
+        if (model.ChallengeId > 0)
+        {
+            existingChallenge = await db.Challenges.FirstOrDefaultAsync(
+                c => c.ChallengeId == model.ChallengeId
+                    && c.CourseId == model.CourseId);
+
+            if (existingChallenge == null)
+                return NotFound("Challenge not found.");
+        }
+
+        // Determine which filename to display.
+        var fileName = !string.IsNullOrWhiteSpace(PreviewFileName)
+            ? Path.GetFileName(PreviewFileName)
+            : !string.IsNullOrWhiteSpace(existingChallenge?.FilePath)
+                ? Path.GetFileName(existingChallenge.FilePath)
+                : null;
+
+        var previewModel = new ChallengePreviewViewModel
+        {
+            CourseId = model.CourseId,
+            ChallengeId = model.ChallengeId,
+            CourseTitle = course.Title,
+            Title = model.Title,
+            Category = model.Category ?? "Uncategorised",
+            Difficulty = model.Difficulty ?? "Not specified",
+            Description = model.Description,
+            Points = model.Points,
+            FileName = fileName,
+            IsPublished = model.IsPublished
+        };
+
+        return View("~/Views/InstructorCourses/ChallengePreview.cshtml", previewModel);
+    }
 
     [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
