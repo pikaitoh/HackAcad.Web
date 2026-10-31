@@ -78,6 +78,7 @@ public class CourseLearnViewModel
     public HashSet<int> CompletedSimulationIds { get; set; } = [];
 
     public LearnContentType CurrentType { get; set; }
+
     public Lesson? CurrentLesson { get; set; }
     public Challenge? CurrentChallenge { get; set; }
     public SimulationTask? CurrentSimulation { get; set; }
@@ -86,13 +87,23 @@ public class CourseLearnViewModel
     public int? PrevLessonId { get; set; }
     public int? NextLessonId { get; set; }
     public bool CurrentItemCompleted { get; set; }
+
     public List<ChallengeSubmission> ChallengeHistory { get; set; } = [];
+
+    // Hints for the currently selected challenge.
+    public List<ChallengeHint> CurrentChallengeHints { get; set; } = [];
+
+    // IDs of hints already unlocked by the current learner.
+    public HashSet<int> UnlockedChallengeHintIds { get; set; } = [];
+
+    public int CurrentChallengeHintPointsDeducted { get; set; }
 }
 
 public class CourseCreateEditModel
 {
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
     public string ReviewStatus { get; set; } = CourseReviewStatus.Draft;
+
     public int CourseId { get; set; }
 
     [Required(ErrorMessage = "Enter a course title."), StringLength(150, ErrorMessage = "Title cannot exceed 150 characters.")]
@@ -157,6 +168,24 @@ public class ChallengeCreateEditModel
     public IFormFile? UploadFile { get; set; }
 
     public bool IsPublished { get; set; } = true;
+
+    // Hints configured by the instructor.
+    public List<ChallengeHintEditModel> Hints { get; set; } = [];
+}
+
+public class ChallengeHintEditModel
+{
+    public int ChallengeHintId { get; set; }
+
+    [Required(ErrorMessage = "Enter the hint text.")]
+    [StringLength(2000, ErrorMessage = "Hint cannot exceed 2000 characters.")]
+    public string HintText { get; set; } = string.Empty;
+
+    [Range(1, 100, ErrorMessage = "Hint order must be between 1 and 100.")]
+    public int DisplayOrder { get; set; }
+
+    [Range(0, 1000, ErrorMessage = "Deduction must be between 0 and 1000 points.")]
+    public int DeductionPoints { get; set; } = 10;
 }
 
 public class SimulationCreateEditModel
@@ -220,10 +249,17 @@ public class StudentCourseActivityRow
     {
         get
         {
-            if (ElapsedCourseTime is null) return "No completed activity";
+            if (ElapsedCourseTime is null)
+                return "No completed activity";
+
             var totalMinutes = Math.Max(0, (int)ElapsedCourseTime.Value.TotalMinutes);
-            if (totalMinutes >= 1440) return $"{totalMinutes / 1440}d {(totalMinutes % 1440) / 60}h";
-            if (totalMinutes >= 60) return $"{totalMinutes / 60}h {totalMinutes % 60}m";
+
+            if (totalMinutes >= 1440)
+                return $"{totalMinutes / 1440}d {(totalMinutes % 1440) / 60}h";
+
+            if (totalMinutes >= 60)
+                return $"{totalMinutes / 60}h {totalMinutes % 60}m";
+
             return $"{totalMinutes}m";
         }
     }

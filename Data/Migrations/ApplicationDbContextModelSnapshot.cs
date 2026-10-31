@@ -353,6 +353,104 @@ namespace HackAcad.Web.Data.Migrations
                     b.ToTable("challenges", (string)null);
                 });
 
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.ChallengeHint", b =>
+                {
+                    b.Property<int>("ChallengeHintId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ChallengeHintId"));
+
+                    b.Property<int>("ChallengeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DeductionPoints")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("HintText")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("varchar(2000)");
+
+                    b.HasKey("ChallengeHintId");
+
+                    b.HasIndex("ChallengeId", "DisplayOrder")
+                        .IsUnique();
+
+                    b.ToTable("challenge_hints", (string)null);
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.ChallengeHintUnlock", b =>
+                {
+                    b.Property<int>("ChallengeHintUnlockId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ChallengeHintUnlockId"));
+
+                    b.Property<int>("ChallengeHintId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PointsDeducted")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UnlockedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("ChallengeHintUnlockId");
+
+                    b.HasIndex("ChallengeHintId");
+
+                    b.HasIndex("UserId", "ChallengeHintId")
+                        .IsUnique();
+
+                    b.ToTable("challenge_hint_unlocks", (string)null);
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.ChallengeScoreAward", b =>
+                {
+                    b.Property<int>("ChallengeScoreAwardId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("ChallengeScoreAwardId"));
+
+                    b.Property<int>("AwardedPoints")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ChallengeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CompletedUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("MaximumPointsSnapshot")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalDeductionSnapshot")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("varchar(255)");
+
+                    b.HasKey("ChallengeScoreAwardId");
+
+                    b.HasIndex("ChallengeId");
+
+                    b.HasIndex("UserId", "ChallengeId")
+                        .IsUnique();
+
+                    b.ToTable("challenge_score_awards", (string)null);
+                });
+
             modelBuilder.Entity("HackAcad.Web.Models.Entities.ChallengeSubmission", b =>
                 {
                     b.Property<int>("SubmissionId")
@@ -1355,6 +1453,45 @@ namespace HackAcad.Web.Data.Migrations
                     b.HasOne("HackAcad.Web.Models.Entities.Course", null)
                         .WithMany()
                         .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.ChallengeHint", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.Challenge", null)
+                        .WithMany()
+                        .HasForeignKey("ChallengeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.ChallengeHintUnlock", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.ChallengeHint", null)
+                        .WithMany()
+                        .HasForeignKey("ChallengeHintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.ChallengeScoreAward", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.Challenge", null)
+                        .WithMany()
+                        .HasForeignKey("ChallengeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("HackAcad.Web.Models.Entities.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });

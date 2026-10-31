@@ -26,6 +26,9 @@ public partial class ApplicationDbContext : IdentityUserContext<ApplicationUser>
     public DbSet<Progress> ProgressRecords => Set<Progress>();
     public DbSet<Challenge> Challenges => Set<Challenge>();
     public DbSet<ChallengeSubmission> ChallengeSubmissions => Set<ChallengeSubmission>();
+    public DbSet<ChallengeHint> ChallengeHints => Set<ChallengeHint>();
+    public DbSet<ChallengeHintUnlock> ChallengeHintUnlocks => Set<ChallengeHintUnlock>();
+    public DbSet<ChallengeScoreAward> ChallengeScoreAwards => Set<ChallengeScoreAward>();
     public DbSet<SimulationTask> SimulationTasks => Set<SimulationTask>();
     public DbSet<LoginRecord> LoginRecords => Set<LoginRecord>();
     public DbSet<AdminActivity> AdminActivities => Set<AdminActivity>();
@@ -67,6 +70,9 @@ public partial class ApplicationDbContext : IdentityUserContext<ApplicationUser>
         builder.Entity<Progress>().ToTable("progress_records");
         builder.Entity<Challenge>().ToTable("challenges");
         builder.Entity<ChallengeSubmission>().ToTable("challenge_submissions");
+        builder.Entity<ChallengeHint>().ToTable("challenge_hints");
+        builder.Entity<ChallengeHintUnlock>().ToTable("challenge_hint_unlocks");
+        builder.Entity<ChallengeScoreAward>().ToTable("challenge_score_awards");
         builder.Entity<SimulationTask>().ToTable("simulation_tasks");
         builder.Entity<LoginRecord>().ToTable("login_records");
         builder.Entity<AdminActivity>().ToTable("admin_activities");
@@ -254,5 +260,52 @@ public partial class ApplicationDbContext : IdentityUserContext<ApplicationUser>
         // --- ChallengeSubmissions: fast "already solved?" lookups ---
         builder.Entity<ChallengeSubmission>()
             .HasIndex(s => new { s.UserId, s.ChallengeId });
+
+                // --- CTF Hints and Scoring ---
+
+        // Hints belong to a challenge.
+        builder.Entity<ChallengeHint>()
+            .HasIndex(h => new { h.ChallengeId, h.DisplayOrder })
+            .IsUnique();
+
+        builder.Entity<ChallengeHint>()
+            .HasOne<Challenge>()
+            .WithMany()
+            .HasForeignKey(h => h.ChallengeId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Each learner can unlock each hint only once.
+        builder.Entity<ChallengeHintUnlock>()
+            .HasIndex(u => new { u.UserId, u.ChallengeHintId })
+            .IsUnique();
+
+        builder.Entity<ChallengeHintUnlock>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(u => u.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<ChallengeHintUnlock>()
+            .HasOne<ChallengeHint>()
+            .WithMany()
+            .HasForeignKey(u => u.ChallengeHintId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        // Each learner receives only one score award per challenge.
+        builder.Entity<ChallengeScoreAward>()
+            .HasIndex(a => new { a.UserId, a.ChallengeId })
+            .IsUnique();
+
+        builder.Entity<ChallengeScoreAward>()
+            .HasOne<ApplicationUser>()
+            .WithMany()
+            .HasForeignKey(a => a.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<ChallengeScoreAward>()
+            .HasOne<Challenge>()
+            .WithMany()
+            .HasForeignKey(a => a.ChallengeId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

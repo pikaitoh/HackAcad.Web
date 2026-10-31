@@ -1,3 +1,4 @@
+
 @model ChallengeCreateEditModel
 @{
     var isEdit = Model.ChallengeId > 0;
@@ -42,6 +43,7 @@
                     </select>
                     <span asp-validation-for="Category" class="field-error"></span>
                 </div>
+
                 <div class="col-md-4">
                     <label asp-for="Difficulty" class="form-label">Difficulty <span class="text-danger">*</span></label>
                     <select asp-for="Difficulty" class="form-select">
@@ -52,6 +54,7 @@
                     </select>
                     <span asp-validation-for="Difficulty" class="field-error"></span>
                 </div>
+
                 <div class="col-md-4">
                     <label asp-for="Points" class="form-label">Points Awarded <span class="text-danger">*</span></label>
                     <input asp-for="Points" type="number" class="form-control" min="10" max="1000" step="10" required />
@@ -61,14 +64,18 @@
 
             <div class="mb-3">
                 <label asp-for="Description" class="form-label">Challenge Mission / Problem Statement</label>
-                <textarea asp-for="Description" class="form-control" rows="5" placeholder="Describe the scenario, what learners should investigate, or provide hints..."></textarea>
+                <textarea asp-for="Description" class="form-control" rows="5" placeholder="Describe the scenario, what learners should investigate..."></textarea>
                 <span asp-validation-for="Description" class="field-error"></span>
             </div>
 
             <!-- Secret Flag -->
             <div class="mb-3">
                 <label asp-for="PlaintextFlag" class="form-label">
-                    Secret Flag @(isEdit ? "(Leave blank to keep existing secret flag)" : "<span class=\"text-danger\">*</span>")
+                    Secret Flag @(isEdit ? "(Leave blank to keep existing secret flag)" : "")
+                    @if (!isEdit)
+                    {
+                        <span class="text-danger">*</span>
+                    }
                 </label>
                 <input asp-for="PlaintextFlag" class="form-control font-monospace" placeholder="flag{example_cyber_token_123}" />
                 <div class="form-text">
@@ -83,12 +90,65 @@
                 <input asp-for="UploadFile" type="file" class="form-control" />
                 <input type="hidden" id="PreviewFileName" name="PreviewFileName" />
                 <div class="form-text">Upload a PCAP capture, log file, binary, source code, or ZIP archive students will download to solve offline.</div>
+
                 @if (!string.IsNullOrEmpty(Model.ExistingFilePath))
                 {
                     <div class="mt-2 text-success small">
                         Current file attached: <strong>@System.IO.Path.GetFileName(Model.ExistingFilePath)</strong>
                     </div>
                 }
+            </div>
+
+            <hr class="my-4" />
+
+            <!-- Hint Management -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <h4 class="mb-1">Challenge Hints</h4>
+                        <p class="text-secondary small mb-0">
+                            Add optional clues that learners can unlock in sequence. Each hint has its own point deduction.
+                        </p>
+                    </div>
+                    <button type="button" id="addHintBtn" class="btn btn-outline-primary btn-sm">
+                        + Add Hint
+                    </button>
+                </div>
+
+                <div id="hintsContainer">
+                    @for (var i = 0; i < Model.Hints.Count; i++)
+                    {
+                        <div class="hint-row border rounded p-3 mb-3">
+                            <input type="hidden" name="Hints[@i].ChallengeHintId" value="@Model.Hints[i].ChallengeHintId" />
+
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong class="hint-heading">Hint @(i + 1)</strong>
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-hint-btn">Remove</button>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Hint Text</label>
+                                <textarea name="Hints[@i].HintText" class="form-control" rows="3" maxlength="2000" required>@Model.Hints[i].HintText</textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label class="form-label">Display Order</label>
+                                    <input name="Hints[@i].DisplayOrder" type="number" class="form-control hint-order" min="1" max="100" value="@(i + 1)" required />
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Point Deduction</label>
+                                    <input name="Hints[@i].DeductionPoints" type="number" class="form-control" min="0" max="1000" value="@Model.Hints[i].DeductionPoints" required />
+                                    <div class="form-text">Points deducted when this hint is unlocked.</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div id="noHintsMessage" class="text-secondary small border rounded p-3">
+                    No hints added yet. Click "Add Hint" to create the first hint.
+                </div>
             </div>
 
             <div class="form-check mb-4">
@@ -112,8 +172,80 @@
         </form>
     </div>
 </div>
+
 @section Scripts {
     <script>
+        // Hint management
+        const hintsContainer = document.getElementById("hintsContainer");
+        const addHintBtn = document.getElementById("addHintBtn");
+        const noHintsMessage = document.getElementById("noHintsMessage");
+
+        function updateHintRows() {
+            const rows = hintsContainer.querySelectorAll(".hint-row");
+
+            rows.forEach((row, index) => {
+                row.querySelector(".hint-heading").textContent = `Hint ${index + 1}`;
+
+                row.querySelectorAll("input, textarea").forEach(input => {
+                    const property = input.name.split(".").pop();
+                    input.name = `Hints[${index}].${property}`;
+                });
+
+                const orderInput = row.querySelector(".hint-order");
+                orderInput.value = index + 1;
+            });
+
+            noHintsMessage.style.display = rows.length === 0 ? "block" : "none";
+        }
+
+        function addHint() {
+            const index = hintsContainer.querySelectorAll(".hint-row").length;
+
+            const row = document.createElement("div");
+            row.className = "hint-row border rounded p-3 mb-3";
+
+            row.innerHTML = `
+                <input type="hidden" name="Hints[${index}].ChallengeHintId" value="0" />
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong class="hint-heading">Hint ${index + 1}</strong>
+                    <button type="button" class="btn btn-outline-danger btn-sm remove-hint-btn">Remove</button>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Hint Text</label>
+                    <textarea name="Hints[${index}].HintText" class="form-control" rows="3" maxlength="2000" required></textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Display Order</label>
+                        <input name="Hints[${index}].DisplayOrder" type="number" class="form-control hint-order" min="1" max="100" value="${index + 1}" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Point Deduction</label>
+                        <input name="Hints[${index}].DeductionPoints" type="number" class="form-control" min="0" max="1000" value="10" required />
+                        <div class="form-text">Points deducted when this hint is unlocked.</div>
+                    </div>
+                </div>
+            `;
+
+            hintsContainer.appendChild(row);
+            updateHintRows();
+        }
+
+        addHintBtn.addEventListener("click", addHint);
+
+        hintsContainer.addEventListener("click", function (event) {
+            if (event.target.classList.contains("remove-hint-btn")) {
+                event.target.closest(".hint-row").remove();
+                updateHintRows();
+            }
+        });
+
+        updateHintRows();
+
+        // Preview challenge
         document.getElementById("previewChallengeBtn").addEventListener("click", function () {
             const form = this.closest("form");
             const fileInput = form.querySelector('[name="UploadFile"]');
@@ -131,16 +263,16 @@
             previewForm.target = "_blank";
             previewForm.enctype = "application/x-www-form-urlencoded";
 
-           const fields = [
-            "ChallengeId",
-            "CourseId",
-            "Title",
-            "Category",
-            "Difficulty",
-            "Points",
-            "Description",
-            "IsPublished"
-        ];
+            const fields = [
+                "ChallengeId",
+                "CourseId",
+                "Title",
+                "Category",
+                "Difficulty",
+                "Points",
+                "Description",
+                "IsPublished"
+            ];
 
             const fileNameInput = document.createElement("input");
             fileNameInput.type = "hidden";
@@ -178,6 +310,6 @@
             document.body.appendChild(previewForm);
             previewForm.submit();
             previewForm.remove();
-                });
+        });
     </script>
 }

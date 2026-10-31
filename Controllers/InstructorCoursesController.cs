@@ -1,3 +1,4 @@
+
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -151,9 +152,12 @@ public class InstructorCoursesController(
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found or you do not own it.");
+
         model.ReviewStatus = course.ReviewStatus;
+
         if (model.IsPublished && course.ReviewStatus != CourseReviewStatus.Approved)
             ModelState.AddModelError(nameof(model.IsPublished), "Admin approval is required before publishing this course.");
+
         if (!ModelState.IsValid) return View(model);
 
         course.Title = model.Title.Trim();
@@ -163,7 +167,11 @@ public class InstructorCoursesController(
         course.IsPublished = model.IsPublished;
 
         await db.SaveChangesAsync();
-        TempData["Success"] = course.ReviewStatus == CourseReviewStatus.Draft ? "Course saved as a draft. Submit the updated content for Admin review before publishing." : "Course settings updated successfully.";
+
+        TempData["Success"] = course.ReviewStatus == CourseReviewStatus.Draft
+            ? "Course saved as a draft. Submit the updated content for Admin review before publishing."
+            : "Course settings updated successfully.";
+
         return RedirectToAction(nameof(Curriculum), new { id = course.CourseId });
     }
 
@@ -181,6 +189,7 @@ public class InstructorCoursesController(
         var lessons = await db.Lessons.Where(l => l.CourseId == id).OrderBy(l => l.OrderIndex).ToListAsync();
         var challenges = await db.Challenges.Where(c => c.CourseId == id).ToListAsync();
         var simulations = await db.SimulationTasks.Where(s => s.CourseId == id).ToListAsync();
+
         var courseNotebooks = await db.CourseNotebooks
             .Where(nb => nb.CourseId == id)
             .OrderBy(nb => nb.OrderIndex)
@@ -192,12 +201,14 @@ public class InstructorCoursesController(
             .OrderByDescending(n => n.UpdatedAtUtc)
             .Select(n => new { n.NotebookId, n.Title })
             .ToListAsync();
+
         ViewBag.PersonalNotebooks = personalNotebooks;
 
         var enrollments = await db.Enrollments.Where(e => e.CourseId == id).ToListAsync();
         var studentIds = enrollments.Select(e => e.UserId).Distinct().ToList();
         var studentUsers = await db.Users.Where(u => studentIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id);
         var enrollmentIds = enrollments.Select(e => e.EnrollmentId).ToList();
+
         var lessonIds = lessons.Select(l => l.LessonId).ToHashSet();
         var publishedChallengeIds = challenges.Where(c => c.IsPublished).Select(c => c.ChallengeId).ToHashSet();
         var publishedLabIds = simulations.Where(s => s.IsPublished).Select(s => s.TaskId).ToHashSet();
@@ -225,7 +236,9 @@ public class InstructorCoursesController(
                 p.LastUpdatedDate
             })
             .ToListAsync();
-        var progressByEnrollment = completedProgress.GroupBy(p => p.EnrollmentId)
+
+        var progressByEnrollment = completedProgress
+            .GroupBy(p => p.EnrollmentId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
         var studentRows = new List<StudentCourseActivityRow>();
@@ -235,18 +248,25 @@ public class InstructorCoursesController(
         {
             studentUsers.TryGetValue(enrollment.UserId, out var user);
             progressByEnrollment.TryGetValue(enrollment.EnrollmentId, out var activityDates);
+
             var completedCount = activityDates?
                 .DistinctBy(p => (p.ContentType, p.LessonId, p.ChallengeId, p.SimulationTaskId))
                 .Count() ?? 0;
+
             var latestActivityUtc = activityDates?.Count > 0
                 ? activityDates.Max(p => p.LastUpdatedDate)
                 : (DateTime?)null;
 
-            var pct = totalItems > 0 ? (int)Math.Round((double)completedCount / totalItems * 100) : 0;
+            var pct = totalItems > 0
+                ? (int)Math.Round((double)completedCount / totalItems * 100)
+                : 0;
+
             var elapsedCourseTime = latestActivityUtc.HasValue
                 ? latestActivityUtc.Value - enrollment.EnrolledDate
                 : (TimeSpan?)null;
-            if (elapsedCourseTime < TimeSpan.Zero) elapsedCourseTime = TimeSpan.Zero;
+
+            if (elapsedCourseTime < TimeSpan.Zero)
+                elapsedCourseTime = TimeSpan.Zero;
 
             studentRows.Add(new StudentCourseActivityRow
             {
@@ -262,6 +282,7 @@ public class InstructorCoursesController(
         }
 
         var challengeIds = challenges.Select(c => c.ChallengeId).ToList();
+
         var recentSubmissions = await db.ChallengeSubmissions
             .Where(s => challengeIds.Contains(s.ChallengeId))
             .OrderByDescending(s => s.SubmittedDate)
@@ -333,7 +354,8 @@ public class InstructorCoursesController(
         var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found.");
 
-        if (!ModelState.IsValid) return View("LessonForm", model);
+        if (!ModelState.IsValid)
+            return View("LessonForm", model);
 
         if (model.LessonId == 0)
         {
@@ -345,18 +367,22 @@ public class InstructorCoursesController(
                 OrderIndex = model.OrderIndex,
                 VideoUrl = model.VideoUrl?.Trim()
             };
+
             db.Lessons.Add(newLesson);
             TempData["Success"] = $"Lesson \"{newLesson.Title}\" added successfully.";
         }
         else
         {
             var existing = await db.Lessons.FindAsync(model.LessonId);
-            if (existing == null || existing.CourseId != model.CourseId) return NotFound("Lesson not found.");
+
+            if (existing == null || existing.CourseId != model.CourseId)
+                return NotFound("Lesson not found.");
 
             existing.Title = model.Title.Trim();
             existing.Content = model.Content;
             existing.OrderIndex = model.OrderIndex;
             existing.VideoUrl = model.VideoUrl?.Trim();
+
             TempData["Success"] = $"Lesson \"{existing.Title}\" updated.";
         }
 
@@ -377,11 +403,14 @@ public class InstructorCoursesController(
         if (course == null) return NotFound("You do not own this course.");
 
         var courseId = lesson.CourseId;
-        if (await db.ProgressRecords.AnyAsync(p => p.LessonId == id) || await db.Enrollments.AnyAsync(e => e.LastLessonId == id))
+
+        if (await db.ProgressRecords.AnyAsync(p => p.LessonId == id) ||
+            await db.Enrollments.AnyAsync(e => e.LastLessonId == id))
         {
             TempData["CourseError"] = "This lesson has student learning records and cannot be deleted. Keep it to preserve their work.";
             return RedirectToAction(nameof(Curriculum), new { id = courseId });
         }
+
         try
         {
             db.Lessons.Remove(lesson);
@@ -423,13 +452,26 @@ public class InstructorCoursesController(
     public async Task<IActionResult> EditChallenge(int id)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var challenge = await db.Challenges.FindAsync(id);
-        if (challenge == null) return NotFound("Challenge not found.");
 
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == challenge.CourseId && c.InstructorId == instructorId);
-        if (course == null) return NotFound("You do not own this course.");
+        var challenge = await db.Challenges
+            .FirstOrDefaultAsync(c => c.ChallengeId == id);
 
-        return View("ChallengeForm", new ChallengeCreateEditModel
+        if (challenge == null)
+            return NotFound("Challenge not found.");
+
+        var course = await db.Courses.FirstOrDefaultAsync(
+            c => c.CourseId == challenge.CourseId &&
+                 c.InstructorId == instructorId);
+
+        if (course == null)
+            return NotFound("You do not own this course.");
+
+        var hints = await db.ChallengeHints
+            .Where(h => h.ChallengeId == id)
+            .OrderBy(h => h.DisplayOrder)
+            .ToListAsync();
+
+        var model = new ChallengeCreateEditModel
         {
             ChallengeId = challenge.ChallengeId,
             CourseId = challenge.CourseId,
@@ -439,8 +481,18 @@ public class InstructorCoursesController(
             Description = challenge.Description,
             Points = challenge.Points,
             ExistingFilePath = challenge.FilePath,
-            IsPublished = challenge.IsPublished
-        });
+            IsPublished = challenge.IsPublished,
+
+            Hints = hints.Select(h => new ChallengeHintEditModel
+            {
+                ChallengeHintId = h.ChallengeHintId,
+                HintText = h.HintText,
+                DisplayOrder = h.DisplayOrder,
+                DeductionPoints = h.DeductionPoints
+            }).ToList()
+        };
+
+        return View("ChallengeForm", model);
     }
 
     [Authorize(Roles = AccountRoles.Instructor)]
@@ -449,24 +501,180 @@ public class InstructorCoursesController(
     public async Task<IActionResult> SaveChallenge(ChallengeCreateEditModel model)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
-        if (course == null) return NotFound("Course not found.");
 
-        var existingChallenge = model.ChallengeId == 0 ? null : await db.Challenges.FindAsync(model.ChallengeId);
-        if (model.ChallengeId != 0 && (existingChallenge is null || existingChallenge.CourseId != model.CourseId)) return NotFound();
+        var course = await db.Courses.FirstOrDefaultAsync(
+            c => c.CourseId == model.CourseId &&
+                 c.InstructorId == instructorId);
+
+        if (course == null)
+            return NotFound("Course not found.");
+
+        var existingChallenge = model.ChallengeId == 0
+            ? null
+            : await db.Challenges.FirstOrDefaultAsync(
+                c => c.ChallengeId == model.ChallengeId &&
+                     c.CourseId == model.CourseId);
+
+        if (model.ChallengeId != 0 && existingChallenge == null)
+            return NotFound("Challenge not found.");
+
         model.ExistingFilePath = existingChallenge?.FilePath;
+        model.Hints ??= new List<ChallengeHintEditModel>();
 
-        if (model.ChallengeId == 0 && string.IsNullOrWhiteSpace(model.PlaintextFlag))
+        if (model.ChallengeId == 0 &&
+            string.IsNullOrWhiteSpace(model.PlaintextFlag))
         {
-            ModelState.AddModelError(nameof(model.PlaintextFlag), "A secret flag is required when creating a CTF challenge.");
+            ModelState.AddModelError(
+                nameof(model.PlaintextFlag),
+                "A secret flag is required when creating a CTF challenge.");
         }
 
-        if (!ModelState.IsValid) return View("ChallengeForm", model);
+        if (model.Hints.Count > 100)
+        {
+            ModelState.AddModelError(
+                nameof(model.Hints),
+                "A challenge cannot contain more than 100 hints.");
+        }
+
+        var submittedHintIds = model.Hints
+            .Where(h => h.ChallengeHintId > 0)
+            .Select(h => h.ChallengeHintId)
+            .ToList();
+
+        if (submittedHintIds.Count != submittedHintIds.Distinct().Count())
+        {
+            ModelState.AddModelError(
+                nameof(model.Hints),
+                "Duplicate hint records were submitted.");
+        }
+
+        if (model.Hints.Any(h => h.ChallengeHintId < 0))
+        {
+            ModelState.AddModelError(
+                nameof(model.Hints),
+                "Invalid hint record submitted.");
+        }
+
+        foreach (var hint in model.Hints)
+        {
+            hint.HintText = hint.HintText?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(hint.HintText))
+            {
+                ModelState.AddModelError(
+                    nameof(model.Hints),
+                    "Every hint must contain text.");
+            }
+
+            if (hint.HintText.Length > 2000)
+            {
+                ModelState.AddModelError(
+                    nameof(model.Hints),
+                    "Hint text cannot exceed 2000 characters.");
+            }
+
+            if (hint.DeductionPoints < 0 || hint.DeductionPoints > 1000)
+            {
+                ModelState.AddModelError(
+                    nameof(model.Hints),
+                    "Hint deductions must be between 0 and 1000 points.");
+            }
+        }
+
+        var existingHints = existingChallenge == null
+            ? new List<ChallengeHint>()
+            : await db.ChallengeHints
+                .Where(h => h.ChallengeId == existingChallenge.ChallengeId)
+                .OrderBy(h => h.DisplayOrder)
+                .ToListAsync();
+
+        // Check for unlocked hints without requiring a navigation property
+        // on ChallengeHintUnlock.
+        var unlockedHintIds = existingChallenge == null
+            ? new HashSet<int>()
+            : (await db.ChallengeHintUnlocks
+                .Where(u => db.ChallengeHints.Any(h =>
+                    h.ChallengeHintId == u.ChallengeHintId &&
+                    h.ChallengeId == existingChallenge.ChallengeId))
+                .Select(u => u.ChallengeHintId)
+                .Distinct()
+                .ToListAsync()).ToHashSet();
+
+        // Ensure submitted hint IDs belong to this challenge.
+        if (submittedHintIds.Any(id =>
+            existingHints.All(h => h.ChallengeHintId != id)))
+        {
+            ModelState.AddModelError(
+                nameof(model.Hints),
+                "An invalid hint record was submitted.");
+        }
+
+        // Once a student has unlocked a hint, existing hints cannot be
+        // edited, removed or reordered. New hints may still be appended.
+        if (unlockedHintIds.Count > 0)
+        {
+            var submittedExistingHintIds = model.Hints
+                .Where(h => h.ChallengeHintId > 0)
+                .Select(h => h.ChallengeHintId)
+                .ToList();
+
+            var actualExistingHintIds = existingHints
+                .Select(h => h.ChallengeHintId)
+                .ToList();
+
+            if (!submittedExistingHintIds.SequenceEqual(actualExistingHintIds))
+            {
+                ModelState.AddModelError(
+                    nameof(model.Hints),
+                    "Existing hints cannot be reordered or removed after a student has unlocked a hint.");
+            }
+
+            foreach (var existingHint in existingHints)
+            {
+                var submittedHint = model.Hints.FirstOrDefault(
+                    h => h.ChallengeHintId == existingHint.ChallengeHintId);
+
+                if (submittedHint == null ||
+                    submittedHint.HintText != existingHint.HintText ||
+                    submittedHint.DeductionPoints != existingHint.DeductionPoints)
+                {
+                    ModelState.AddModelError(
+                        nameof(model.Hints),
+                        "Existing hints cannot be edited after a student has unlocked a hint. You can still add new hints.");
+
+                    break;
+                }
+            }
+
+            var newHints = model.Hints
+                .Where(h => h.ChallengeHintId == 0)
+                .ToList();
+
+            for (var i = 0; i < newHints.Count; i++)
+            {
+                newHints[i].DisplayOrder = existingHints.Count + i + 1;
+            }
+        }
+        else
+        {
+            for (var i = 0; i < model.Hints.Count; i++)
+            {
+                model.Hints[i].DisplayOrder = i + 1;
+            }
+        }
+
+        if (!ModelState.IsValid)
+            return View("ChallengeForm", model);
 
         string? uploadedFilePath = existingChallenge?.FilePath;
-        if (model.UploadFile is not null)
+
+        if (model.UploadFile != null)
         {
-            try { uploadedFilePath = await CourseFiles.SaveAsync(environment, model.UploadFile); }
+            try
+            {
+                uploadedFilePath = await CourseFiles.SaveAsync(
+                    environment, model.UploadFile);
+            }
             catch (ArgumentException ex)
             {
                 ModelState.AddModelError(nameof(model.UploadFile), ex.Message);
@@ -474,51 +682,133 @@ public class InstructorCoursesController(
             }
         }
 
-        if (model.ChallengeId == 0)
+        await using var transaction = await db.Database.BeginTransactionAsync();
+
+        try
         {
-            var flagHash = ComputeSha256(model.PlaintextFlag!.Trim());
+            Challenge challenge;
 
-            var challenge = new Challenge
+            if (existingChallenge == null)
             {
-                CourseId = model.CourseId,
-                Title = model.Title.Trim(),
-                Category = model.Category.Trim(),
-                Difficulty = model.Difficulty.Trim(),
-                Description = model.Description?.Trim(),
-                FlagHash = flagHash,
-                Points = model.Points,
-                FilePath = uploadedFilePath,
-                IsPublished = model.IsPublished
-            };
+                challenge = new Challenge
+                {
+                    CourseId = model.CourseId,
+                    Title = model.Title.Trim(),
+                    Category = model.Category.Trim(),
+                    Difficulty = model.Difficulty.Trim(),
+                    Description = model.Description?.Trim(),
+                    FlagHash = ComputeSha256(model.PlaintextFlag!.Trim()),
+                    Points = model.Points,
+                    FilePath = uploadedFilePath,
+                    IsPublished = model.IsPublished
+                };
 
-            db.Challenges.Add(challenge);
-            TempData["Success"] = $"CTF challenge \"{challenge.Title}\" created successfully!";
-        }
-        else
-        {
-            var existing = await db.Challenges.FindAsync(model.ChallengeId);
-            if (existing == null || existing.CourseId != model.CourseId) return NotFound("Challenge not found.");
-
-            existing.Title = model.Title.Trim();
-            existing.Category = model.Category.Trim();
-            existing.Difficulty = model.Difficulty.Trim();
-            existing.Description = model.Description?.Trim();
-            existing.Points = model.Points;
-            existing.IsPublished = model.IsPublished;
-            existing.FilePath = uploadedFilePath;
-
-            // Only update flag hash if a new plaintext flag was entered
-            if (!string.IsNullOrWhiteSpace(model.PlaintextFlag))
+                db.Challenges.Add(challenge);
+                await db.SaveChangesAsync();
+            }
+            else
             {
-                existing.FlagHash = ComputeSha256(model.PlaintextFlag.Trim());
+                challenge = existingChallenge;
+
+                challenge.Title = model.Title.Trim();
+                challenge.Category = model.Category.Trim();
+                challenge.Difficulty = model.Difficulty.Trim();
+                challenge.Description = model.Description?.Trim();
+                challenge.Points = model.Points;
+                challenge.IsPublished = model.IsPublished;
+                challenge.FilePath = uploadedFilePath;
+
+                if (!string.IsNullOrWhiteSpace(model.PlaintextFlag))
+                {
+                    challenge.FlagHash = ComputeSha256(
+                        model.PlaintextFlag.Trim());
+                }
+
+                await db.SaveChangesAsync();
             }
 
-            TempData["Success"] = $"CTF challenge \"{existing.Title}\" updated.";
-        }
+            // CASE 1: A student has unlocked at least one hint.
+            // Keep existing hints unchanged and append new hints.
+            if (unlockedHintIds.Count > 0)
+            {
+                var newHints = model.Hints
+                    .Where(h => h.ChallengeHintId == 0)
+                    .ToList();
 
-        await db.SaveChangesAsync();
-        return RedirectToAction(nameof(Curriculum), new { id = model.CourseId });
+                foreach (var hint in newHints)
+                {
+                    db.ChallengeHints.Add(new ChallengeHint
+                    {
+                        ChallengeId = challenge.ChallengeId,
+                        HintText = hint.HintText,
+                        DisplayOrder = hint.DisplayOrder,
+                        DeductionPoints = hint.DeductionPoints
+                    });
+                }
+            }
+            // CASE 2: No hints have been unlocked.
+            // The instructor can freely add, edit, reorder and remove hints.
+            else
+            {
+                var hintsToRemove = existingHints
+                    .Where(h => !submittedHintIds.Contains(h.ChallengeHintId))
+                    .ToList();
+
+                db.ChallengeHints.RemoveRange(hintsToRemove);
+
+                // Move existing hints temporarily to negative positions
+                // to avoid unique-index collisions during reordering.
+                foreach (var hint in existingHints)
+                {
+                    hint.DisplayOrder = -hint.ChallengeHintId;
+                }
+
+                await db.SaveChangesAsync();
+
+                for (var i = 0; i < model.Hints.Count; i++)
+                {
+                    var submittedHint = model.Hints[i];
+
+                    if (submittedHint.ChallengeHintId == 0)
+                    {
+                        db.ChallengeHints.Add(new ChallengeHint
+                        {
+                            ChallengeId = challenge.ChallengeId,
+                            HintText = submittedHint.HintText,
+                            DisplayOrder = i + 1,
+                            DeductionPoints = submittedHint.DeductionPoints
+                        });
+                    }
+                    else
+                    {
+                        var existingHint = existingHints.First(
+                            h => h.ChallengeHintId == submittedHint.ChallengeHintId);
+
+                        existingHint.HintText = submittedHint.HintText;
+                        existingHint.DisplayOrder = i + 1;
+                        existingHint.DeductionPoints = submittedHint.DeductionPoints;
+                    }
+                }
+            }
+
+            await db.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            TempData["Success"] = existingChallenge == null
+                ? $"CTF challenge \"{challenge.Title}\" created successfully!"
+                : $"CTF challenge \"{challenge.Title}\" updated.";
+
+            return RedirectToAction(
+                nameof(Curriculum),
+                new { id = model.CourseId });
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
+
     [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -528,27 +818,25 @@ public class InstructorCoursesController(
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-        // Verify that the instructor owns the course.
         var course = await db.Courses.FirstOrDefaultAsync(
-            c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
+            c => c.CourseId == model.CourseId &&
+                 c.InstructorId == instructorId);
 
         if (course == null)
             return NotFound("Course not found or you do not own it.");
 
-        // Retrieve and verify the existing challenge when editing.
         Challenge? existingChallenge = null;
 
         if (model.ChallengeId > 0)
         {
             existingChallenge = await db.Challenges.FirstOrDefaultAsync(
-                c => c.ChallengeId == model.ChallengeId
-                    && c.CourseId == model.CourseId);
+                c => c.ChallengeId == model.ChallengeId &&
+                     c.CourseId == model.CourseId);
 
             if (existingChallenge == null)
                 return NotFound("Challenge not found.");
         }
 
-        // Determine which filename to display.
         var fileName = !string.IsNullOrWhiteSpace(PreviewFileName)
             ? Path.GetFileName(PreviewFileName)
             : !string.IsNullOrWhiteSpace(existingChallenge?.FilePath)
@@ -578,18 +866,37 @@ public class InstructorCoursesController(
     public async Task<IActionResult> DeleteChallenge(int id)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var challenge = await db.Challenges.FindAsync(id);
-        if (challenge == null) return NotFound("Challenge not found.");
 
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == challenge.CourseId && c.InstructorId == instructorId);
-        if (course == null) return NotFound("You do not own this course.");
+        var challenge = await db.Challenges.FindAsync(id);
+        if (challenge == null)
+            return NotFound("Challenge not found.");
+
+        var course = await db.Courses.FirstOrDefaultAsync(
+            c => c.CourseId == challenge.CourseId &&
+                 c.InstructorId == instructorId);
+
+        if (course == null)
+            return NotFound("You do not own this course.");
 
         var courseId = challenge.CourseId;
-        if (await db.ProgressRecords.AnyAsync(p => p.ChallengeId == id) || await db.ChallengeSubmissions.AnyAsync(s => s.ChallengeId == id))
+
+        var hasStudentRecords =
+            await db.ProgressRecords.AnyAsync(p => p.ChallengeId == id) ||
+            await db.ChallengeSubmissions.AnyAsync(s => s.ChallengeId == id) ||
+            await db.ChallengeHintUnlocks.AnyAsync(u =>
+                db.ChallengeHints.Any(h =>
+                    h.ChallengeHintId == u.ChallengeHintId &&
+                    h.ChallengeId == id)) ||
+            await db.ChallengeScoreAwards.AnyAsync(a => a.ChallengeId == id);
+
+        if (hasStudentRecords)
         {
-            TempData["CourseError"] = "This challenge has student learning records and cannot be deleted. Keep it to preserve their work.";
+            TempData["CourseError"] =
+                "This challenge has student learning, hint or scoring records and cannot be deleted. Keep it to preserve their work.";
+
             return RedirectToAction(nameof(Curriculum), new { id = courseId });
         }
+
         try
         {
             db.Challenges.Remove(challenge);
@@ -597,7 +904,9 @@ public class InstructorCoursesController(
         }
         catch (DbUpdateException)
         {
-            TempData["CourseError"] = "Linked learning records prevent deletion. Reload the curriculum and try again.";
+            TempData["CourseError"] =
+                "Linked learning records prevent deletion. Reload the curriculum and try again.";
+
             return RedirectToAction(nameof(Curriculum), new { id = courseId });
         }
 
@@ -606,7 +915,7 @@ public class InstructorCoursesController(
     }
 
     // ==========================================
-    // 7. SIMULATION TASKS AUTHORING
+    // 7. SIMULATION TASKS
     // ==========================================
     [Authorize(Roles = AccountRoles.Instructor)]
     [HttpGet]
@@ -616,7 +925,6 @@ public class InstructorCoursesController(
         var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == courseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found.");
 
-        // Predefined Linux filesystem template containing common directories (/home/student, /etc, /tmp, /var, /var/log)
         var defaultJson = @"{
   ""description"": ""Explore basic Linux filesystem navigation, inspect log files, and verify commands."",
   ""difficulty"": ""Beginner"",
@@ -663,18 +971,25 @@ public class InstructorCoursesController(
     }
 
     [HttpGet]
-    public async Task<IActionResult> EditSimulation(int? id, int? notebookId, int? courseNotebookId, string? blockId)
+    public async Task<IActionResult> EditSimulation(
+        int? id,
+        int? notebookId,
+        int? courseNotebookId,
+        string? blockId)
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-        // 1. Personal notebook terminal block mode (Student or Instructor)
+        // 1. Personal notebook terminal block mode.
         if (notebookId.HasValue && notebookId.Value > 0)
         {
             var notebook = await db.Notebooks
                 .FirstOrDefaultAsync(n => n.NotebookId == notebookId.Value && n.UserId == currentUserId);
-            if (notebook == null) return NotFound("Notebook not found or you do not have permission.");
+
+            if (notebook == null)
+                return NotFound("Notebook not found or you do not have permission.");
 
             NotebookDocument doc;
+
             try
             {
                 doc = JsonSerializer.Deserialize<NotebookDocument>(notebook.ContentJson) ?? new NotebookDocument();
@@ -685,7 +1000,8 @@ public class InstructorCoursesController(
             }
 
             var block = doc.Blocks?.FirstOrDefault(b => b.Id == blockId);
-            if (block == null) return NotFound("Terminal block not found.");
+            if (block == null)
+                return NotFound("Terminal block not found.");
 
             var vfsObj = new
             {
@@ -705,6 +1021,7 @@ public class InstructorCoursesController(
             };
 
             var returnUrl = Url.Action("Edit", "Notebooks", new { id = notebook.NotebookId });
+
             var model = new SimulationCreateEditModel
             {
                 NotebookId = notebook.NotebookId,
@@ -720,19 +1037,27 @@ public class InstructorCoursesController(
             return View("SimulationForm", model);
         }
 
-        // 2. Course notebook terminal block mode (Instructor only)
+        // 2. Course notebook terminal block mode.
         if (courseNotebookId.HasValue && courseNotebookId.Value > 0)
         {
-            if (!User.IsInRole(AccountRoles.Instructor)) return Forbid();
+            if (!User.IsInRole(AccountRoles.Instructor))
+                return Forbid();
 
             var courseNotebook = await db.CourseNotebooks
                 .FirstOrDefaultAsync(cn => cn.CourseNotebookId == courseNotebookId.Value);
-            if (courseNotebook == null) return NotFound("Course notebook not found.");
 
-            var isOwner = await db.Courses.AnyAsync(c => c.CourseId == courseNotebook.CourseId && c.InstructorId == currentUserId);
-            if (!isOwner) return Forbid();
+            if (courseNotebook == null)
+                return NotFound("Course notebook not found.");
+
+            var isOwner = await db.Courses.AnyAsync(
+                c => c.CourseId == courseNotebook.CourseId &&
+                     c.InstructorId == currentUserId);
+
+            if (!isOwner)
+                return Forbid();
 
             NotebookDocument doc;
+
             try
             {
                 doc = JsonSerializer.Deserialize<NotebookDocument>(courseNotebook.ContentJson) ?? new NotebookDocument();
@@ -743,7 +1068,8 @@ public class InstructorCoursesController(
             }
 
             var block = doc.Blocks?.FirstOrDefault(b => b.Id == blockId);
-            if (block == null) return NotFound("Terminal block not found.");
+            if (block == null)
+                return NotFound("Terminal block not found.");
 
             var vfsObj = new
             {
@@ -763,6 +1089,7 @@ public class InstructorCoursesController(
             };
 
             var returnUrl = Url.Action("EditCourseNotebook", "InstructorCourses", new { id = courseNotebook.CourseNotebookId });
+
             var model = new SimulationCreateEditModel
             {
                 CourseId = courseNotebook.CourseId,
@@ -779,30 +1106,44 @@ public class InstructorCoursesController(
             return View("SimulationForm", model);
         }
 
-        // 3. Course simulation task mode (Instructor only)
-        if (!User.IsInRole(AccountRoles.Instructor)) return Forbid();
+        // 3. Course simulation task mode.
+        if (!User.IsInRole(AccountRoles.Instructor))
+            return Forbid();
 
-        if (!id.HasValue || id.Value <= 0) return BadRequest("Task ID is required.");
+        if (!id.HasValue || id.Value <= 0)
+            return BadRequest("Task ID is required.");
 
         var task = await db.SimulationTasks.FindAsync(id.Value);
-        if (task == null) return NotFound("Simulation task not found.");
+        if (task == null)
+            return NotFound("Simulation task not found.");
 
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == task.CourseId && c.InstructorId == currentUserId);
-        if (course == null) return NotFound("You do not own this course.");
+        var course = await db.Courses.FirstOrDefaultAsync(
+            c => c.CourseId == task.CourseId &&
+                 c.InstructorId == currentUserId);
+
+        if (course == null)
+            return NotFound("You do not own this course.");
 
         string? description = null;
         string? difficulty = null;
+
         if (!string.IsNullOrWhiteSpace(task.VirtualFileSystemJson))
         {
             try
             {
                 using var doc = JsonDocument.Parse(task.VirtualFileSystemJson);
-                if (doc.RootElement.TryGetProperty("description", out var d) && d.ValueKind == JsonValueKind.String)
+
+                if (doc.RootElement.TryGetProperty("description", out var d) &&
+                    d.ValueKind == JsonValueKind.String)
                     description = d.GetString();
-                if (doc.RootElement.TryGetProperty("difficulty", out var diff) && diff.ValueKind == JsonValueKind.String)
+
+                if (doc.RootElement.TryGetProperty("difficulty", out var diff) &&
+                    diff.ValueKind == JsonValueKind.String)
                     difficulty = diff.GetString();
             }
-            catch { }
+            catch
+            {
+            }
         }
 
         return View("SimulationForm", new SimulationCreateEditModel
@@ -826,14 +1167,17 @@ public class InstructorCoursesController(
     {
         var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-        // 1. Personal notebook terminal block mode (Student or Instructor)
+        // 1. Personal notebook terminal block mode.
         if (model.NotebookId.HasValue && model.NotebookId.Value > 0)
         {
             var notebook = await db.Notebooks
                 .FirstOrDefaultAsync(n => n.NotebookId == model.NotebookId.Value && n.UserId == currentUserId);
-            if (notebook == null) return NotFound("Notebook not found or you do not have permission.");
+
+            if (notebook == null)
+                return NotFound("Notebook not found or you do not have permission.");
 
             NotebookDocument doc;
+
             try
             {
                 doc = JsonSerializer.Deserialize<NotebookDocument>(notebook.ContentJson) ?? new NotebookDocument();
@@ -844,8 +1188,11 @@ public class InstructorCoursesController(
             }
 
             var block = doc.Blocks?.FirstOrDefault(b => b.Id == model.BlockId);
-            if (block == null) return NotFound("Terminal block not found.");
-            if (!ModelState.IsValid) return View("SimulationForm", model);
+            if (block == null)
+                return NotFound("Terminal block not found.");
+
+            if (!ModelState.IsValid)
+                return View("SimulationForm", model);
 
             if (!string.IsNullOrWhiteSpace(model.VirtualFileSystemJson))
             {
@@ -853,13 +1200,19 @@ public class InstructorCoursesController(
                 {
                     using var jdoc = JsonDocument.Parse(model.VirtualFileSystemJson);
                     var root = jdoc.RootElement;
-                    if (root.ValueKind != JsonValueKind.Object) throw new JsonException("Configuration must be a JSON object.");
+
+                    if (root.ValueKind != JsonValueKind.Object)
+                        throw new JsonException("Configuration must be a JSON object.");
+
                     if (root.TryGetProperty("initialDirectory", out var initEl) && initEl.ValueKind == JsonValueKind.String)
                         block.InitialDirectory = initEl.GetString();
+
                     if (root.TryGetProperty("allowedCommands", out var cmdEl) && cmdEl.ValueKind == JsonValueKind.Array)
                         block.AllowedCommands = JsonSerializer.Deserialize<List<string>>(cmdEl.GetRawText());
+
                     if (root.TryGetProperty("fileSystem", out var fsEl) && fsEl.ValueKind == JsonValueKind.Object)
                         block.FileSystem = JsonSerializer.Deserialize<object>(fsEl.GetRawText());
+
                     if (root.TryGetProperty("customCommands", out var ccEl) && ccEl.ValueKind == JsonValueKind.Array)
                         block.CustomCommands = JsonSerializer.Deserialize<List<NotebookCustomCommand>>(ccEl.GetRawText());
                 }
@@ -875,25 +1228,34 @@ public class InstructorCoursesController(
 
             notebook.ContentJson = JsonSerializer.Serialize(doc);
             notebook.UpdatedAtUtc = DateTime.UtcNow;
+
             await db.SaveChangesAsync();
 
             TempData["Success"] = "Terminal block configuration applied to notebook.";
             return RedirectToAction("Edit", "Notebooks", new { id = notebook.NotebookId });
         }
 
-        // 2. Course notebook terminal block mode (Instructor only)
+        // 2. Course notebook terminal block mode.
         if (model.CourseNotebookId.HasValue && model.CourseNotebookId.Value > 0)
         {
-            if (!User.IsInRole(AccountRoles.Instructor)) return Forbid();
+            if (!User.IsInRole(AccountRoles.Instructor))
+                return Forbid();
 
             var courseNotebook = await db.CourseNotebooks
                 .FirstOrDefaultAsync(cn => cn.CourseNotebookId == model.CourseNotebookId.Value);
-            if (courseNotebook == null) return NotFound("Course notebook not found.");
 
-            var isOwner = await db.Courses.AnyAsync(c => c.CourseId == courseNotebook.CourseId && c.InstructorId == currentUserId);
-            if (!isOwner) return Forbid();
+            if (courseNotebook == null)
+                return NotFound("Course notebook not found.");
+
+            var isOwner = await db.Courses.AnyAsync(
+                c => c.CourseId == courseNotebook.CourseId &&
+                     c.InstructorId == currentUserId);
+
+            if (!isOwner)
+                return Forbid();
 
             NotebookDocument doc;
+
             try
             {
                 doc = JsonSerializer.Deserialize<NotebookDocument>(courseNotebook.ContentJson) ?? new NotebookDocument();
@@ -904,8 +1266,11 @@ public class InstructorCoursesController(
             }
 
             var block = doc.Blocks?.FirstOrDefault(b => b.Id == model.BlockId);
-            if (block == null) return NotFound("Terminal block not found.");
-            if (!ModelState.IsValid) return View("SimulationForm", model);
+            if (block == null)
+                return NotFound("Terminal block not found.");
+
+            if (!ModelState.IsValid)
+                return View("SimulationForm", model);
 
             if (!string.IsNullOrWhiteSpace(model.VirtualFileSystemJson))
             {
@@ -913,13 +1278,19 @@ public class InstructorCoursesController(
                 {
                     using var jdoc = JsonDocument.Parse(model.VirtualFileSystemJson);
                     var root = jdoc.RootElement;
-                    if (root.ValueKind != JsonValueKind.Object) throw new JsonException("Configuration must be a JSON object.");
+
+                    if (root.ValueKind != JsonValueKind.Object)
+                        throw new JsonException("Configuration must be a JSON object.");
+
                     if (root.TryGetProperty("initialDirectory", out var initEl) && initEl.ValueKind == JsonValueKind.String)
                         block.InitialDirectory = initEl.GetString();
+
                     if (root.TryGetProperty("allowedCommands", out var cmdEl) && cmdEl.ValueKind == JsonValueKind.Array)
                         block.AllowedCommands = JsonSerializer.Deserialize<List<string>>(cmdEl.GetRawText());
+
                     if (root.TryGetProperty("fileSystem", out var fsEl) && fsEl.ValueKind == JsonValueKind.Object)
                         block.FileSystem = JsonSerializer.Deserialize<object>(fsEl.GetRawText());
+
                     if (root.TryGetProperty("customCommands", out var ccEl) && ccEl.ValueKind == JsonValueKind.Array)
                         block.CustomCommands = JsonSerializer.Deserialize<List<NotebookCustomCommand>>(ccEl.GetRawText());
                 }
@@ -935,67 +1306,86 @@ public class InstructorCoursesController(
 
             courseNotebook.ContentJson = JsonSerializer.Serialize(doc);
             courseNotebook.UpdatedAtUtc = DateTime.UtcNow;
+
             await db.SaveChangesAsync();
 
             TempData["Success"] = "Terminal block configuration applied to course notebook.";
             return RedirectToAction(nameof(EditCourseNotebook), new { id = courseNotebook.CourseNotebookId });
         }
 
-        // 3. Course simulation task mode (Instructor only)
-        if (!User.IsInRole(AccountRoles.Instructor)) return Forbid();
+        // 3. Course simulation task mode.
+        if (!User.IsInRole(AccountRoles.Instructor))
+            return Forbid();
 
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == currentUserId);
-        if (course == null) return NotFound("Course not found.");
+        var course = await db.Courses.FirstOrDefaultAsync(
+            c => c.CourseId == model.CourseId &&
+                 c.InstructorId == currentUserId);
 
-        // Inject description and difficulty into JSON root if not present
+        if (course == null)
+            return NotFound("Course not found.");
+
         var jsonToSave = model.VirtualFileSystemJson;
+
         if (!string.IsNullOrWhiteSpace(jsonToSave))
         {
             try
             {
                 using var doc = JsonDocument.Parse(jsonToSave);
+
                 if (doc.RootElement.ValueKind == JsonValueKind.Object)
                 {
                     var dict = new Dictionary<string, object>();
+
                     foreach (var prop in doc.RootElement.EnumerateObject())
                     {
                         dict[prop.Name] = JsonSerializer.Deserialize<object>(prop.Value.GetRawText())!;
                     }
+
                     if (!string.IsNullOrWhiteSpace(model.Description))
                         dict["description"] = model.Description.Trim();
+
                     if (!string.IsNullOrWhiteSpace(model.Difficulty))
                         dict["difficulty"] = model.Difficulty.Trim();
-                    jsonToSave = JsonSerializer.Serialize(dict, new JsonSerializerOptions { WriteIndented = true });
+
+                    jsonToSave = JsonSerializer.Serialize(
+                        dict,
+                        new JsonSerializerOptions { WriteIndented = true });
+
                     model.VirtualFileSystemJson = jsonToSave;
                 }
             }
-            catch { }
+            catch
+            {
+            }
         }
 
         if (model.IsPublished)
         {
-            if (!SimulationVerifier.TryConfiguration(model.VirtualFileSystemJson, out _, out var configError))
-                ModelState.AddModelError(nameof(model.VirtualFileSystemJson), configError);
-        }
-        else
-        {
-            // For drafts, allow incomplete configuration as long as it parses as a JSON object if provided
-            if (!string.IsNullOrWhiteSpace(model.VirtualFileSystemJson))
+            if (!SimulationVerifier.TryConfiguration(
+                model.VirtualFileSystemJson,
+                out _,
+                out var configError))
             {
-                try
-                {
-                    using var doc = JsonDocument.Parse(model.VirtualFileSystemJson);
-                    if (doc.RootElement.ValueKind != JsonValueKind.Object)
-                        ModelState.AddModelError(nameof(model.VirtualFileSystemJson), "Configuration must be a valid JSON object.");
-                }
-                catch (JsonException ex)
-                {
-                    ModelState.AddModelError(nameof(model.VirtualFileSystemJson), $"Invalid JSON format: {ex.Message}");
-                }
+                ModelState.AddModelError(nameof(model.VirtualFileSystemJson), configError);
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(model.VirtualFileSystemJson))
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(model.VirtualFileSystemJson);
+
+                if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                    ModelState.AddModelError(nameof(model.VirtualFileSystemJson), "Configuration must be a valid JSON object.");
+            }
+            catch (JsonException ex)
+            {
+                ModelState.AddModelError(nameof(model.VirtualFileSystemJson), $"Invalid JSON format: {ex.Message}");
             }
         }
 
-        if (!ModelState.IsValid) return View("SimulationForm", model);
+        if (!ModelState.IsValid)
+            return View("SimulationForm", model);
 
         if (model.TaskId == 0)
         {
@@ -1010,14 +1400,17 @@ public class InstructorCoursesController(
             };
 
             db.SimulationTasks.Add(task);
-            TempData["Success"] = model.IsPublished 
-                ? $"Simulation task \"{task.Title}\" published successfully!" 
+
+            TempData["Success"] = model.IsPublished
+                ? $"Simulation task \"{task.Title}\" published successfully!"
                 : $"Simulation draft \"{task.Title}\" saved.";
         }
         else
         {
             var existing = await db.SimulationTasks.FindAsync(model.TaskId);
-            if (existing == null || existing.CourseId != model.CourseId) return NotFound("Task not found.");
+
+            if (existing == null || existing.CourseId != model.CourseId)
+                return NotFound("Task not found.");
 
             existing.Title = model.Title.Trim();
             existing.Instructions = model.Instructions?.Trim();
@@ -1025,8 +1418,8 @@ public class InstructorCoursesController(
             existing.RewardFlagHash = model.RewardFlag?.Trim();
             existing.IsPublished = model.IsPublished;
 
-            TempData["Success"] = model.IsPublished 
-                ? $"Simulation task \"{existing.Title}\" published." 
+            TempData["Success"] = model.IsPublished
+                ? $"Simulation task \"{existing.Title}\" published."
                 : $"Simulation draft \"{existing.Title}\" updated.";
         }
 
@@ -1040,18 +1433,26 @@ public class InstructorCoursesController(
     public async Task<IActionResult> DeleteSimulation(int id)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var task = await db.SimulationTasks.FindAsync(id);
-        if (task == null) return NotFound("Simulation task not found.");
 
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == task.CourseId && c.InstructorId == instructorId);
-        if (course == null) return NotFound("You do not own this course.");
+        var task = await db.SimulationTasks.FindAsync(id);
+        if (task == null)
+            return NotFound("Simulation task not found.");
+
+        var course = await db.Courses.FirstOrDefaultAsync(
+            c => c.CourseId == task.CourseId &&
+                 c.InstructorId == instructorId);
+
+        if (course == null)
+            return NotFound("You do not own this course.");
 
         var courseId = task.CourseId;
+
         if (await db.ProgressRecords.AnyAsync(p => p.SimulationTaskId == id))
         {
             TempData["CourseError"] = "This lab has student learning records and cannot be deleted. Keep it to preserve their work.";
             return RedirectToAction(nameof(Curriculum), new { id = courseId });
         }
+
         try
         {
             db.SimulationTasks.Remove(task);
@@ -1070,16 +1471,30 @@ public class InstructorCoursesController(
     // ==========================================
     // 8. PUBLISH / UNPUBLISH TOGGLE & DELETE COURSE
     // ==========================================
+
     [Authorize(Roles = AccountRoles.Instructor)]
-    [HttpPost, ValidateAntiForgeryToken]
-    // ADMIN - Instructor entry into Admin approval: only a revised draft with learner-visible content can be submitted.
-    public async Task<IActionResult> SubmitForReview(int id, string version, [FromServices] Personalization notifications)
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SubmitForReview(
+        int id,
+        string version,
+        [FromServices] Personalization notifications)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.SingleOrDefaultAsync(c => c.CourseId == id && c.InstructorId == instructorId);
-        if (course is null) return NotFound();
-        if (course.ReviewVersion != version || course.ReviewStatus != CourseReviewStatus.Draft)
+
+        var course = await db.Courses.SingleOrDefaultAsync(
+            c => c.CourseId == id &&
+                 c.InstructorId == instructorId);
+
+        if (course is null)
+            return NotFound();
+
+        if (course.ReviewVersion != version ||
+            course.ReviewStatus != CourseReviewStatus.Draft)
+        {
             return Conflict("This course changed or is not ready to resubmit. Update rejected content before requesting another review.");
+        }
+
         if (!await db.Lessons.AnyAsync(l => l.CourseId == id)
             && !await db.Challenges.AnyAsync(c => c.CourseId == id && c.IsPublished)
             && !await db.SimulationTasks.AnyAsync(s => s.CourseId == id && s.IsPublished)
@@ -1088,20 +1503,38 @@ public class InstructorCoursesController(
             TempData["CourseError"] = "Add at least one lesson, published challenge, lab or notebook before requesting review.";
             return RedirectToAction(nameof(Curriculum), new { id });
         }
+
         await using var transaction = await db.Database.BeginTransactionAsync();
+
         course.ReviewStatus = CourseReviewStatus.Pending;
         course.IsPublished = false;
         course.ReviewRevision++;
         course.SubmittedForReviewUtc = DateTime.UtcNow;
+
         try
         {
             await db.SaveChangesAsync();
-            foreach (var adminId in await db.Admins.Where(a => !a.IsReadOnly).Select(a => a.UserId).ToListAsync())
-                await notifications.Notify(adminId, $"course-review:{id}:{course.ReviewRevision}", "Course awaiting review",
-                    $"{course.Title} has been submitted for approval.", $"/Admin/ReviewCourse/{id}");
+
+            foreach (var adminId in await db.Admins
+                .Where(a => !a.IsReadOnly)
+                .Select(a => a.UserId)
+                .ToListAsync())
+            {
+                await notifications.Notify(
+                    adminId,
+                    $"course-review:{id}:{course.ReviewRevision}",
+                    "Course awaiting review",
+                    $"{course.Title} has been submitted for approval.",
+                    $"/Admin/ReviewCourse/{id}");
+            }
+
             await transaction.CommitAsync();
         }
-        catch (DbUpdateConcurrencyException) { return Conflict("This course changed. Reload and submit the latest content."); }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Conflict("This course changed. Reload and submit the latest content.");
+        }
+
         TempData["Success"] = "Course submitted. You can publish it after Admin approval. Editing the content cancels this submission.";
         return RedirectToAction(nameof(Curriculum), new { id });
     }
@@ -1112,15 +1545,21 @@ public class InstructorCoursesController(
     public async Task<IActionResult> TogglePublish(int id)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == id && c.InstructorId == instructorId);
-        if (course == null) return NotFound();
 
-        // ADMIN - Keep publication enforcement on the server; posting a hidden/forged Publish button cannot bypass approval.
-        if (!course.IsPublished && course.ReviewStatus != CourseReviewStatus.Approved)
+        var course = await db.Courses.FirstOrDefaultAsync(
+            c => c.CourseId == id &&
+                 c.InstructorId == instructorId);
+
+        if (course == null)
+            return NotFound();
+
+        if (!course.IsPublished &&
+            course.ReviewStatus != CourseReviewStatus.Approved)
         {
             TempData["CourseError"] = "Admin approval is required before publishing this course.";
             return RedirectToAction(nameof(Curriculum), new { id });
         }
+
         course.IsPublished = !course.IsPublished;
         await db.SaveChangesAsync();
 
@@ -1137,10 +1576,16 @@ public class InstructorCoursesController(
     public async Task<IActionResult> Delete(int id)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == id && c.InstructorId == instructorId);
-        if (course == null) return NotFound();
+
+        var course = await db.Courses.FirstOrDefaultAsync(
+            c => c.CourseId == id &&
+                 c.InstructorId == instructorId);
+
+        if (course == null)
+            return NotFound();
 
         var hasEnrollments = await db.Enrollments.AnyAsync(e => e.CourseId == id);
+
         if (hasEnrollments)
         {
             TempData["FlagError"] = "Cannot delete a course with active student enrolments. You can unpublish it instead.";
@@ -1163,16 +1608,25 @@ public class InstructorCoursesController(
     public async Task<IActionResult> AddNotebookToCourse(AddNotebookToCourseModel model)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-        var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
-        if (course == null) return NotFound("Course not found or unauthorized.");
+
+        var course = await db.Courses.FirstOrDefaultAsync(
+            c => c.CourseId == model.CourseId &&
+                 c.InstructorId == instructorId);
+
+        if (course == null)
+            return NotFound("Course not found or unauthorized.");
 
         string title;
         string contentJson;
 
-        if (model.SelectedNotebookId.HasValue && model.SelectedNotebookId.Value > 0)
+        if (model.SelectedNotebookId.HasValue &&
+            model.SelectedNotebookId.Value > 0)
         {
             var personalNotebook = await db.Notebooks
-                .FirstOrDefaultAsync(n => n.NotebookId == model.SelectedNotebookId.Value && n.UserId == instructorId);
+                .FirstOrDefaultAsync(n =>
+                    n.NotebookId == model.SelectedNotebookId.Value &&
+                    n.UserId == instructorId);
+
             if (personalNotebook == null)
             {
                 TempData["FlagError"] = "Selected personal notebook could not be found or you do not own it.";
@@ -1184,8 +1638,12 @@ public class InstructorCoursesController(
         }
         else
         {
-            title = string.IsNullOrWhiteSpace(model.NewNotebookTitle) ? "Course Notebook" : model.NewNotebookTitle.Trim();
-            if (title.Length > 150) title = title[..150];
+            title = string.IsNullOrWhiteSpace(model.NewNotebookTitle)
+                ? "Course Notebook"
+                : model.NewNotebookTitle.Trim();
+
+            if (title.Length > 150)
+                title = title[..150];
 
             var initialDoc = new NotebookDocument
             {
@@ -1200,6 +1658,7 @@ public class InstructorCoursesController(
                     }
                 ]
             };
+
             contentJson = JsonSerializer.Serialize(initialDoc);
         }
 
@@ -1230,13 +1689,19 @@ public class InstructorCoursesController(
     public async Task<IActionResult> EditCourseNotebook(int id)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
         var notebook = await db.CourseNotebooks
             .FirstOrDefaultAsync(cn => cn.CourseNotebookId == id);
 
-        if (notebook == null) return NotFound("Course notebook not found.");
+        if (notebook == null)
+            return NotFound("Course notebook not found.");
 
-        var isOwner = await db.Courses.AnyAsync(c => c.CourseId == notebook.CourseId && c.InstructorId == instructorId);
-        if (!isOwner) return Forbid();
+        var isOwner = await db.Courses.AnyAsync(
+            c => c.CourseId == notebook.CourseId &&
+                 c.InstructorId == instructorId);
+
+        if (!isOwner)
+            return Forbid();
 
         return View(notebook);
     }
@@ -1244,26 +1709,38 @@ public class InstructorCoursesController(
     [Authorize(Roles = AccountRoles.Instructor)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SaveCourseNotebook(int id, [FromBody] NotebookSaveModel model)
+    public async Task<IActionResult> SaveCourseNotebook(
+        int id,
+        [FromBody] NotebookSaveModel model)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
         var notebook = await db.CourseNotebooks
             .FirstOrDefaultAsync(cn => cn.CourseNotebookId == id);
 
         if (notebook == null)
         {
-            return NotFound(new { success = false, message = "Course notebook not found." });
+            return NotFound(new
+            {
+                success = false,
+                message = "Course notebook not found."
+            });
         }
 
-        var isOwner = await db.Courses.AnyAsync(c => c.CourseId == notebook.CourseId && c.InstructorId == instructorId);
+        var isOwner = await db.Courses.AnyAsync(
+            c => c.CourseId == notebook.CourseId &&
+                 c.InstructorId == instructorId);
+
         if (!isOwner)
-        {
             return Forbid();
-        }
 
         if (string.IsNullOrWhiteSpace(model.Title))
         {
-            return BadRequest(new { success = false, message = "Notebook title is required." });
+            return BadRequest(new
+            {
+                success = false,
+                message = "Notebook title is required."
+            });
         }
 
         if (!string.IsNullOrWhiteSpace(model.ContentJson))
@@ -1271,19 +1748,30 @@ public class InstructorCoursesController(
             try
             {
                 var doc = JsonSerializer.Deserialize<NotebookDocument>(model.ContentJson);
+
                 if (doc == null)
                 {
-                    return BadRequest(new { success = false, message = "Invalid notebook document format." });
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Invalid notebook document format."
+                    });
                 }
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = "JSON parse error: " + ex.Message });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "JSON parse error: " + ex.Message
+                });
             }
         }
 
         notebook.Title = model.Title.Trim();
-        if (notebook.Title.Length > 150) notebook.Title = notebook.Title[..150];
+
+        if (notebook.Title.Length > 150)
+            notebook.Title = notebook.Title[..150];
 
         notebook.ContentJson = model.ContentJson ?? "{\"version\":1,\"blocks\":[]}";
         notebook.UpdatedAtUtc = DateTime.UtcNow;
@@ -1305,16 +1793,23 @@ public class InstructorCoursesController(
     public async Task<IActionResult> ToggleCourseNotebookPublish(int id)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
         var notebook = await db.CourseNotebooks
             .FirstOrDefaultAsync(cn => cn.CourseNotebookId == id);
 
-        if (notebook == null) return NotFound();
+        if (notebook == null)
+            return NotFound();
 
-        var isOwner = await db.Courses.AnyAsync(c => c.CourseId == notebook.CourseId && c.InstructorId == instructorId);
-        if (!isOwner) return Forbid();
+        var isOwner = await db.Courses.AnyAsync(
+            c => c.CourseId == notebook.CourseId &&
+                 c.InstructorId == instructorId);
+
+        if (!isOwner)
+            return Forbid();
 
         notebook.IsPublished = !notebook.IsPublished;
         notebook.UpdatedAtUtc = DateTime.UtcNow;
+
         await db.SaveChangesAsync();
 
         TempData["Success"] = notebook.IsPublished
@@ -1330,16 +1825,23 @@ public class InstructorCoursesController(
     public async Task<IActionResult> DeleteCourseNotebook(int id)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
         var notebook = await db.CourseNotebooks
             .FirstOrDefaultAsync(cn => cn.CourseNotebookId == id);
 
-        if (notebook == null) return NotFound();
+        if (notebook == null)
+            return NotFound();
 
-        var isOwner = await db.Courses.AnyAsync(c => c.CourseId == notebook.CourseId && c.InstructorId == instructorId);
-        if (!isOwner) return Forbid();
+        var isOwner = await db.Courses.AnyAsync(
+            c => c.CourseId == notebook.CourseId &&
+                 c.InstructorId == instructorId);
+
+        if (!isOwner)
+            return Forbid();
 
         var courseId = notebook.CourseId;
         var title = notebook.Title;
+
         db.CourseNotebooks.Remove(notebook);
         await db.SaveChangesAsync();
 
@@ -1352,22 +1854,41 @@ public class InstructorCoursesController(
     public async Task<IActionResult> ExportCourseNotebook(int id)
     {
         var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
         var notebook = await db.CourseNotebooks
             .AsNoTracking()
             .FirstOrDefaultAsync(cn => cn.CourseNotebookId == id);
 
-        if (notebook == null) return NotFound();
+        if (notebook == null)
+            return NotFound();
 
-        var isOwner = await db.Courses.AnyAsync(c => c.CourseId == notebook.CourseId && c.InstructorId == instructorId);
-        if (!isOwner) return Forbid();
+        var isOwner = await db.Courses.AnyAsync(
+            c => c.CourseId == notebook.CourseId &&
+                 c.InstructorId == instructorId);
 
-        var html = exportService.GenerateStandaloneHtml(notebook.Title, notebook.ContentJson);
-        var safeFilename = System.Text.RegularExpressions.Regex.Replace(notebook.Title, @"[^a-zA-Z0-9_\-]+", "_").Trim('_');
-        if (string.IsNullOrWhiteSpace(safeFilename)) safeFilename = "course_terminal_notebook";
+        if (!isOwner)
+            return Forbid();
 
-        return File(Encoding.UTF8.GetBytes(html), "text/html", $"{safeFilename}.html");
+        var html = exportService.GenerateStandaloneHtml(
+            notebook.Title,
+            notebook.ContentJson);
+
+        var safeFilename = System.Text.RegularExpressions.Regex
+            .Replace(notebook.Title, @"[^a-zA-Z0-9_\-]+", "_")
+            .Trim('_');
+
+        if (string.IsNullOrWhiteSpace(safeFilename))
+            safeFilename = "course_terminal_notebook";
+
+        return File(
+            Encoding.UTF8.GetBytes(html),
+            "text/html",
+            $"{safeFilename}.html");
     }
 
+    // ==========================================
+    // HELPER METHODS
+    // ==========================================
     private static string ComputeSha256(string input)
     {
         var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));

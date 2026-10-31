@@ -1,11 +1,19 @@
+
 @model CourseLearnViewModel
 @{
     ViewData["Title"] = $"{Model.Course.Title} - Learning Portal";
 
+    var initialTotalDeduction = Model.CurrentChallengeHintPointsDeducted;
+    var initialRemainingPoints = Model.CurrentChallenge != null
+        ? Math.Max(0, Model.CurrentChallenge.Points - initialTotalDeduction)
+        : 0;
+
+    var previousHintsUnlocked = true;
 }
 
 <div class="container-fluid px-3 pt-3">
     @Html.AntiForgeryToken()
+
     <div class="d-flex justify-content-between align-items-center mb-2 px-1">
         <a asp-action="Details" asp-route-id="@Model.Course.CourseId" class="btn btn-sm btn-outline-secondary">
             ← Course Details &amp; Overview
@@ -35,6 +43,7 @@
                     {
                         var isActive = Model.CurrentType == LearnContentType.Lesson && Model.CurrentLesson?.LessonId == l.LessonId;
                         var isDone = Model.CompletedLessonIds.Contains(l.LessonId);
+
                         <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-lessonId="@l.LessonId"
                            class="curriculum-item-link @(isActive ? "active" : "")">
                             <div class="d-flex align-items-center gap-2 text-truncate">
@@ -57,6 +66,7 @@
                     {
                         var isActive = Model.CurrentType == LearnContentType.Challenge && Model.CurrentChallenge?.ChallengeId == ch.ChallengeId;
                         var isDone = Model.CompletedChallengeIds.Contains(ch.ChallengeId);
+
                         <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-challengeId="@ch.ChallengeId"
                            class="curriculum-item-link @(isActive ? "active" : "")">
                             <div class="d-flex align-items-center gap-2 text-truncate">
@@ -83,6 +93,7 @@
                     {
                         var isActive = Model.CurrentType == LearnContentType.Simulation && Model.CurrentSimulation?.TaskId == s.TaskId;
                         var isDone = Model.CompletedSimulationIds.Contains(s.TaskId);
+
                         <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-simulationId="@s.TaskId"
                            class="curriculum-item-link @(isActive ? "active" : "")">
                             <div class="d-flex align-items-center gap-2 text-truncate">
@@ -104,6 +115,7 @@
                     @foreach (var nb in Model.CourseNotebooks)
                     {
                         var isActive = Model.CurrentType == LearnContentType.Notebook && Model.CurrentNotebook?.CourseNotebookId == nb.CourseNotebookId;
+
                         <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-notebookId="@nb.CourseNotebookId"
                            class="curriculum-item-link @(isActive ? "active" : "")">
                             <div class="d-flex align-items-center gap-2 text-truncate">
@@ -166,7 +178,6 @@
                 <div class="lesson-body">
                     @if (!string.IsNullOrEmpty(Model.CurrentLesson.Content))
                     {
-                        @* Render formatted content with preservation of line breaks and code blocks *@
                         @Html.Raw(FormatLessonContent(Model.CurrentLesson.Content))
                     }
                     else
@@ -247,6 +258,7 @@
 
                 <div class="ctf-card-interactive">
                     <h3 style="font-size: 1.15rem; font-weight:700; margin-bottom: 0.75rem;">Challenge Description</h3>
+
                     <div class="lesson-body mb-3">
                         @if (!string.IsNullOrEmpty(Model.CurrentChallenge.Description))
                         {
@@ -256,38 +268,38 @@
                         {
                             <p class="text-secondary">Analyze the target, recover the confidential token, and submit the flag.</p>
                         }
-                        </div>
+                    </div>
 
-                        <p class="form-text mt-2 mb-0">
-                            You can also open
-                            <a href="https://gchq.github.io/CyberChef/" target="_blank" rel="noopener noreferrer">
-                                CyberChef in a new tab
-                            </a>
-                            for a larger workspace.
-                        </p>
+                    <p class="form-text mt-2 mb-0">
+                        You can also open
+                        <a href="https://gchq.github.io/CyberChef/" target="_blank" rel="noopener noreferrer">
+                            CyberChef in a new tab
+                        </a>
+                        for a larger workspace.
+                    </p>
 
                     <!-- Challenge File Download Box -->
-                        @if (!string.IsNullOrEmpty(Model.CurrentChallenge.FilePath))
-                        {
-                            var fileName = System.IO.Path.GetFileName(Model.CurrentChallenge.FilePath);
+                    @if (!string.IsNullOrEmpty(Model.CurrentChallenge.FilePath))
+                    {
+                        var fileName = System.IO.Path.GetFileName(Model.CurrentChallenge.FilePath);
 
-                            <div class="ctf-file-box">
-                                <div class="d-flex align-items-center gap-3">
-                                    <span style="font-size: 2rem;">📦</span>
-                                    <div>
-                                        <strong style="font-size: 1rem; color:var(--ha-ink);">@fileName</strong>
-                                        <div class="text-secondary small">Required Challenge Artifact / Evidence File</div>
-                                    </div>
+                        <div class="ctf-file-box">
+                            <div class="d-flex align-items-center gap-3">
+                                <span style="font-size: 2rem;">📦</span>
+                                <div>
+                                    <strong style="font-size: 1rem; color:var(--ha-ink);">@fileName</strong>
+                                    <div class="text-secondary small">Required Challenge Artifact / Evidence File</div>
                                 </div>
-                                <a asp-action="DownloadChallengeFile"
-                                asp-route-id="@Model.CurrentChallenge.ChallengeId"
-                                class="btn btn-outline-secondary">
-                                    Download File
-                                </a>
                             </div>
-                        }
+                            <a asp-action="DownloadChallengeFile"
+                               asp-route-id="@Model.CurrentChallenge.ChallengeId"
+                               class="btn btn-outline-secondary">
+                                Download File
+                            </a>
+                        </div>
+                    }
 
-                            <!-- CyberChef Tool -->
+                    <!-- CyberChef Tool -->
                     <div class="mt-4 p-3 border rounded-3">
                         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                             <div>
@@ -309,9 +321,151 @@
                             </iframe>
                         </div>
                     </div>
+
+                    <!-- CTF Challenge Hints -->
+                    <div class="mt-4 pt-3 border-top" id="challenge-hints-section">
+                        <h4 class="h5 fw-bold mb-3">💡 Challenge Hints</h4>
+
+                        @if (TempData["HintSuccess"] is string hintSuccess)
+                        {
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                @hintSuccess
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+
+                        @if (TempData["HintError"] is string hintError)
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                @hintError
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+
+                        @if (!Model.CurrentChallengeHints.Any())
+                        {
+                            <p class="text-secondary">
+                                No hints have been added to this challenge yet.
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="text-secondary small mb-3">
+                                Unlock hints in order. Each unlocked hint deducts points from your final challenge score.
+                            </p>
+
+                            <!-- Points Summary -->
+                            <div class="card border rounded-3 mb-3" id="hint-points-summary">
+                                <div class="card-body">
+                                    <div class="row text-center g-3">
+                                        <div class="col-4">
+                                            <div class="text-secondary small">Maximum Points</div>
+                                            <div class="fs-5 fw-bold" id="hint-maximum-points">
+                                                @Model.CurrentChallenge.Points
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="text-secondary small">Points Deducted</div>
+                                            <div class="fs-5 fw-bold text-danger" id="hint-total-deduction">
+                                                @initialTotalDeduction
+                                            </div>
+                                        </div>
+                                        <div class="col-4">
+                                            <div class="text-secondary small">Points Remaining</div>
+                                            <div class="fs-5 fw-bold text-success" id="hint-remaining-points">
+                                                @initialRemainingPoints
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="hint-feedback" aria-live="polite"></div>
+
+
+                            @foreach (var hint in Model.CurrentChallengeHints
+                                .OrderBy(h => h.DisplayOrder)
+                                .ThenBy(h => h.ChallengeHintId))
+                            {
+                                var isUnlocked = Model.UnlockedChallengeHintIds.Contains(hint.ChallengeHintId);
+                                var canUnlock = previousHintsUnlocked && !Model.CurrentItemCompleted;
+
+                                <div class="card mb-3 border rounded-3 hint-card"
+                                     id="hint-card-@hint.ChallengeHintId"
+                                     data-hint-id="@hint.ChallengeHintId"
+                                     data-unlocked="@isUnlocked.ToString().ToLowerInvariant()">
+
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                                            <h5 class="mb-0">Hint @hint.DisplayOrder</h5>
+
+                                            <span class="badge bg-warning text-dark hint-deduction-badge">
+                                                -@hint.DeductionPoints points
+                                            </span>
+                                        </div>
+
+                                        @if (isUnlocked)
+                                        {
+                                            <div class="alert alert-success mb-0 hint-revealed-content">
+                                                <strong>Hint unlocked</strong>
+                                                <p class="mb-0 mt-2 hint-text">@hint.HintText</p>
+                                            </div>
+                                        }
+                                        else if (Model.CurrentItemCompleted)
+                                        {
+                                            <p class="text-secondary mb-0">
+                                                This hint was not unlocked before completing the challenge.
+                                            </p>
+                                        }
+                                        else
+                                        {
+                                            <div class="hint-locked-content">
+                                                @if (canUnlock)
+                                                {
+                                                    <p class="text-secondary small hint-order-message">
+                                                        This hint is locked. Unlock it to reveal the hint text.
+                                                    </p>
+                                                }
+                                                else
+                                                {
+                                                    <p class="text-secondary small hint-order-message">
+                                                        Unlock the previous hint before unlocking this one.
+                                                    </p>
+                                                }
+
+                                                <form asp-action="UnlockHint" method="post" class="hint-unlock-form">
+                                                    <input type="hidden" name="courseId"
+                                                           value="@Model.Course.CourseId" />
+
+                                                    <input type="hidden" name="challengeId"
+                                                           value="@Model.CurrentChallenge.ChallengeId" />
+
+                                                    <input type="hidden" name="hintId"
+                                                           value="@hint.ChallengeHintId" />
+
+                                                    <button type="submit"
+                                                            class="btn btn-outline-primary btn-sm hint-unlock-button"
+                                                            disabled="@(!canUnlock)">
+                                                        Unlock Hint (-@hint.DeductionPoints points)
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+
+                                if (!isUnlocked)
+                                {
+                                    previousHintsUnlocked = false;
+                                }
+                            }
+                        }
+                    </div>
+
                     <!-- Flag Submission Box -->
                     <div class="mt-4 pt-3 border-top">
                         <h4 style="font-size: 1.05rem; font-weight:700; margin-bottom: 0.5rem;">Submit Flag</h4>
+
                         @if (Model.CurrentItemCompleted)
                         {
                             <div class="alert alert-success">
@@ -323,19 +477,23 @@
                             <form asp-action="SubmitFlag" method="post">
                                 <input type="hidden" name="courseId" value="@Model.Course.CourseId" />
                                 <input type="hidden" name="challengeId" value="@Model.CurrentChallenge.ChallengeId" />
+
                                 <div class="ctf-flag-input-group">
                                     <input type="text" name="flag" class="form-control ctf-flag-input" placeholder="flag{...}" required />
                                     <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Submit Flag</button>
                                 </div>
+
                                 <div class="form-text mt-1">Enter the exact flag string you recovered from the challenge.</div>
                             </form>
                         }
                     </div>
+
                     <!-- Submission History -->
                     @if (Model.ChallengeHistory.Any())
                     {
                         <div class="mt-4 pt-3 border-top">
                             <h5 style="font-size: 0.9rem; font-weight:700; color:var(--ha-muted);">Your Recent Flag Attempts</h5>
+
                             <ul class="list-unstyled small mt-2">
                                 @foreach (var sub in Model.ChallengeHistory)
                                 {
@@ -400,20 +558,29 @@
                 <div id="sim-terminal-container"></div>
             }
 
+            
             @* =========================================
                CASE 4: CURRENT ITEM IS NOTEBOOK
                ========================================= *@
             else if (Model.CurrentType == LearnContentType.Notebook && Model.CurrentNotebook != null)
             {
                 var doc = new HackAcad.Web.Models.ViewModels.NotebookDocument();
+
                 try
                 {
                     if (!string.IsNullOrWhiteSpace(Model.CurrentNotebook.ContentJson))
                     {
-                        doc = System.Text.Json.JsonSerializer.Deserialize<HackAcad.Web.Models.ViewModels.NotebookDocument>(Model.CurrentNotebook.ContentJson) ?? new HackAcad.Web.Models.ViewModels.NotebookDocument();
+                        doc = System.Text.Json.JsonSerializer.Deserialize<HackAcad.Web.Models.ViewModels.NotebookDocument>(
+                            Model.CurrentNotebook.ContentJson
+                        ) ?? new HackAcad.Web.Models.ViewModels.NotebookDocument();
                     }
                 }
-                catch { }
+                catch
+                {
+                    // Keep the empty notebook document if JSON parsing fails.
+                }
+
+                var nbBlockIdx = 0;
 
                 <div class="learn-header-bar">
                     <div>
@@ -423,8 +590,13 @@
                         </div>
                         <h1>@Model.CurrentNotebook.Title</h1>
                     </div>
+
                     <div>
-                        <a asp-action="ExportNotebook" asp-route-id="@Model.Course.CourseId" asp-route-notebookId="@Model.CurrentNotebook.CourseNotebookId" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" title="Download standalone offline HTML file">
+                        <a asp-action="ExportNotebook"
+                           asp-route-id="@Model.Course.CourseId"
+                           asp-route-notebookId="@Model.CurrentNotebook.CourseNotebookId"
+                           class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+                           title="Download standalone offline HTML file">
                             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;" aria-hidden="true">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                                 <polyline points="7 10 12 15 17 10"></polyline>
@@ -443,13 +615,12 @@
                         </div>
                     }
 
-                    @{ int nbBlockIdx = 0; }
                     @foreach (var block in doc.Blocks)
                     {
                         nbBlockIdx++;
                         var blockDomId = $"learn_nb_block_{nbBlockIdx}";
 
-                        @if (block.Type == "markdown")
+                        if (block.Type == "markdown")
                         {
                             <div class="surface-panel p-4 border rounded-3 lesson-body" id="@blockDomId">
                                 @Html.Raw(HackAcad.Web.Services.MarkdownService.RenderHtml(block.Content))
@@ -457,12 +628,16 @@
                         }
                         else if (block.Type == "terminal_static")
                         {
-                            var promptCwd = string.IsNullOrWhiteSpace(block.Cwd) ? "/home/student" : block.Cwd.Trim();
+                            var promptCwd = string.IsNullOrWhiteSpace(block.Cwd)
+                                ? "/home/student"
+                                : block.Cwd.Trim();
+
                             <div class="surface-panel p-4 border rounded-3" id="@blockDomId">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h2 class="h5 mb-0 font-monospace">@(string.IsNullOrWhiteSpace(block.Title) ? "Command & Output Demonstration" : block.Title)</h2>
                                     <span class="badge bg-light text-secondary border">Static Example</span>
                                 </div>
+
                                 <div class="terminal-wrapper mb-0">
                                     <div class="terminal-header">
                                         <div class="terminal-buttons">
@@ -473,6 +648,7 @@
                                         <div class="terminal-title">student@hackacad: ~ (example)</div>
                                         <div class="terminal-badge">EXAMPLE</div>
                                     </div>
+
                                     <div class="terminal-body" style="height:auto; min-height:80px; max-height:480px;">
                                         @if (block.Examples != null && block.Examples.Any())
                                         {
@@ -481,12 +657,14 @@
                                                 <div class="term-line">
                                                     <span class="term-prompt">student@hackacad:@(promptCwd)$ </span><span class="term-cmd">@ex.Command</span>
                                                 </div>
+
                                                 @if (!string.IsNullOrEmpty(ex.Output))
                                                 {
                                                     var lines = ex.Output.Replace("\r\n", "\n").Split('\n');
-                                                    foreach (var l in lines)
+
+                                                    foreach (var line in lines)
                                                     {
-                                                        <div class="term-line">@l</div>
+                                                        <div class="term-line">@line</div>
                                                     }
                                                 }
                                             }
@@ -522,14 +700,18 @@
                                 ["isNotebook"] = true,
                                 ["objectives"] = Array.Empty<object>()
                             };
+
                             var configJson = System.Text.Json.JsonSerializer.Serialize(configObj);
 
                             <div class="surface-panel p-4 border rounded-3" id="@blockDomId">
                                 <div class="d-flex justify-content-between align-items-center mb-3">
                                     <h2 class="h5 mb-0 font-monospace">@(string.IsNullOrWhiteSpace(block.Title) ? "Interactive Simulated Terminal" : block.Title)</h2>
+
                                     <div class="d-flex align-items-center gap-2">
                                         <span class="badge bg-info-subtle text-info border">Interactive CLI</span>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" onclick="resetCourseInteractiveTerminal('@mountId', '@cfgId')">
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1"
+                                                onclick="resetCourseInteractiveTerminal('@mountId', '@cfgId')">
                                             <img src="~/images/reset.svg" class="sim-icon" alt="" aria-hidden="true" /> Reset Terminal
                                         </button>
                                     </div>
@@ -542,6 +724,7 @@
                     }
                 </div>
             }
+
         </main>
     </div>
 </div>
@@ -549,17 +732,20 @@
 @section Scripts {
     <link rel="stylesheet" href="~/css/simulation-builder.css" asp-append-version="true" />
     <script src="~/js/simulation-terminal.js" asp-append-version="true"></script>
+
     <script>
         function resetCourseInteractiveTerminal(mountId, cfgId) {
             var cfgEl = document.getElementById(cfgId);
             if (!cfgEl) return;
+
             try {
                 var cfg = JSON.parse(cfgEl.textContent);
                 cfg.isNotebook = true;
+
                 if (typeof window.initSimulationTerminal === 'function') {
                     window.initSimulationTerminal(mountId, cfg);
                 }
-            } catch(e) {
+            } catch (e) {
                 console.error(e);
             }
         }
@@ -569,30 +755,198 @@
                 var mountId = container.id;
                 var blockNum = mountId.replace('learn_interactive_term_', '');
                 var cfgId = 'learn_cfg_data_' + blockNum;
+
                 resetCourseInteractiveTerminal(mountId, cfgId);
             });
         });
     </script>
+
+    <!-- AJAX Hint Unlocking -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var hintsSection = document.getElementById('challenge-hints-section');
+
+            if (!hintsSection) return;
+
+            var feedbackContainer = document.getElementById('hint-feedback');
+            var totalDeductionElement = document.getElementById('hint-total-deduction');
+            var remainingPointsElement = document.getElementById('hint-remaining-points');
+
+            function showHintFeedback(message, isSuccess) {
+                if (!feedbackContainer) return;
+
+                feedbackContainer.innerHTML = '';
+
+                var alert = document.createElement('div');
+                alert.className = isSuccess
+                    ? 'alert alert-success alert-dismissible fade show'
+                    : 'alert alert-danger alert-dismissible fade show';
+
+                alert.setAttribute('role', 'alert');
+
+                var messageElement = document.createElement('span');
+                messageElement.textContent = message;
+
+                var closeButton = document.createElement('button');
+                closeButton.type = 'button';
+                closeButton.className = 'btn-close';
+                closeButton.setAttribute('data-bs-dismiss', 'alert');
+                closeButton.setAttribute('aria-label', 'Close');
+
+                alert.appendChild(messageElement);
+                alert.appendChild(closeButton);
+                feedbackContainer.appendChild(alert);
+            }
+
+            function updateHintUnlockButtons() {
+                var cards = Array.from(
+                    hintsSection.querySelectorAll('.hint-card')
+                );
+
+                var previousHintsUnlocked = true;
+
+                cards.forEach(function (card) {
+                    var isUnlocked = card.dataset.unlocked === 'true';
+                    var button = card.querySelector('.hint-unlock-button');
+                    var orderMessage = card.querySelector('.hint-order-message');
+
+                    if (button) {
+                        button.disabled = isUnlocked || !previousHintsUnlocked;
+                    }
+
+                    if (orderMessage && !isUnlocked) {
+                        orderMessage.textContent = previousHintsUnlocked
+                            ? 'This hint is locked. Unlock it to reveal the hint text.'
+                            : 'Unlock the previous hint before unlocking this one.';
+                    }
+
+                    if (!isUnlocked) {
+                        previousHintsUnlocked = false;
+                    }
+                });
+            }
+
+            hintsSection.addEventListener('submit', async function (event) {
+                var form = event.target.closest('.hint-unlock-form');
+
+                if (!form) return;
+
+                event.preventDefault();
+
+                var button = form.querySelector('button[type="submit"]');
+
+                if (!button || button.disabled) return;
+
+                var originalButtonText = button.textContent;
+
+                button.disabled = true;
+                button.textContent = 'Unlocking...';
+
+                try {
+                    var formData = new FormData(form);
+
+                    var response = await fetch(form.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    var result;
+
+                    try {
+                        result = await response.json();
+                    } catch {
+                        throw new Error('The server returned an unexpected response. Please refresh the page and try again.');
+                    }
+
+                    if (!response.ok || !result.success) {
+                        throw new Error(result.message || 'Unable to unlock this hint.');
+                    }
+
+                    var card = form.closest('.hint-card');
+
+                    if (!card) {
+                        throw new Error('The hint card could not be found. Please refresh the page.');
+                    }
+
+                    card.dataset.unlocked = 'true';
+
+                    var lockedContent = card.querySelector('.hint-locked-content');
+
+                    if (lockedContent) {
+                        lockedContent.remove();
+                    }
+
+                    var revealedContent = document.createElement('div');
+                    revealedContent.className = 'alert alert-success mb-0 hint-revealed-content';
+
+                    var heading = document.createElement('strong');
+                    heading.textContent = 'Hint unlocked';
+
+                    var hintText = document.createElement('p');
+                    hintText.className = 'mb-0 mt-2 hint-text';
+                    hintText.textContent = result.hintText;
+
+                    revealedContent.appendChild(heading);
+                    revealedContent.appendChild(hintText);
+
+                    card.querySelector('.card-body').appendChild(revealedContent);
+
+                    if (totalDeductionElement) {
+                        totalDeductionElement.textContent = result.totalDeduction;
+                    }
+
+                    if (remainingPointsElement) {
+                        remainingPointsElement.textContent = result.remainingPoints;
+                    }
+
+                    updateHintUnlockButtons();
+
+                    showHintFeedback(
+                        result.message || 'Hint unlocked successfully.',
+                        true
+                    );
+                } catch (error) {
+                    showHintFeedback(
+                        error.message || 'Something went wrong while unlocking the hint.',
+                        false
+                    );
+
+                    button.disabled = false;
+                    button.textContent = originalButtonText;
+                }
+            });
+
+            updateHintUnlockButtons();
+        });
+    </script>
+
     @if (Model.CurrentType == LearnContentType.Simulation && Model.CurrentSimulation != null)
     {
         <script>
             document.addEventListener('DOMContentLoaded', function () {
                 var config = @Html.Raw(SimulationVerifier.SafeJson(Model.CurrentSimulation.VirtualFileSystemJson));
+
                 if (!config) {
                     document.getElementById('sim-terminal-container').textContent = 'This lab configuration needs to be updated by its instructor.';
                     return;
                 }
+
                 var taskId = @Model.CurrentSimulation.TaskId;
                 var courseId = @Model.Course.CourseId;
 
                 window.initSimulationTerminal('sim-terminal-container', config, function (commands) {
-                    // Send completion request to server via AJAX
                     var formData = new FormData();
+
                     formData.append('taskId', taskId);
                     formData.append('courseId', courseId);
+
                     commands.forEach(command => formData.append('commands', command));
-                    
+
                     var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
                     if (token) {
                         formData.append('__RequestVerificationToken', token);
                     }
@@ -603,13 +957,19 @@
                     })
                     .then(async res => {
                         const data = await res.json();
-                        if (!res.ok || !data.success) throw new Error(data.message || 'Progress could not be saved. Try again.');
+
+                        if (!res.ok || !data.success) {
+                            throw new Error(data.message || 'Progress could not be saved. Try again.');
+                        }
+
                         document.getElementById('simulation-success-banner').style.display = 'block';
+
                         if (data.reward) {
                             const reward = document.getElementById('simulation-reward');
                             reward.textContent = 'Reward: ' + data.reward;
                             reward.hidden = false;
                         }
+
                         if (data.courseCompleted) {
                             document.getElementById('finish-course-after-simulation').hidden = false;
                         }
@@ -624,31 +984,31 @@
     public static string FormatLessonContent(string content)
     {
         if (string.IsNullOrEmpty(content)) return "";
-        
-        // Basic Markdown converter for demo
+
+        // Basic Markdown converter for demo.
         var html = System.Net.WebUtility.HtmlEncode(content);
-        
+
         // Code blocks: ```bash ... ```
         html = System.Text.RegularExpressions.Regex.Replace(html, @"```(?:[a-zA-Z0-9]+)?\r?\n([\s\S]*?)```", m =>
             $"<pre><code>{m.Groups[1].Value}</code></pre>");
-            
+
         // Inline code: `code`
         html = System.Text.RegularExpressions.Regex.Replace(html, @"`([^`]+)`", m =>
             $"<code>{m.Groups[1].Value}</code>");
-            
+
         // Headers: ###, ##, #
         html = System.Text.RegularExpressions.Regex.Replace(html, @"^### (.*?)$", "<h3>$1</h3>", System.Text.RegularExpressions.RegexOptions.Multiline);
         html = System.Text.RegularExpressions.Regex.Replace(html, @"^## (.*?)$", "<h2>$1</h2>", System.Text.RegularExpressions.RegexOptions.Multiline);
         html = System.Text.RegularExpressions.Regex.Replace(html, @"^# (.*?)$", "<h2>$1</h2>", System.Text.RegularExpressions.RegexOptions.Multiline);
-        
+
         // Bold: **text**
         html = System.Text.RegularExpressions.Regex.Replace(html, @"\*\*([^\*]+)\*\*", "<strong>$1</strong>");
-        
-        // Paragraphs / line breaks
+
+        // Paragraphs / line breaks.
         html = html.Replace("\r\n\r\n", "</p><p>").Replace("\n\n", "</p><p>");
         html = "<p>" + html + "</p>";
         html = html.Replace("\n", "<br/>");
-        
+
         return html;
     }
 }
