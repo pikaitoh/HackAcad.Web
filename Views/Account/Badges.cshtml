@@ -71,7 +71,7 @@
                         <span class="badge-category">@badge.Category</span>
                     </div>
                     <div class="badge-icon-box" style="background:@(badge.IsUnlocked ? badge.ColorHex + "20" : "#f1f5f9"); color:@(badge.IsUnlocked ? badge.ColorHex : "#94a3b8");">
-                        <partial name="_BadgeIcon" model="@badge.Id" />
+                        @Html.Raw(badge.IconSvg)
                     </div>
                     <h2 class="badge-title">@badge.Title</h2>
                     <p class="badge-desc">@badge.Description</p>
