@@ -197,8 +197,10 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         if (user is null) return Challenge();
 
         var enrollments = await db.Enrollments
-            .Where(e => e.UserId == id && (!isInstructor
-                || !db.Courses.Any(c => c.CourseId == e.CourseId && c.InstructorId == id)))
+            .Where(e => e.UserId == id
+                && db.Courses.Any(c => c.CourseId == e.CourseId && c.IsPublished)
+                && (!isInstructor
+                    || !db.Courses.Any(c => c.CourseId == e.CourseId && c.InstructorId == id)))
             .OrderByDescending(e => e.EnrolledDate)
             .ToListAsync();
 
@@ -248,7 +250,9 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         }
 
         var solvedChallengeIds = await db.ChallengeSubmissions
-            .Where(s => s.UserId == id && s.IsCorrect)
+            .Where(s => s.UserId == id && s.IsCorrect
+                && db.Challenges.Any(c => c.ChallengeId == s.ChallengeId && c.IsPublished
+                    && db.Courses.Any(course => course.CourseId == c.CourseId && course.IsPublished)))
             .Select(s => s.ChallengeId)
             .Distinct()
             .ToListAsync();
@@ -261,7 +265,9 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         var activity = await activityCalendar.BuildAsync(user, enrollments.Select(e => e.EnrollmentId).ToList(), activityYear);
 
         var recentSubmissions = await db.ChallengeSubmissions
-            .Where(s => s.UserId == id)
+            .Where(s => s.UserId == id
+                && db.Challenges.Any(c => c.ChallengeId == s.ChallengeId && c.IsPublished
+                    && db.Courses.Any(course => course.CourseId == c.CourseId && course.IsPublished)))
             .OrderByDescending(s => s.SubmittedDate)
             .Take(5)
             .ToListAsync();
