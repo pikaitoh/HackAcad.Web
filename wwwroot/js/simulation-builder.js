@@ -428,11 +428,19 @@
         }
 
         // Apply Preset Template
-        function applyTemplate(templateKey, confirmPrompt = true) {
+        async function applyTemplate(templateKey, confirmPrompt = true) {
             const t = TEMPLATES[templateKey];
             if (!t) return;
-            if (confirmPrompt && !confirm(`Apply the "${t.name}"? This will replace your current filesystem, commands, and objectives.`)) {
-                return;
+            if (confirmPrompt) {
+                const confirmed = window.TerminalDialogs
+                    ? await window.TerminalDialogs.confirm({
+                        title: "Apply Preset Template?",
+                        message: `Apply the "${t.name}"? This will replace your current filesystem, commands, and objectives.`,
+                        confirmText: "Apply Template",
+                        isDestructive: true
+                    })
+                    : confirm(`Apply the "${t.name}"? This will replace your current filesystem, commands, and objectives.`);
+                if (!confirmed) return;
             }
 
             state.fileSystem = JSON.parse(JSON.stringify(t.fileSystem));
@@ -456,6 +464,9 @@
 
             syncStateToInput();
             render();
+            if (window.TerminalDialogs) {
+                window.TerminalDialogs.success(`Applied "${t.name}" template.`);
+            }
         }
 
         // Custom Commands Management
@@ -1414,7 +1425,11 @@
                 const rawText = document.getElementById("rawJsonTextarea");
                 if (rawText) {
                     navigator.clipboard.writeText(rawText.value);
-                    alert("Configuration JSON copied to clipboard!");
+                    if (window.TerminalDialogs) {
+                        window.TerminalDialogs.success("Configuration JSON copied to clipboard!");
+                    } else {
+                        alert("Configuration JSON copied to clipboard!");
+                    }
                 }
             });
 
@@ -1452,8 +1467,15 @@
                     ensureMandatoryCommands();
                     syncStateToInput();
                     render();
+                    if (window.TerminalDialogs) {
+                        window.TerminalDialogs.success("Configuration applied from JSON.");
+                    }
                 } catch (e) {
-                    alert("Invalid JSON: " + e.message);
+                    if (window.TerminalDialogs) {
+                        window.TerminalDialogs.error("Invalid JSON: " + e.message, "Parsing Error");
+                    } else {
+                        alert("Invalid JSON: " + e.message);
+                    }
                 }
             });
 
@@ -1527,21 +1549,71 @@
                 promptAddFile(state.selectedPath);
             });
 
-            function promptAddFolder(targetPath) {
+            async function promptAddFolder(targetPath) {
                 const parentDir = getNodeType(state.fileSystem, targetPath) === 'dir' ? targetPath : getParentPath(targetPath);
-                const folderName = prompt(`Enter folder name to create inside ${parentDir}:`);
+                let folderName;
+                if (window.TerminalDialogs) {
+                    folderName = await window.TerminalDialogs.prompt({
+                        title: "New Directory",
+                        message: `Enter directory name to create inside ${parentDir}:`,
+                        label: "Directory Name",
+                        placeholder: "e.g., my_folder",
+                        confirmText: "Create Folder",
+                        validate: (val) => {
+                            if (!val.trim()) return "Folder name cannot be empty.";
+                            if (val.includes('/')) return "Folder name cannot contain '/'.";
+                            return null;
+                        }
+                    });
+                } else {
+                    folderName = prompt(`Enter folder name to create inside ${parentDir}:`);
+                }
                 if (folderName) {
-                    const res = addFolder(parentDir, folderName);
-                    if (!res.success) alert(res.error);
+                    const cleanName = folderName.trim();
+                    const res = addFolder(parentDir, cleanName);
+                    if (!res.success) {
+                        if (window.TerminalDialogs) {
+                            window.TerminalDialogs.error(res.error, "Unable to Create Folder");
+                        } else {
+                            alert(res.error);
+                        }
+                    } else if (window.TerminalDialogs) {
+                        window.TerminalDialogs.success(`Folder "${cleanName}" created.`);
+                    }
                 }
             }
 
-            function promptAddFile(targetPath) {
+            async function promptAddFile(targetPath) {
                 const parentDir = getNodeType(state.fileSystem, targetPath) === 'dir' ? targetPath : getParentPath(targetPath);
-                const fileName = prompt(`Enter file name to create inside ${parentDir}:`);
+                let fileName;
+                if (window.TerminalDialogs) {
+                    fileName = await window.TerminalDialogs.prompt({
+                        title: "New File",
+                        message: `Enter file name to create inside ${parentDir}:`,
+                        label: "File Name",
+                        placeholder: "e.g., script.sh",
+                        confirmText: "Create File",
+                        validate: (val) => {
+                            if (!val.trim()) return "File name cannot be empty.";
+                            if (val.includes('/')) return "File name cannot contain '/'.";
+                            return null;
+                        }
+                    });
+                } else {
+                    fileName = prompt(`Enter file name to create inside ${parentDir}:`);
+                }
                 if (fileName) {
-                    const res = addFile(parentDir, fileName, "");
-                    if (!res.success) alert(res.error);
+                    const cleanName = fileName.trim();
+                    const res = addFile(parentDir, cleanName, "");
+                    if (!res.success) {
+                        if (window.TerminalDialogs) {
+                            window.TerminalDialogs.error(res.error, "Unable to Create File");
+                        } else {
+                            alert(res.error);
+                        }
+                    } else if (window.TerminalDialogs) {
+                        window.TerminalDialogs.success(`File "${cleanName}" created.`);
+                    }
                 }
             }
 
@@ -1555,14 +1627,41 @@
                             errEl.textContent = res.error;
                             errEl.style.display = "block";
                         }
+                    } else if (window.TerminalDialogs) {
+                        window.TerminalDialogs.success(`Renamed to "${newName.trim()}".`);
                     }
                 }
             });
 
-            document.getElementById("panelDeleteBtn")?.addEventListener("click", () => {
-                if (confirm(`Are you sure you want to delete "${state.selectedPath}"?`)) {
-                    const res = deleteItem(state.selectedPath);
-                    if (!res.success) alert(res.error);
+            document.getElementById("panelDeleteBtn")?.addEventListener("click", async () => {
+                const targetPath = state.selectedPath;
+                if (!targetPath || targetPath === "/") return;
+                const nodeType = getNodeType(state.fileSystem, targetPath);
+                const isDir = nodeType === 'dir';
+
+                let confirmed;
+                if (window.TerminalDialogs) {
+                    confirmed = await window.TerminalDialogs.confirm({
+                        title: `Delete ${isDir ? "Folder" : "File"}?`,
+                        message: `Are you sure you want to delete "${targetPath}"?${isDir ? " All items within this directory will be permanently removed." : ""} This action cannot be undone.`,
+                        confirmText: `Delete ${isDir ? "Folder" : "File"}`,
+                        isDestructive: true
+                    });
+                } else {
+                    confirmed = confirm(`Are you sure you want to delete "${targetPath}"?`);
+                }
+
+                if (confirmed) {
+                    const res = deleteItem(targetPath);
+                    if (!res.success) {
+                        if (window.TerminalDialogs) {
+                            window.TerminalDialogs.error(res.error, "Delete Failed");
+                        } else {
+                            alert(res.error);
+                        }
+                    } else if (window.TerminalDialogs) {
+                        window.TerminalDialogs.info(`Deleted "${targetPath}".`);
+                    }
                 }
             });
 
@@ -1759,6 +1858,9 @@
                     if (fDesc) fDesc.value = state.description;
                 }
                 syncStateToInput();
+                if (window.TerminalDialogs) {
+                    window.TerminalDialogs.success("Terminal configuration saved successfully.");
+                }
                 if (typeof options.onSave === 'function') {
                     options.onSave(serializeConfiguration());
                 } else if (formEl) {
@@ -1807,6 +1909,9 @@
                 const errors = validateForPublish();
                 const alertContainer = document.getElementById("validationAlertContainer");
                 if (errors.length > 0) {
+                    if (window.TerminalDialogs) {
+                        window.TerminalDialogs.error("Unable to save. Please check the configuration.", "Validation Failed");
+                    }
                     if (alertContainer) {
                         alertContainer.innerHTML = `
                             <div class="alert alert-danger mb-3">

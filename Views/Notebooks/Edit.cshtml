@@ -63,7 +63,7 @@
     <!-- Top Sticky Action Bar -->
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2 pb-3 border-bottom">
         <div class="d-flex align-items-center gap-2">
-            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary" id="backToNotebooksLink">
                 ← All Notebooks
             </a>
             <span class="text-secondary">/</span>
@@ -73,7 +73,7 @@
             <a asp-action="View" asp-route-id="@Model.NotebookId" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1" target="_blank" title="Open in reader mode">
                 <img src="/images/eye.svg" class="sim-icon me-1" alt="" /> Reader Mode
             </a>
-            <a asp-action="Export" asp-route-id="@Model.NotebookId" class="btn btn-sm btn-outline-secondary" title="Download standalone HTML">
+            <a asp-action="Export" asp-route-id="@Model.NotebookId" class="btn btn-sm btn-outline-secondary" id="exportHtmlBtn" title="Download standalone HTML">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-1px;" aria-hidden="true">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
@@ -563,11 +563,22 @@
             renderBlocks();
         }
 
-        function deleteBlock(idx) {
-            if (!confirm("Are you sure you want to remove this block?")) return;
+        async function deleteBlock(idx) {
+            var confirmed = window.TerminalDialogs
+                ? await window.TerminalDialogs.confirm({
+                    title: "Remove Content Block?",
+                    message: "Are you sure you want to remove this block? This action cannot be undone.",
+                    confirmText: "Remove Block",
+                    isDestructive: true
+                })
+                : confirm("Are you sure you want to remove this block?");
+            if (!confirmed) return;
             blocks.splice(idx, 1);
             markUnsaved();
             renderBlocks();
+            if (window.TerminalDialogs) {
+                window.TerminalDialogs.info("Content block removed.");
+            }
         }
 
         // Add blocks (Content Creation Handlers)
@@ -668,7 +679,11 @@
             var title = (titleInput.value || "").trim();
 
             if (!title) {
-                alert("Please enter a notebook title.");
+                if (window.TerminalDialogs) {
+                    window.TerminalDialogs.warning("Please enter a notebook title.", "Missing Title");
+                } else {
+                    alert("Please enter a notebook title.");
+                }
                 titleInput.focus();
                 return false;
             }
@@ -703,9 +718,17 @@
                 var res = await resp.json();
                 if (resp.ok && res.success) {
                     markSaved(res.updatedAt);
+                    if (window.TerminalDialogs) {
+                        window.TerminalDialogs.success("Changes saved successfully.");
+                    }
                     return true;
                 } else {
-                    alert("Failed to save notebook: " + (res.message || "Unknown error"));
+                    var errorMsg = "Failed to save notebook: " + (res.message || "Unknown error");
+                    if (window.TerminalDialogs) {
+                        window.TerminalDialogs.error(errorMsg, "Save Failed");
+                    } else {
+                        alert(errorMsg);
+                    }
                     if (indicator) {
                         indicator.textContent = "Save failed";
                         indicator.className = "small text-danger fw-semibold";
@@ -714,7 +737,11 @@
                 }
             } catch (err) {
                 console.error("Save error:", err);
-                alert("Network error while saving notebook.");
+                if (window.TerminalDialogs) {
+                    window.TerminalDialogs.error("Network error while saving notebook. Please try again.", "Save Failed");
+                } else {
+                    alert("Network error while saving notebook.");
+                }
                 if (indicator) {
                     indicator.textContent = "Save error";
                     indicator.className = "small text-danger fw-semibold";
@@ -793,7 +820,41 @@
         document.getElementById("saveNotebookBtn").addEventListener("click", saveNotebook);
         document.getElementById("notebookTitleInput").addEventListener("input", markUnsaved);
 
-        // Warn before leaving with unsaved changes
+        // Feedback toast for standalone HTML export
+        var exportBtn = document.getElementById("exportHtmlBtn");
+        if (exportBtn) {
+            exportBtn.addEventListener("click", function () {
+                if (window.TerminalDialogs) {
+                    window.TerminalDialogs.success("Notebook exported successfully.");
+                }
+            });
+        }
+
+        // Warn before leaving with unsaved changes: in-app navigation
+        var backLink = document.getElementById("backToNotebooksLink");
+        if (backLink) {
+            backLink.addEventListener("click", async function (e) {
+                if (isDirty) {
+                    e.preventDefault();
+                    var targetUrl = this.href;
+                    var confirmed = window.TerminalDialogs
+                        ? await window.TerminalDialogs.confirm({
+                            title: "Discard Unsaved Changes?",
+                            message: "You have unsaved changes in this notebook. Are you sure you want to leave without saving?",
+                            confirmText: "Discard & Leave",
+                            cancelText: "Stay on Page",
+                            isDestructive: true
+                        })
+                        : confirm("You have unsaved changes. Are you sure you want to leave without saving?");
+                    if (confirmed) {
+                        isDirty = false;
+                        window.location.href = targetUrl;
+                    }
+                }
+            });
+        }
+
+        // Warn before leaving with unsaved changes: browser tab/refresh
         window.addEventListener("beforeunload", function (e) {
             if (isDirty) {
                 e.preventDefault();
@@ -806,4 +867,5 @@
             renderBlocks();
         });
     </script>
+    <script src="~/js/terminal-dialogs.js" asp-append-version="true"></script>
 }

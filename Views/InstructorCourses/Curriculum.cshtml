@@ -3,6 +3,10 @@
     ViewData["Title"] = $"Curriculum: {Model.Course.Title}";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="~/css/terminal-dialogs.css" asp-append-version="true" />
+}
+
 <div class="container module-shell">
     @if (TempData["CourseError"] is string courseError) { <div class="alert alert-warning" role="alert">@courseError</div> }
     <div class="mb-3">
@@ -276,7 +280,8 @@
                                         <td class="text-end">
                                             <div class="d-inline-flex gap-2">
                                                 <a asp-action="EditSimulation" asp-route-id="@s.TaskId" class="btn btn-sm btn-outline-secondary">Edit</a>
-                                                <form asp-action="DeleteSimulation" asp-route-id="@s.TaskId" method="post" onsubmit="return confirm('Delete this simulation task?');">
+                                                <form asp-action="DeleteSimulation" asp-route-id="@s.TaskId" method="post" data-confirm="Delete this simulation task? This action cannot be undone." data-confirm-title="Delete Simulation Lab?" data-confirm-button="Delete Lab" data-confirm-destructive="true">
+                                                    @Html.AntiForgeryToken()
                                                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                                 </form>
                                             </div>
@@ -353,7 +358,7 @@
                                                         @(nb.IsPublished ? "Unpublish" : "Publish")
                                                     </button>
                                                 </form>
-                                                <form asp-action="DeleteCourseNotebook" asp-route-id="@nb.CourseNotebookId" method="post" onsubmit="return confirm('Delete this course notebook? Enrolled students will no longer see it.');">
+                                                <form asp-action="DeleteCourseNotebook" asp-route-id="@nb.CourseNotebookId" method="post" data-confirm="Delete this course notebook? Enrolled students will no longer see it." data-confirm-title="Delete Course Notebook?" data-confirm-button="Delete Notebook" data-confirm-destructive="true">
                                                     @Html.AntiForgeryToken()
                                                     <button type="submit" class="btn btn-sm btn-danger">Delete</button>
                                                 </form>
@@ -512,4 +517,5 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/terminal-dialogs.js" asp-append-version="true"></script>
 }
