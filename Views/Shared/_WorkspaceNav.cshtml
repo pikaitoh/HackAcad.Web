@@ -1,14 +1,38 @@
-@{ var controller = ViewContext.RouteData.Values["controller"]?.ToString(); var action = ViewContext.RouteData.Values["action"]?.ToString(); }
-<nav class="admin-nav" aria-label="Workspace navigation">
-@if (User.IsInRole(AccountRoles.Instructor)) {
-<a asp-controller="Account" asp-action="Dashboard" aria-current="@(controller == "Account" && action == "Dashboard" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>My learning</a>
-<a asp-controller="Courses" asp-action="Index" aria-current="@(controller == "Courses" && action == "Index" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-6-1-9 1Zm0 0v15"/></svg>Courses</a>
-<a asp-controller="Notebooks" asp-action="Index" aria-current="@(controller == "Notebooks" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10M6 14h6"/></svg>Terminal Notebooks</a>
-<a asp-controller="InstructorCourses" asp-action="Index" aria-current="@(controller == "InstructorCourses" && action != "Create" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Instructor Studio</a>
-<a asp-controller="InstructorCourses" asp-action="Create" aria-current="@(controller == "InstructorCourses" && action == "Create" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>Create course</a>
-} else {
-<a asp-controller="Account" asp-action="Dashboard" aria-current="@(controller == "Account" && action == "Dashboard" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</a>
-<a asp-controller="Courses" asp-action="Index" aria-current="@(controller == "Courses" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-6-1-9 1Zm0 0v15"/></svg>Courses</a>
-<a asp-controller="Notebooks" asp-action="Index" aria-current="@(controller == "Notebooks" ? "page" : null)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10M6 14h6"/></svg>Terminal Notebooks</a>
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
 }
+
+<nav class="admin-nav" aria-label="Workspace navigation">
+    <a asp-controller="Account" asp-action="Dashboard" aria-current="@(controller == "Account" && action == "Dashboard" ? "page" : null)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+        @(User.IsInRole(AccountRoles.Instructor) ? "My learning" : "Dashboard")
+    </a>
+    <a asp-controller="Courses" asp-action="Index" aria-current="@(controller == "Courses" && action == "Index" ? "page" : null)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C9 3 5 3 3 4v15c3-1 6-1 9 1 3-2 6-2 9-1V4c-2-1-6-1-9 1Zm0 0v15"/></svg>
+        Courses
+    </a>
+    <a asp-controller="Courses" asp-action="Saved" aria-current="@(controller == "Courses" && action == "Saved" ? "page" : null)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z"/></svg>
+        Saved Courses
+    </a>
+    <a asp-controller="Account" asp-action="Badges" aria-current="@(controller == "Account" && action == "Badges" ? "page" : null)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8v5a4 4 0 0 1-8 0V3Zm0 2H4v2a4 4 0 0 0 4 4m8-6h4v2a4 4 0 0 1-4 4M12 12v5m-4 4h8l-1-4H9l-1 4Z"/></svg>
+        Badges
+    </a>
+    <a asp-controller="Notebooks" asp-action="Index" aria-current="@(controller == "Notebooks" ? "page" : null)">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z"/><path d="M6 6h10M6 10h10M6 14h6"/></svg>
+        Terminal Notebooks
+    </a>
+    @if (User.IsInRole(AccountRoles.Instructor))
+    {
+        <a asp-controller="InstructorCourses" asp-action="Index" aria-current="@(controller == "InstructorCourses" && action != "Create" ? "page" : null)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            Instructor Studio
+        </a>
+        <a asp-controller="InstructorCourses" asp-action="Create" aria-current="@(controller == "InstructorCourses" && action == "Create" ? "page" : null)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>
+            Create Course
+        </a>
+    }
 </nav>

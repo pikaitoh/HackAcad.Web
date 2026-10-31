@@ -67,8 +67,7 @@
         </div>
     }
 
-    <div class="dashboard-layout">
-        <div class="dashboard-primary">
+    <div class="dashboard-full-width">
             <!-- Learning Totals Summary -->
             <section aria-labelledby="learning-title" class="dashboard-activity mt-0 mb-4">
                 <div class="section-heading mb-2">
@@ -246,7 +245,7 @@
                     {
                         <div class="badge-card @(b.IsUnlocked ? "unlocked" : "locked")">
                             <div class="badge-icon-box" style="background:@(b.IsUnlocked ? b.ColorHex + "20" : "#f1f5f9"); color:@(b.IsUnlocked ? b.ColorHex : "#94a3b8");">
-                                <partial name="_BadgeIcon" model="@b.Id" />
+                                @Html.Raw(b.IconSvg)
                             </div>
                             <div class="badge-title">@b.Title</div>
                             <div class="badge-desc">@b.Description</div>
@@ -303,47 +302,5 @@
                     </div>
                 </section>
             }
-        </div>
-
-        <!-- Sidebar shortcuts -->
-        <aside class="dashboard-account" aria-labelledby="workspace-account-title">
-            <h2 id="workspace-account-title">Your Account</h2>
-            <p class="text-secondary">Profile, password and access.</p>
-            <nav class="account-shortcuts" aria-label="Account settings">
-                <a asp-action="Profile">
-                    <span>
-                        <strong>My profile</strong>
-                        <span>View account details and edit your name.</span>
-                    </span>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
-                </a>
-                <a asp-action="ChangePassword">
-                    <span>
-                        <strong>Password &amp; security</strong>
-                        <span>Change your password securely.</span>
-                    </span>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
-                </a>
-                <a asp-action="Settings">
-                    <span>
-                        <strong>Account settings</strong>
-                        <span>Manage email and 2FA authentication.</span>
-                    </span>
-                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
-                </a>
-            </nav>
-
-            <div class="account-access">
-                <h3>@Model.Role Access</h3>
-                @if (isInstructor)
-                {
-                    <p>Your account has Instructor access. You can learn in other instructors’ courses and create courses, CTF challenges, and simulated terminal labs in the <a asp-controller="InstructorCourses" asp-action="Index">Instructor Studio</a>.</p>
-                }
-                else
-                {
-                    <p>Your account has Student access. You can enrol into any published course and solve interactive challenges. Apply through For Education if you meet the Instructor teaching requirements.</p>
-                }
-            </div>
-        </aside>
     </div>
 </div>

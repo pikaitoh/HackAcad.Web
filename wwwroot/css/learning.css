@@ -16,7 +16,7 @@
 .outcome-list div { display: flex; gap: 1rem; align-items: baseline; }
 .outcome-list dt { color: var(--ha-ink); font-weight: 650; white-space: nowrap; }
 .outcome-list dd { color: var(--ha-muted); margin: 0; }
-.dashboard-layout { display: grid; grid-template-columns: minmax(0,1.85fr) minmax(16rem,1fr); gap: 2rem; align-items: start; }
+.dashboard-full-width { min-width: 0; width: 100%; }
 .workspace-start { background: var(--ha-dark); border-radius: var(--ha-radius); padding: 2rem; }
 .workspace-start h2 { color: white; font-size: 1.75rem; margin-bottom: .85rem; max-width: 28ch; }
 .workspace-start p { color: var(--ha-on-dark); max-width: 58ch; font-size: .9375rem; margin-bottom: 1.5rem; }
@@ -26,18 +26,8 @@
 .learning-empty { padding-top: .5rem; }
 .learning-empty h3 { font-size: 1rem; margin-bottom: .5rem; }
 .learning-empty p { color: var(--ha-muted); font-size: .875rem; max-width: 65ch; }
-.dashboard-account { background: white; border: 1px solid var(--ha-line); border-radius: var(--ha-radius); padding: 1.75rem; }
-.dashboard-account > h2 { font-size: 1.125rem; }
-.dashboard-account > p { font-size: .8125rem; }
-.account-shortcuts > a { display: flex; align-items: center; gap: 1rem; justify-content: space-between; border-bottom: 1px solid var(--ha-line); padding: 1.1rem 0; color: var(--ha-ink); text-decoration: none; }
-.account-shortcuts strong,.account-shortcuts span > span { display: block; }
-.account-shortcuts strong { font-size: .875rem; font-weight: 620; }
-.account-shortcuts span > span { color: var(--ha-muted); font-size: .8125rem; margin-top: .3rem; }
-.account-shortcuts > a:hover strong { color: var(--ha-primary); text-decoration: underline; text-underline-offset: .2em; }
-.account-shortcuts svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 1.5; fill: none; flex-shrink: 0; }
-.account-access { margin-top: 1.5rem; }
-.account-access h3 { font-size: .875rem; }
-.account-access p { color: var(--ha-muted); font-size: .8125rem; margin: .6rem 0 0; }
+.dashboard-activity .activity-summary { grid-template-columns: repeat(4,minmax(0,1fr)); }
+@media (max-width: 760px) { .dashboard-activity .activity-summary { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1.25rem; } }
 .review-queue { display: grid; grid-template-columns: 1fr 1.15fr; gap: 1.5rem; align-items: center; margin-block: 0 2rem; padding-block: .5rem 1.75rem; border-bottom: 1px solid var(--ha-line); }
 .review-queue h2 { font-size: 1.0625rem; margin-bottom: .4rem; }
 .review-queue p { font-size: .8125rem; color: var(--ha-muted); margin: 0; }
@@ -173,7 +163,7 @@ html[data-theme="dark"] .objective-item.completed .obj-icon { color: var(--ha-su
 html[data-theme="dark"] .objective-item.pending .obj-icon { color: var(--ha-muted); }
 
 /* --- Badges Showcase Grid --- */
-.activity-calendar-panel { padding: 1.25rem; }
+.activity-calendar-panel { padding: 1.5rem; }
 .activity-calendar-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
 .activity-calendar-heading h2 { font-size: 1.125rem; margin-bottom: .3rem; }
 .activity-calendar-heading p { font-size: .8125rem; }
@@ -184,11 +174,11 @@ html[data-theme="dark"] .objective-item.pending .obj-icon { color: var(--ha-mute
 .activity-calendar-scroll { overflow-x: auto; padding: .25rem 0 .75rem; }
 .activity-calendar-layout { display: block; width: max-content; }
 .activity-calendar-body { min-width: 0; }
-.activity-month-labels { display: grid; grid-template-columns: repeat(var(--activity-weeks), 12px); column-gap: 3px; height: 1rem; margin-bottom: .25rem; color: var(--ha-muted); font-size: .625rem; line-height: 1rem; }
+.activity-month-labels { display: grid; grid-template-columns: repeat(var(--activity-weeks), 18px); column-gap: 4px; height: 1.3rem; margin-bottom: .5rem; color: var(--ha-muted); font-size: .85rem; line-height: 1.3rem; }
 .activity-month-labels span { white-space: nowrap; }
-.activity-weeks { display: flex; gap: 3px; }
-.activity-week { display: grid; grid-template-rows: repeat(7, 12px); gap: 3px; }
-.activity-day,.activity-calendar-legend i { display: block; width: 12px; height: 12px; border-radius: 3px; border: 1px solid rgb(27 31 35 / 5%); }
+.activity-weeks { display: flex; gap: 4px; }
+.activity-week { display: grid; grid-template-rows: repeat(7, 18px); gap: 4px; }
+.activity-day,.activity-calendar-legend i { display: block; width: 18px; height: 18px; border-radius: 3px; border: 1px solid rgb(27 31 35 / 5%); }
 .activity-day-outside-year { visibility: hidden; }
 .activity-day-empty,.activity-day[data-level="0"],.activity-calendar-legend i[data-level="0"] { background: #fff; border-color: #cbd5da; }
 .activity-day[data-level="1"],.activity-calendar-legend i[data-level="1"] { background: #9be9a8; }
@@ -251,6 +241,7 @@ html[data-appearance="dark"] .badge-rarity[data-rarity="epic"] { background: #48
 .badge-card.unlocked:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
 .badge-card.locked { opacity: 0.55; filter: grayscale(85%); background: #f8fafc; border-style: dashed; }
 .badge-icon-box { width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; margin-bottom: 0.75rem; background: var(--ha-tint); color: var(--ha-primary); }
+.badge-icon-box svg { display: block; width: 2rem; height: 2rem; }
 .badge-card.unlocked .badge-icon-box { box-shadow: 0 0 15px rgba(51, 121, 110, 0.25); }
 .badge-title { font-size: 0.95rem; font-weight: 750; color: var(--ha-ink); margin-bottom: 0.25rem; }
 .badge-desc { font-size: 0.775rem; color: var(--ha-muted); line-height: 1.4; margin-bottom: 0.65rem; }
