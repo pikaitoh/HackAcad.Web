@@ -19,6 +19,7 @@ public partial class ApplicationDbContext : IdentityUserContext<ApplicationUser>
     public DbSet<Admin> Admins => Set<Admin>();
 
     public DbSet<Course> Courses => Set<Course>();
+    public DbSet<CourseReviewHistory> CourseReviewHistories => Set<CourseReviewHistory>();
     public DbSet<Lesson> Lessons => Set<Lesson>();
     public DbSet<Enrollment> Enrollments => Set<Enrollment>();
     public DbSet<SavedCourse> SavedCourses => Set<SavedCourse>();

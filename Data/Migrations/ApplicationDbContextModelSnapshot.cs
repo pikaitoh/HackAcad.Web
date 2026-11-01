@@ -590,6 +590,40 @@ namespace HackAcad.Web.Data.Migrations
                     b.ToTable("course_notebooks", (string)null);
                 });
 
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.CourseReviewHistory", b =>
+                {
+                    b.Property<int>("CourseReviewHistoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("CourseReviewHistoryId"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<int>("CourseId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PerformedAtUtc")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("PerformedBy")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Remarks")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)");
+
+                    b.HasKey("CourseReviewHistoryId");
+
+                    b.HasIndex("CourseId");
+
+                    b.ToTable("CourseReviewHistories");
+                });
+
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Enrollment", b =>
                 {
                     b.Property<int>("EnrollmentId")
@@ -1512,6 +1546,17 @@ namespace HackAcad.Web.Data.Migrations
                         .HasForeignKey("CourseId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("HackAcad.Web.Models.Entities.CourseReviewHistory", b =>
+                {
+                    b.HasOne("HackAcad.Web.Models.Entities.Course", "Course")
+                        .WithMany()
+                        .HasForeignKey("CourseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Course");
                 });
 
             modelBuilder.Entity("HackAcad.Web.Models.Entities.Enrollment", b =>
