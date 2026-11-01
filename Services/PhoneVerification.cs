@@ -91,9 +91,14 @@ public class PhoneVerification(IMemoryCache cache, IConfiguration config, IWebHo
             }
             else
             {
+                // Branding comes from the Verify service name; per-request overrides require extra provider access.
                 var sent = await RequestAsync("Verifications", new() { ["To"] = number, ["Channel"] = "sms" });
                 if (!sent.Success || sent.Status != "pending" || !Regex.IsMatch(sent.Sid ?? "", "^VE[0-9a-fA-F]{32}$"))
+                {
+                    // Log diagnostic codes without exposing phone numbers, OTPs or provider credentials.
+                    logger.LogWarning("SMS verification request rejected (HTTP {HttpStatus}, provider code {ProviderCode}).", (int)sent.HttpStatus, sent.Code);
                     throw new InvalidOperationException("SMS provider did not accept verification.");
+                }
                 pending.Sid = sent.Sid;
             }
             lock (Gate)

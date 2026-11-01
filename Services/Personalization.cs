@@ -45,6 +45,7 @@ public class Personalization(ApplicationDbContext db, TimeProvider clock)
     }
     public static string ThemeFor(string topic) => topic.Contains("crypt", StringComparison.OrdinalIgnoreCase) ? "cipher"
         : topic.Contains("linux", StringComparison.OrdinalIgnoreCase) ? "terminal"
+        : topic.Contains("forensic", StringComparison.OrdinalIgnoreCase) ? "forensics"
         : topic.Contains("web", StringComparison.OrdinalIgnoreCase) ? "network" : "scholar";
     public async Task<List<BannerChoice>> Banners(string userId, bool student)
     {
@@ -54,7 +55,9 @@ public class Personalization(ApplicationDbContext db, TimeProvider clock)
             new("midnight", "Midnight", "midnight", true, "Available to everyone") };
         if (!student) return choices;
         var rewards = await db.BannerRewards.AsNoTracking().Where(r => r.UserId == userId).ToListAsync();
-        choices.AddRange(rewards.Select(r => new BannerChoice($"course-{r.CourseId}", r.CourseTitle, r.Theme, true, "Course completed")));
+        // Older forensics rewards used the generic book artwork; retain their unlock while displaying the new design.
+        choices.AddRange(rewards.Select(r => new BannerChoice($"course-{r.CourseId}", r.CourseTitle,
+            r.Theme == "scholar" && ThemeFor(r.CourseTitle) == "forensics" ? "forensics" : r.Theme, true, "Course completed")));
         var earned = rewards.Select(r => r.CourseId).ToList();
         var locked = await db.Courses.AsNoTracking().Where(c => c.IsPublished && !earned.Contains(c.CourseId)).OrderBy(c => c.Title).Select(c => new { c.CourseId, c.Title, c.Category }).ToListAsync();
         choices.AddRange(locked.Select(c => new BannerChoice($"course-{c.CourseId}", c.Title, ThemeFor(c.Category ?? c.Title), false, $"Complete {c.Title} to unlock")));

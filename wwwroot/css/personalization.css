@@ -73,6 +73,7 @@ html { scroll-padding-top: calc(var(--header-height) + 24px); }
 .banner-terminal { background-color: #193d37; }
 .banner-network { background-color: #203d58; }
 .banner-scholar { background-color: #3e465b; }
+.banner-forensics { background-color: #3b3935; }
 .banner-foundation { background-image: url('/images/banners/foundation.svg'); }
 .banner-evergreen { background-image: url('/images/banners/evergreen.svg'); }
 .banner-midnight { background-image: url('/images/banners/midnight.svg'); }
@@ -80,6 +81,7 @@ html { scroll-padding-top: calc(var(--header-height) + 24px); }
 .banner-terminal { background-image: url('/images/banners/terminal.svg'); }
 .banner-network { background-image: url('/images/banners/network.svg'); }
 .banner-scholar { background-image: url('/images/banners/scholar.svg'); }
+.banner-forensics { background-image: url('/images/banners/forensics.svg'); }
 .profile-banners { margin-top: 3rem; }
 .banner-choices { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1.25rem; margin-top: 1.5rem; }
 .banner-choice { border: 1px solid var(--ha-line); border-radius: 12px; overflow: hidden; background: var(--ha-surface); display: flex; flex-direction: column; }
