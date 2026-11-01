@@ -50,7 +50,8 @@ public static class SupportCategory
 }
 public class SupportTicket
 {
-    public bool CanUserReply(bool lastPublicMessageByAdmin) => lastPublicMessageByAdmin && Status is ("Awaiting user" or "Resolved");
+    // Resolved conversations stay read-only; only a public Admin reply opens the user's next turn.
+    public bool CanUserReply(bool lastPublicMessageByAdmin) => lastPublicMessageByAdmin && Status == "Awaiting user";
     [MaxLength(50)] public string Category { get; set; } = "Account support";
     public long Id { get; set; }
     [MaxLength(255)] public string UserId { get; set; } = "";

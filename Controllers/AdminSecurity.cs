@@ -171,6 +171,9 @@ public partial class AdminController
         var alert = await db.SecurityAlerts.SingleOrDefaultAsync(a => a.Id == id);
         if (alert is null)
             return NotFound();
+        // ADMIN - Resolution closes the investigation, including submissions from an older browser tab.
+        if (alert.Status == "Resolved")
+            return Conflict("This security alert has been resolved. The investigation is read-only.");
         if (input.Version != alert.Version)
             return Conflict("This alert changed. Reload before updating it.");
         if (input.Status is not ("New" or "Investigating" or "Resolved"))

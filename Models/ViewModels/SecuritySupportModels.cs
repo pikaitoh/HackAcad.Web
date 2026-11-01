@@ -29,7 +29,7 @@ public class AlertUpdateInput
     public string? ReturnUrl { get; set; }
     [Required] public string Status { get; set; } = "";
     private string notes = "";
-    [Required, StringLength(1000, MinimumLength = 10)]
+    [Required(ErrorMessage = "Please enter investigation notes."), StringLength(1000, MinimumLength = 10, ErrorMessage = "Please enter between 10 and 1,000 characters.")]
     public string Notes
     {
         get => notes; set => notes = value?.Trim() ?? "";
@@ -56,7 +56,7 @@ public class SupportMessageInput
     {
         get => subject; set => subject = value?.Trim();
     }
-    [Required, StringLength(3000, MinimumLength = 10)]
+    [Required(ErrorMessage = "Please enter a message."), StringLength(3000, MinimumLength = 10, ErrorMessage = "Please enter between 10 and 3,000 characters.")]
     public string Body
     {
         get => body; set => body = value?.Trim() ?? "";

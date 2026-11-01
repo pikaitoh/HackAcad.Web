@@ -32,7 +32,7 @@ class Form extends Element {
     }
     reset() { Object.values(this.elements).forEach(f => { f.value = ''; }); this.emit('reset'); }
     matches(selector) { return selector === '[data-admin-operation]' && this === operation; }
-    reportValidity() { assert.equal(this, operation, 'Verification must not invoke browser validation popups'); return true; }
+    reportValidity() { assert.fail('Admin forms must not invoke browser validation popups'); }
 }
 const source = fs.readFileSync(path.join(root, 'Views/Shared/_AdminVerifyDialog.cshtml'), 'utf8');
 assert.match(source, /id="admin-verify-form"[^>]*data-validated-form/);

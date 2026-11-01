@@ -80,6 +80,9 @@ public partial class AdminController
         var ticket = (await db.SupportTickets.FromSqlInterpolated($"SELECT * FROM `support_tickets` WHERE Id={id} FOR UPDATE").ToListAsync()).SingleOrDefault();
         if (ticket is null)
             return NotFound();
+        // ADMIN - A resolved request cannot receive public replies, internal notes or status changes.
+        if (ticket.Status == "Resolved")
+            return Conflict("This request has been resolved. Please create a new request if you need further assistance.");
         if (input.Version != ticket.Version)
             return Conflict("This conversation changed. Reload before replying.");
         if (input.Status is not ("Awaiting admin" or "Awaiting user" or "Resolved"))
@@ -128,7 +131,10 @@ public partial class AdminController
         {
             var recipient = await db.Users.Where(u => u.Id == ticket.UserId).Select(u => u.Email).SingleAsync();
             var link = email.SupportLink("Support");
-            delivered = recipient is not null && link is not null && await email.SendSupportAsync(recipient, $"Reply to support request #{id}", $"An administrator replied to your HackAcad support request #{id}.\n\nOpen account support to read and reply. If you are signed out, verify your current HackAcad email:\n{link}\n\nRequest status: {ticket.Status}. This message does not reactivate your account.");
+            var nextStep = ticket.Status == "Resolved"
+                ? "Open account support to read the final reply. This request is resolved; create a new request if you need further assistance."
+                : "Open account support to read and reply.";
+            delivered = recipient is not null && link is not null && await email.SendSupportAsync(recipient, $"Reply to support request #{id}", $"An administrator replied to your HackAcad support request #{id}.\n\n{nextStep} If you are signed out, verify your current HackAcad email:\n{link}\n\nRequest status: {ticket.Status}. This message does not reactivate your account.");
         }
         TempData["Success"] = input.Internal ? "Internal note saved. It is not visible to the user." : "Reply saved in the user's support conversation.";
         if (!delivered)

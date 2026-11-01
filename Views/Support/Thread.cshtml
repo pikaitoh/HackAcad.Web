@@ -2,9 +2,11 @@
 @{ ViewData["Title"] = $"Support request #{Model.Ticket.Id}"; }
 <div class="page-heading"><div><h1>@Model.Ticket.Subject</h1><p class="text-secondary">Request #@Model.Ticket.Id · @Model.Ticket.Category · Times shown in @UserTime.Id.</p></div><a asp-action="Requests" class="btn btn-outline-secondary">Back to requests</a></div>
 <section class="surface-panel"><div class="support-conversation-heading"><h2 class="h5">Conversation</h2><span class="support-status" data-status="@Model.Ticket.Status">@Model.Ticket.Status</span></div><partial name="_SupportMessages" model="Model.Messages" />
-@if (!Model.CanReply) { <p class="support-waiting" role="status">Your message has been sent. Please wait for an administrator’s reply.</p> }
+@if (Model.Ticket.Status == "Resolved") {
+    <p class="support-waiting" role="status">This request has been resolved. Please create a new request if you need further assistance.</p>
+    <a asp-action="Create" class="btn btn-outline-secondary">Create a new request</a>
+} else if (!Model.CanReply) { <p class="support-waiting" role="status">Your message has been sent. Please wait for an administrator’s reply.</p> }
 </section>
-@if (Model.CanReply) { <section class="surface-panel mt-4"><h2 class="h5">@(Model.Ticket.Status == "Resolved" ? "Need more help?" : "Reply to the administrator")</h2>
-@if (Model.Ticket.Status == "Resolved") { <p>Sending another message reopens this request for review.</p> }
+@if (Model.CanReply) { <section class="surface-panel mt-4"><h2 class="h5">Reply to the administrator</h2>
 <form asp-action="Reply" asp-route-id="@Model.Ticket.Id" method="post" data-validated-form novalidate><input type="hidden" name="Version" value="@Model.Ticket.Version" /><div asp-validation-summary="All" class="validation-summary" role="alert"></div>
-<label for="Body" class="form-label">Message</label><textarea id="Body" name="Body" class="form-control" rows="5" required minlength="10" maxlength="3000" aria-describedby="reply-help">@Model.Input.Body</textarea><p id="reply-help" class="form-text">10–3,000 characters. Do not include passwords or verification codes.</p><button class="btn btn-primary">Send reply</button></form></section> }
+<label for="Body" class="form-label">Message</label><textarea data-trim data-val-required="Please enter a message." data-val-length="Please enter between 10 and 3,000 characters." id="Body" name="Body" class="form-control" rows="5" required minlength="10" maxlength="3000" aria-describedby="reply-help Body-error">@Model.Input.Body</textarea><span id="Body-error" class="field-error" data-valmsg-for="Body" aria-live="polite">@ViewData.ModelState["Body"]?.Errors.FirstOrDefault()?.ErrorMessage</span><p id="reply-help" class="form-text">10–3,000 characters. Do not include passwords or verification codes.</p><button class="btn btn-primary">Send reply</button></form></section> }

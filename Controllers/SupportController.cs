@@ -128,13 +128,9 @@ public class SupportController(ApplicationDbContext db, SupportAccessService acc
         if (owner is null || owner.SecurityStamp != User.FindFirstValue("support:stamp")) return Forbid(SupportAccessService.Scheme);
         var ticket = (await db.SupportTickets.FromSqlInterpolated($"SELECT * FROM `support_tickets` WHERE Id={id} AND UserId={userId} FOR UPDATE").ToListAsync()).SingleOrDefault();
         if (ticket is null) return NotFound();
-        if (ticket.Status == "Resolved") {
-            var open = await db.SupportTickets.AsNoTracking().FirstOrDefaultAsync(t => t.UserId == userId && t.Id != id && t.Status != "Resolved");
-            if (open is not null) {
-                TempData["SupportNotice"] = "You already have an open request. Add your follow-up to that conversation.";
-                return RedirectToAction(nameof(Thread), new { id = open.Id });
-            }
-        }
+        // Check the locked row so an old browser tab cannot reopen a request after resolution.
+        if (ticket.Status == "Resolved")
+            return Conflict("This request has been resolved. Please create a new request if you need further assistance.");
         if (input.Version != ticket.Version) return Conflict("This conversation changed. Reload before replying.");
         var lastPublicByAdmin = await db.SupportMessages.AsNoTracking().Where(m => m.TicketId == id && !m.Internal)
             .OrderByDescending(m => m.Id).Select(m => m.ByAdmin).FirstOrDefaultAsync();

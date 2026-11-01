@@ -102,7 +102,8 @@
         const form = event.target;
         if (!(form instanceof HTMLFormElement) || !form.matches('[data-admin-operation]') || event.defaultPrevented) return;
         event.preventDefault();
-        if (busy || pending || !form.reportValidity()) return;
+        // account-forms.js blocks invalid submissions with inline messages before they bubble here.
+        if (busy || pending) return;
         busy = true;
         controls(form, true);
         const data = new FormData(form);

@@ -48,7 +48,7 @@
                 <input asp-for="Input.Version" type="hidden" />
                 <div asp-validation-summary="ModelOnly" class="validation-summary" role="alert"></div>
                 <div class="mb-3"><label asp-for="Input.Decision" class="form-label">Decision</label><select asp-for="Input.Decision" class="form-select" required aria-describedby="decision-error"><option value="" disabled>Choose a decision</option><option value="Approved">Approve</option><option value="Rejected">Reject</option></select><span asp-validation-for="Input.Decision" id="decision-error" class="field-error" aria-live="polite"></span></div>
-                <div class="mb-4"><label asp-for="Input.Reason" class="form-label">Feedback to instructor</label><textarea asp-for="Input.Reason" class="form-control" rows="4" maxlength="1000" aria-describedby="reason-help reason-error"></textarea><p id="reason-help" class="form-text">Required when rejecting. Explain what needs to change before resubmission.</p><span asp-validation-for="Input.Reason" id="reason-error" class="field-error" aria-live="polite"></span></div>
+                <div class="mb-4"><label asp-for="Input.Reason" class="form-label">Feedback to instructor</label><textarea asp-for="Input.Reason" data-trim data-required-message="Explain why this course is rejected so the instructor can revise it." class="form-control" rows="4" maxlength="1000" aria-describedby="reason-help reason-error"></textarea><p id="reason-help" class="form-text">Required when rejecting. Explain what needs to change before resubmission.</p><span asp-validation-for="Input.Reason" id="reason-error" class="field-error" aria-live="polite"></span></div>
                 <button type="submit" class="btn btn-primary">Save decision</button>
             </form>
         </section>
@@ -60,7 +60,7 @@
     const decision = document.getElementById('Input_Decision');
     const reason = document.getElementById('Input_Reason');
     if (!decision || !reason) return;
-    const update = () => { reason.required = decision.value === 'Rejected'; };
+    const update = () => { reason.required = decision.value === 'Rejected'; reason.dispatchEvent(new Event('input', { bubbles: true })); };
     decision.addEventListener('change', update); update();
 })();
 </script>
