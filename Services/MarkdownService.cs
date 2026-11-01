@@ -61,7 +61,7 @@ public static class MarkdownService
         text = InlineCodeRegex.Replace(text, match =>
         {
             var code = match.Groups[1].Value;
-            var placeholder = $"@@INLINECODE_{inlineCodes.Count}@@";
+            var placeholder = $"INLINECODEPLACEHOLDER{inlineCodes.Count}END";
             inlineCodes.Add(code);
             return placeholder;
         });
@@ -242,7 +242,8 @@ public static class MarkdownService
         {
             var encodedInline = WebUtility.HtmlEncode(inlineCodes[i]);
             var inlineHtml = $"<code>{encodedInline}</code>";
-            result = result.Replace($"@@INLINECODE_{i}@@", inlineHtml);
+            result = result.Replace($"INLINECODEPLACEHOLDER{i}END", inlineHtml);
+            result = result.Replace($"@@INLINECODE{i}@@", inlineHtml);
         }
 
         return result;
