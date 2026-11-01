@@ -19,7 +19,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     // AutoDetect needs a live connection. If MySQL isn't up yet, fall back to a
-    // known server version so the site still starts and serves pages (seeding
+    // known server version so the site still starts and serves pages (migration
     // and role resolution are each wrapped in their own try/catch too).
     ServerVersion serverVersion;
     try
@@ -206,21 +206,18 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 app.MapRazorPages();
 
-// --- Apply migrations and seed development accounts ---
-// Wrapped in try/catch on purpose: if MySQL isn't installed/running yet,
-// the site still starts and serves pages, it just skips seeding and logs a
-// warning. This lets you confirm "does dotnet run even work" before the
-// database is set up.
+// Apply schema migrations at startup; accounts and course content are managed through the application.
+// Keep the site available with a warning when the local database cannot be reached.
 using (var scope = app.Services.CreateScope())
 {
     try
     {
-        await DbInitializer.SeedAsync(scope.ServiceProvider);
+        await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
     }
     catch (Exception ex)
     {
         var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogWarning(ex, "Database seeding skipped — is MySQL running and is the connection string in appsettings.Development.json correct?");
+        logger.LogWarning(ex, "Database migration failed — is MySQL running and is the connection string in appsettings.Development.json correct?");
     }
 }
 

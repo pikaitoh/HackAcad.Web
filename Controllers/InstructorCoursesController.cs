@@ -354,6 +354,9 @@ public class InstructorCoursesController(
         var course = await db.Courses.FirstOrDefaultAsync(c => c.CourseId == model.CourseId && c.InstructorId == instructorId);
         if (course == null) return NotFound("Course not found.");
 
+        if (!LessonVideo.IsSupported(model.VideoUrl))
+            ModelState.AddModelError(nameof(model.VideoUrl), "Enter a valid YouTube link or an HTTP(S) MP4, WebM or Ogg video URL.");
+
         if (!ModelState.IsValid)
             return View("LessonForm", model);
 
@@ -756,11 +759,14 @@ public class InstructorCoursesController(
 
                 db.ChallengeHints.RemoveRange(hintsToRemove);
 
-                // Move existing hints temporarily to negative positions
-                // to avoid unique-index collisions during reordering.
-                foreach (var hint in existingHints)
+                // Stage only real reorders, so an unchanged save preserves course approval.
+                for (var i = 0; i < model.Hints.Count; i++)
                 {
-                    hint.DisplayOrder = -hint.ChallengeHintId;
+                    var submittedHint = model.Hints[i];
+                    var hint = existingHints.FirstOrDefault(
+                        h => h.ChallengeHintId == submittedHint.ChallengeHintId);
+                    if (hint != null && hint.DisplayOrder != i + 1)
+                        hint.DisplayOrder = -hint.ChallengeHintId;
                 }
 
                 await db.SaveChangesAsync();

@@ -347,6 +347,9 @@ finally
     var ids=await db.Users.Where(u=>u.Email!=null&&u.Email.StartsWith(prefix)).Select(u=>u.Id).ToListAsync();
     var courses=await db.Courses.Where(c=>c.Title.StartsWith(prefix)).Select(c=>c.CourseId).ToListAsync();
     var enrollmentIds=await db.Enrollments.Where(e=>ids.Contains(e.UserId)).Select(e=>e.EnrollmentId).ToListAsync();
+    // Remove restricted score references before deleting the test courses and their challenges.
+    await db.ChallengeScoreAwards.Where(a=>ids.Contains(a.UserId)).ExecuteDeleteAsync();
+    await db.ChallengeHintUnlocks.Where(u=>ids.Contains(u.UserId)).ExecuteDeleteAsync();
     await db.ProgressRecords.Where(p=>enrollmentIds.Contains(p.EnrollmentId)).ExecuteDeleteAsync();
     await db.ChallengeSubmissions.Where(c=>ids.Contains(c.UserId)).ExecuteDeleteAsync();
     await db.Enrollments.Where(e=>ids.Contains(e.UserId)).ExecuteDeleteAsync();

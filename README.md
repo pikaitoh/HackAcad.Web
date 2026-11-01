@@ -28,19 +28,7 @@ dotnet restore
 dotnet run
 ```
 
-The checked-in launch profile selects Development and `http://localhost:5000`. Startup applies pending migrations and seeds the three development accounts below. Stop a previously running instance with Ctrl+C before rebuilding. The account-status migration adds `users.IsDisabled`, defaulting to `false` for existing users; it does not reset existing data.
-
-## Shared development accounts
-
-| Role | Email | Initial password |
-| --- | --- | --- |
-| Student | demo.student@hackacad.local | HackAcad@123! |
-| Instructor | demo.instructor@hackacad.local | HackAcad@123! |
-| Admin | demo.admin@hackacad.local | HackAcad@123! |
-
-Each teammate gets these credentials in their own local database. Existing accounts, changed passwords and changed roles are preserved on restart. The original `admin@hackacad.local` account, if already present, is also preserved with its original password.
-
-These fixtures are created **only in Development**. They are public test credentials and must not be used in a public deployment. Production admin provisioning and deployment configuration must be arranged before publishing.
+The checked-in launch profile selects Development and `http://localhost:5000`. Startup applies pending migrations without creating demo accounts or sample courses. Stop a previously running instance with Ctrl+C before rebuilding. The account-status migration adds `users.IsDisabled`, defaulting to `false` for existing users; it does not reset existing data.
 
 ## Implemented flows
 
@@ -79,7 +67,7 @@ Google issues refresh tokens with a **7-day lifetime while an external OAuth app
 
 Registration leaves the account pending when sending fails and explains how to request another email. Registration shows the saved recipient with a direct Resend verification email button; no email lookup form or resend link is shown on Login. The recipient comes from protected browser context, never a posted address. A correct password for an unverified account recovers the pending page without signing in; failed passwords still count toward lockout. Missing browser context returns to Login. Disabled/verified accounts receive no new verification mail. Delivery has a 60-second cooldown per account/address. Register/resend POSTs share a limit of 30 requests per source IP per 10 minutes. These limits are in memory for this single-instance class project; coordinate shared limits and trusted proxy forwarding before scaling a deployment. Disabled and unverified accounts cannot use existing sessions. Admin changing an email resets verification and revokes sessions; changing only its letter case preserves verification. An Admin changing their own email is signed out. Users listed as Active may still need email verification; the Users list shows `Email not verified` separately.
 
-The existing Identity `EmailConfirmed` column is reused; no new database migration is needed. Existing real accounts are not silently marked verified. If currently unverified, they must finish the email verification flow before login succeeds. The three seeded Development demo accounts are already verified and remain usable without mail; `.local` demo addresses cannot receive real internet email. Do not change a demo address to a real address unless you intend to verify it.
+The existing Identity `EmailConfirmed` column is reused; no new database migration is needed. Existing real accounts are not silently marked verified. If currently unverified, they must finish the email verification flow before login succeeds. `.local` addresses cannot receive real internet email.
 
 For automated local tests only, explicitly set `Email__DevelopmentPickupDirectory` to a private directory outside `wwwroot` and `Email__PublicBaseUrl` to the test server URL. The app writes `.eml` files there instead of contacting Gmail. This opt-in mail capture is ignored outside Development; there is no browser link that bypasses verification and no token logging. `.local-mail/` is ignored by Git if used as the capture directory. Keep captured messages private and delete them after testing. Confirmation uses the ASP.NET Core Identity token provider; it is not an OTP or Google sign-in integration.
 
@@ -115,7 +103,7 @@ For automated tests only, explicitly set `Sms__DevelopmentPickupDirectory` to a 
 
 ## Personal account security
 
-Manage account → Email address shows the signed-in user's actual email verification status. Registered but unverified accounts exist while awaiting confirmation; Admin-created/changed addresses also await confirmation. Development demo fixtures are preverified for local testing.
+Manage account → Email address shows the signed-in user's actual email verification status. Registered but unverified accounts exist while awaiting confirmation; Admin-created/changed addresses also await confirmation.
 
 `LoginHistory` records known-account password failures/lockouts and completed sign-ins, including second-factor outcomes. It is personal, not a system-wide log. `Sessions` combines active browser sessions, approximate browser/OS, IP, creation/last-activity time, per-other-session Sign out and Sign out all other devices. Both sign-out actions require the current password and CSRF protection, are scoped to the signed-in user, and retain this device. Bulk sign-out also invalidates pending 2FA challenges. Active means the login remains valid, not that the browser is online. Closing a browser may leave a row until its cookie expires; forgotten/stamp-invalid/revoked rows are excluded. All displayed dates and times use the signed-in viewer’s saved time zone; stored timestamps stay UTC.
 
@@ -223,7 +211,7 @@ Admin → Instructor applications shows the latest revision per applicant. All d
 
 Admin users are read-only except explicit disable/reactivate actions with reasons. Removed CreateUser/EditUser/DeleteUser routes return 404. No arbitrary role picker or Admin password-reset action remains. Audit logs displays all administrators' actions, with search/pagination and an Only my actions filter. Reviews and audit records have no edit/delete routes. The old `/Admin/Activity` bookmark redirects to the personal audit filter. Administrative database operators remain outside application-level immutability guarantees.
 
-Student, Instructor and Admin workspaces share a full-width desktop sidebar layout; The sticky header keeps the brand, appearance selector, notification bell and avatar/name; personal pages also expose the role-specific workspace return link. Personal Profile/Manage account retain their own navigation. Guest pages retain header navigation. Instructor replaces Teacher in current entities, controllers, routes, views, role labels and documentation. `InstructorApplications` migration renames the existing Teachers table and Courses.TeacherId column without deleting role markers or ownership. Earlier migration files are intentionally unchanged. Existing account emails are not renamed; an existing legacy demo instructor login continues to work, while fresh databases use demo.instructor@hackacad.local.
+Student, Instructor and Admin workspaces share a full-width desktop sidebar layout; The sticky header keeps the brand, appearance selector, notification bell and avatar/name; personal pages also expose the role-specific workspace return link. Personal Profile/Manage account retain their own navigation. Guest pages retain header navigation. Instructor replaces Teacher in current entities, controllers, routes, views, role labels and documentation. `InstructorApplications` migration renames the existing Teachers table and Courses.TeacherId column without deleting role markers or ownership. Earlier migration files are intentionally unchanged. Existing account emails are not renamed.
 
 Verification: `tests/InstructorWorkflow` covers eligibility dates, duplicate submissions, evidence ownership, removed Admin mutations, reason/checklist enforcement, private/public review content, reconsideration, role/session changes and role sidebars. Run only with `hackacad_mergereview_20261019` and local email/SMS capture variables. Existing CourseSecurity, GoogleFlow, PhoneAuth, TimeZones and TwoFactorRoles suites use Instructor names. The historical auth_smoke.py/security_smoke.py CRUD scripts are retired with a guard; use the current suites instead. No live delivery is needed for tests.
 

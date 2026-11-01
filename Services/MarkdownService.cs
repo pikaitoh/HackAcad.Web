@@ -69,6 +69,17 @@ public static class MarkdownService
         // 3. HTML encode all remaining text to prevent raw HTML execution / XSS
         text = WebUtility.HtmlEncode(text);
 
+        // Images are restricted to local teaching assets; raw HTML and executable URLs remain escaped.
+        var images = new List<string>();
+        text = Regex.Replace(text, @"!\[([^\]\n]*)\]\(([^)\s]+)\)", match =>
+        {
+            var url = WebUtility.HtmlDecode(match.Groups[2].Value);
+            if (!Regex.IsMatch(url, @"^/images/[A-Za-z0-9/_-]+\.(svg|png|jpe?g|webp)$", RegexOptions.IgnoreCase)) return match.Groups[1].Value;
+            var placeholder = $"@@IMAGE{images.Count}@@";
+            images.Add($"<img src=\"{WebUtility.HtmlEncode(url)}\" alt=\"{match.Groups[1].Value}\" loading=\"lazy\" decoding=\"async\" />");
+            return placeholder;
+        });
+
         // 4. Headings (# Heading)
         text = HeadingRegex.Replace(text, match =>
         {
@@ -136,10 +147,35 @@ public static class MarkdownService
             if (inOl) { sb.AppendLine("</ol>"); inOl = false; }
         }
 
-        foreach (var rawLine in lines)
+        string[] Cells(string line) => line.Trim().Trim('|').Split('|').Select(cell => cell.Trim()).ToArray();
+        for (var lineIndex = 0; lineIndex < lines.Length; lineIndex++)
         {
+            var rawLine = lines[lineIndex];
             var line = rawLine.TrimEnd();
             var trimmed = line.Trim();
+
+            // Pipe tables reuse the already escaped inline content and keep wide comparisons scrollable.
+            if (trimmed.Contains('|') && lineIndex + 1 < lines.Length
+                && Cells(lines[lineIndex + 1]) is { Length: >= 2 } separator
+                && separator.All(cell => Regex.IsMatch(cell, @"^:?-{3,}:?$")))
+            {
+                FlushPara(); CloseLists();
+                var headers = Cells(trimmed);
+                sb.Append("<div class=\"markdown-table\"><table><thead><tr>");
+                foreach (var header in headers) sb.Append($"<th scope=\"col\">{header}</th>");
+                sb.Append("</tr></thead><tbody>");
+                lineIndex += 2;
+                for (; lineIndex < lines.Length && lines[lineIndex].Contains('|') && !string.IsNullOrWhiteSpace(lines[lineIndex]); lineIndex++)
+                {
+                    var cells = Cells(lines[lineIndex]);
+                    sb.Append("<tr>");
+                    for (var cell = 0; cell < headers.Length; cell++) sb.Append($"<td>{(cell < cells.Length ? cells[cell] : "")}</td>");
+                    sb.Append("</tr>");
+                }
+                sb.AppendLine("</tbody></table></div>");
+                lineIndex--;
+                continue;
+            }
 
             // Headings, blockquotes or codeblock placeholders
             if (trimmed.StartsWith("<h") || trimmed.StartsWith("<blockquote") || trimmed.StartsWith("@@CODEBLOCK_"))
@@ -189,6 +225,7 @@ public static class MarkdownService
         CloseLists();
 
         var result = sb.ToString();
+        for (var i = 0; i < images.Count; i++) result = result.Replace($"@@IMAGE{i}@@", images[i]);
 
         // 10. Restore code blocks with proper escaping
         for (int i = 0; i < codeBlocks.Count; i++)

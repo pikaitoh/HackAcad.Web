@@ -14,8 +14,8 @@ public partial class ApplicationDbContext
     {
         ChangeTracker.DetectChanges();
 
-        // Identify courses whose curriculum content has changed.
-        var changedCourseIds = ChangeTracker.Entries()
+        // ADMIN - Child edits must invalidate the parent even when the Course itself is unchanged.
+        var changedEntries = ChangeTracker.Entries()
             .Where(e =>
                 e.State is EntityState.Added
                     or EntityState.Modified
@@ -25,17 +25,37 @@ public partial class ApplicationDbContext
                 e.Properties.Any(p =>
                     p.IsModified &&
                     p.Metadata.Name != "UpdatedAtUtc"))
-            .Select(e => e.Entity switch
+            .ToList();
+
+        // Include both parents if an activity moves between courses.
+        var changedCourseIds = changedEntries
+            .Where(e => e.Entity is Lesson or Challenge or SimulationTask or CourseNotebook)
+            .SelectMany(e => new[]
             {
-                Lesson lesson => (int?)lesson.CourseId,
-                Challenge challenge => challenge.CourseId,
-                SimulationTask task => task.CourseId,
-                CourseNotebook notebook => notebook.CourseId,
-                _ => null
+                (int)e.Property(nameof(Lesson.CourseId)).CurrentValue!,
+                (int)e.Property(nameof(Lesson.CourseId)).OriginalValue!
             })
-            .Where(id => id.HasValue)
-            .Select(id => id!.Value)
+            .Where(id => id > 0)
             .ToHashSet();
+
+        // Hints reference a challenge rather than a course directly.
+        var hintChallengeIds = changedEntries
+            .Where(e => e.Entity is ChallengeHint)
+            .SelectMany(e => new[]
+            {
+                (int)e.Property(nameof(ChallengeHint.ChallengeId)).CurrentValue!,
+                (int)e.Property(nameof(ChallengeHint.ChallengeId)).OriginalValue!
+            })
+            .Where(id => id > 0)
+            .Distinct()
+            .ToArray();
+        if (hintChallengeIds.Length > 0)
+        {
+            changedCourseIds.UnionWith(await Challenges.AsNoTracking()
+                .Where(c => hintChallengeIds.Contains(c.ChallengeId))
+                .Select(c => c.CourseId)
+                .ToListAsync(cancellationToken));
+        }
 
         // Load affected parent courses.
         foreach (var id in changedCourseIds)
@@ -52,8 +72,7 @@ public partial class ApplicationDbContext
         // or whose curriculum content has changed.
         foreach (var entry in ChangeTracker.Entries<Course>().ToList())
         {
-            if (entry.State == EntityState.Deleted ||
-                entry.State == EntityState.Unchanged)
+            if (entry.State == EntityState.Deleted)
             {
                 continue;
             }

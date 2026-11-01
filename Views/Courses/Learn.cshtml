@@ -160,25 +160,28 @@
                     }
                 </div>
 
-                @if (!string.IsNullOrEmpty(Model.CurrentLesson.VideoUrl))
+                @if (LessonVideo.IsSupported(Model.CurrentLesson.VideoUrl) && !string.IsNullOrWhiteSpace(Model.CurrentLesson.VideoUrl))
                 {
                     <div class="lesson-video-box">
-                        @if (Model.CurrentLesson.VideoUrl.Contains("youtube.com") || Model.CurrentLesson.VideoUrl.Contains("youtu.be"))
+                        @if (LessonVideo.EmbedUrl(Model.CurrentLesson.VideoUrl) is { } embedUrl)
                         {
-                            var embedUrl = Model.CurrentLesson.VideoUrl.Replace("watch?v=", "embed/");
-                            <iframe src="@embedUrl" title="Lesson Video" allowfullscreen></iframe>
+                            <iframe src="@embedUrl" title="Video for @Model.CurrentLesson.Title" loading="lazy" referrerpolicy="strict-origin-when-cross-origin" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
                         }
                         else
                         {
-                            <video src="@Model.CurrentLesson.VideoUrl" controls></video>
+                            <video src="@LessonVideo.DirectUrl(Model.CurrentLesson.VideoUrl)" controls preload="metadata"></video>
                         }
                     </div>
+                    @if (LessonVideo.WatchUrl(Model.CurrentLesson.VideoUrl) is { } watchUrl)
+                    {
+                        <p class="lesson-video-link"><a href="@watchUrl" target="_blank" rel="noopener noreferrer">Watch on YouTube ↗</a><span class="text-secondary"> if the embedded player is unavailable.</span></p>
+                    }
                 }
 
                 <div class="lesson-body">
                     @if (!string.IsNullOrEmpty(Model.CurrentLesson.Content))
                     {
-                        @Html.Raw(FormatLessonContent(Model.CurrentLesson.Content))
+                        @Html.Raw(MarkdownService.RenderHtml(Model.CurrentLesson.Content))
                     }
                     else
                     {
@@ -262,7 +265,7 @@
                     <div class="lesson-body mb-3">
                         @if (!string.IsNullOrEmpty(Model.CurrentChallenge.Description))
                         {
-                            @Html.Raw(FormatLessonContent(Model.CurrentChallenge.Description))
+                            @Html.Raw(MarkdownService.RenderHtml(Model.CurrentChallenge.Description))
                         }
                         else
                         {
@@ -977,38 +980,5 @@
                 });
             });
         </script>
-    }
-}
-
-@functions {
-    public static string FormatLessonContent(string content)
-    {
-        if (string.IsNullOrEmpty(content)) return "";
-
-        // Basic Markdown converter for demo.
-        var html = System.Net.WebUtility.HtmlEncode(content);
-
-        // Code blocks: ```bash ... ```
-        html = System.Text.RegularExpressions.Regex.Replace(html, @"```(?:[a-zA-Z0-9]+)?\r?\n([\s\S]*?)```", m =>
-            $"<pre><code>{m.Groups[1].Value}</code></pre>");
-
-        // Inline code: `code`
-        html = System.Text.RegularExpressions.Regex.Replace(html, @"`([^`]+)`", m =>
-            $"<code>{m.Groups[1].Value}</code>");
-
-        // Headers: ###, ##, #
-        html = System.Text.RegularExpressions.Regex.Replace(html, @"^### (.*?)$", "<h3>$1</h3>", System.Text.RegularExpressions.RegexOptions.Multiline);
-        html = System.Text.RegularExpressions.Regex.Replace(html, @"^## (.*?)$", "<h2>$1</h2>", System.Text.RegularExpressions.RegexOptions.Multiline);
-        html = System.Text.RegularExpressions.Regex.Replace(html, @"^# (.*?)$", "<h2>$1</h2>", System.Text.RegularExpressions.RegexOptions.Multiline);
-
-        // Bold: **text**
-        html = System.Text.RegularExpressions.Regex.Replace(html, @"\*\*([^\*]+)\*\*", "<strong>$1</strong>");
-
-        // Paragraphs / line breaks.
-        html = html.Replace("\r\n\r\n", "</p><p>").Replace("\n\n", "</p><p>");
-        html = "<p>" + html + "</p>";
-        html = html.Replace("\n", "<br/>");
-
-        return html;
     }
 }

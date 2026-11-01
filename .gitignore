@@ -7,3 +7,5 @@ appsettings.Development.json
 .local-sms/
 run.txt
 App_Data/ctf/
+
+.local-presentation/

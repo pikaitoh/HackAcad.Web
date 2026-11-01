@@ -140,14 +140,36 @@ try {
  Check((await Post(a,"/Admin/EditCourse/"+id,Fields("Title","Unapproved admin publish","Category","Web Security","IsPublished","true"))).StatusCode==HttpStatusCode.OK&&!(await Read(id)).IsPublished,"Admin settings cannot bypass course approval");
  // Exercise every content type through the shared persistence boundary, including moves and deletion.
  async Task ApproveDirect() { using var scope=factory.Services.CreateScope();var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();var c=await db.Courses.SingleAsync(c=>c.CourseId==id);c.ReviewStatus=CourseReviewStatus.Approved;c.IsPublished=true;await db.SaveChangesAsync(); }
- async Task Mutate(string label,Action<ApplicationDbContext> mutate) { await ApproveDirect(); using(var scope=factory.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();mutate(db);await db.SaveChangesAsync();} Check(!(await Read(id)).IsPublished&&(await Read(id)).ReviewStatus==CourseReviewStatus.Draft,label); }
- await Mutate("adding CTF invalidates approval",db=>db.Challenges.Add(new Challenge{CourseId=id,Title="CTF",FlagHash="test",IsPublished=true}));
+ async Task Mutate(string label,Action<ApplicationDbContext> mutate) { await ApproveDirect(); var version=(await Read(id)).ReviewVersion; using(var scope=factory.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();mutate(db);await db.SaveChangesAsync();} var changed=await Read(id);Check(!changed.IsPublished&&changed.ReviewStatus==CourseReviewStatus.Draft&&changed.ReviewVersion!=version,label); }
+ await Mutate("adding CTF invalidates approval",db=>db.Challenges.Add(new Challenge{CourseId=id,Title="CTF",Category="Web",Difficulty="Easy",Points=100,FlagHash="test",IsPublished=true}));
  await Mutate("changing CTF visibility invalidates approval",db=>{var c=db.Challenges.First(c=>c.CourseId==id);c.IsPublished=false;});
+ int hintChallengeId;
+ using(var scope=factory.Services.CreateScope())hintChallengeId=await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Challenges.Where(c=>c.CourseId==id).Select(c=>c.ChallengeId).FirstAsync();
+ await Mutate("adding CTF hint invalidates approval and changes the review version",db=>db.ChallengeHints.Add(new ChallengeHint{ChallengeId=hintChallengeId,HintText="Inspect the request log",DisplayOrder=1,DeductionPoints=10}));
+ await ApproveDirect();
+ var hintVersion=(await Read(id)).ReviewVersion;
+ ChallengeHint unchangedHint;
+ using(var scope=factory.Services.CreateScope())unchangedHint=await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().ChallengeHints.AsNoTracking().FirstAsync(h=>h.ChallengeId==hintChallengeId);
+ var unchangedHintSave=await Post(t,"/InstructorCourses/SaveChallenge",Fields("CourseId",id.ToString(),"ChallengeId",hintChallengeId.ToString(),"Title","CTF","Category","Web","Difficulty","Easy","Points","100","IsPublished","false","Hints[0].ChallengeHintId",unchangedHint.ChallengeHintId.ToString(),"Hints[0].HintText",unchangedHint.HintText,"Hints[0].DisplayOrder","1","Hints[0].DeductionPoints",unchangedHint.DeductionPoints.ToString()));
+ Check(unchangedHintSave.StatusCode==HttpStatusCode.Redirect&&(await Read(id)).IsPublished&&(await Read(id)).ReviewStatus==CourseReviewStatus.Approved&&(await Read(id)).ReviewVersion==hintVersion,"unchanged hint form saves preserve approval and its version");
+ await Mutate("editing only hint text invalidates approval",db=>db.ChallengeHints.First(h=>h.ChallengeId==hintChallengeId).HintText="Compare the denied request with its audit record");
+ await Mutate("editing only hint deduction invalidates approval",db=>db.ChallengeHints.First(h=>h.ChallengeId==hintChallengeId).DeductionPoints=20);
+ await Mutate("changing hint order invalidates approval",db=>db.ChallengeHints.First(h=>h.ChallengeId==hintChallengeId).DisplayOrder=2);
+ await Mutate("deleting CTF hint invalidates approval",db=>db.ChallengeHints.Remove(db.ChallengeHints.First(h=>h.ChallengeId==hintChallengeId)));
  await Mutate("adding lab invalidates approval",db=>db.SimulationTasks.Add(new SimulationTask{CourseId=id,Title="Lab"}));
  await Mutate("deleting lab invalidates approval",db=>db.SimulationTasks.Remove(db.SimulationTasks.First(s=>s.CourseId==id)));
  await Mutate("adding notebook invalidates approval",db=>db.CourseNotebooks.Add(new CourseNotebook{CourseId=id,Title="Notes",ContentJson="{\"version\":1,\"blocks\":[]}"}));
  await Mutate("editing notebook invalidates approval",db=>db.CourseNotebooks.First(n=>n.CourseId==id).ContentJson="{\"version\":1,\"blocks\":[{\"type\":\"markdown\",\"content\":\"Changed\"}]}");
  await Mutate("editing course metadata invalidates approval",db=>db.Courses.Single(c=>c.CourseId==id).Description="Changed description");
+ int destinationId;
+ using(var scope=factory.Services.CreateScope()) {
+  var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();var destination=new Course{Title="Activity move target",InstructorId=instructor.Id};db.Courses.Add(destination);await db.SaveChangesAsync();destinationId=destination.CourseId;
+  destination.ReviewStatus=CourseReviewStatus.Approved;destination.IsPublished=true;await db.SaveChangesAsync();
+ }
+ await ApproveDirect();
+ using(var scope=factory.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();(await db.Lessons.SingleAsync(l=>l.LessonId==lesson)).CourseId=destinationId;await db.SaveChangesAsync();}
+ Check(!(await Read(id)).IsPublished&&(await Read(id)).ReviewStatus==CourseReviewStatus.Draft&&!(await Read(destinationId)).IsPublished&&(await Read(destinationId)).ReviewStatus==CourseReviewStatus.Draft,"moving a lesson invalidates both the original and destination courses");
+ using(var scope=factory.Services.CreateScope()){var db=scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();(await db.Lessons.SingleAsync(l=>l.LessonId==lesson)).CourseId=id;await db.SaveChangesAsync();}
  await ApproveDirect();
  using(var left=factory.Services.CreateScope()) using(var right=factory.Services.CreateScope()) {
   var db1=left.ServiceProvider.GetRequiredService<ApplicationDbContext>();var db2=right.ServiceProvider.GetRequiredService<ApplicationDbContext>();
