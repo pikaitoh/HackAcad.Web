@@ -1521,6 +1521,16 @@ public class InstructorCoursesController(
         course.ReviewRevision++;
         course.SubmittedForReviewUtc = DateTime.UtcNow;
 
+        db.CourseReviewHistories.Add(new CourseReviewHistory
+{
+    CourseId = course.CourseId,
+    Action = "Submitted",
+    Remarks = "Course submitted for Admin review.",
+    PerformedBy = instructorId,
+    PerformedAtUtc = DateTime.UtcNow
+}
+);
+
         try
         {
             await db.SaveChangesAsync();
@@ -1895,6 +1905,36 @@ public class InstructorCoursesController(
             "text/html",
             $"{safeFilename}.html");
     }
+
+// ==========================================
+// COURSE REVIEW TIMELINE
+// ==========================================
+
+[Authorize(Roles = AccountRoles.Instructor)]
+[HttpGet]
+public async Task<IActionResult> ReviewTimeline(int id)
+{
+    var instructorId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+    var course = await db.Courses
+        .AsNoTracking()
+        .FirstOrDefaultAsync(c =>
+            c.CourseId == id &&
+            c.InstructorId == instructorId);
+
+    if (course == null)
+        return NotFound("Course not found or you do not own it.");
+
+    var history = await db.CourseReviewHistories
+        .AsNoTracking()
+        .Where(h => h.CourseId == id)
+        .OrderByDescending(h => h.PerformedAtUtc)
+        .ToListAsync();
+
+    ViewBag.Course = course;
+
+    return View(history);
+}
 
     // ==========================================
     // HELPER METHODS
