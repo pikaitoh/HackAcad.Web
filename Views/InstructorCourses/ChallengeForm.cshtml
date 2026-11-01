@@ -22,7 +22,7 @@
             <input type="hidden" asp-for="ChallengeId" />
             <input type="hidden" asp-for="CourseId" />
 
-            <div asp-validation-summary="ModelOnly" class="validation-summary mb-3" role="alert"></div>
+            <div asp-validation-summary="All" class="validation-summary mb-3" role="alert"></div>
 
             <div class="mb-3">
                 <label asp-for="Title" class="form-label">Challenge Title <span class="text-danger">*</span></label>
@@ -245,71 +245,50 @@
 
         updateHintRows();
 
-        // Preview challenge
-        document.getElementById("previewChallengeBtn").addEventListener("click", function () {
-            const form = this.closest("form");
-            const fileInput = form.querySelector('[name="UploadFile"]');
-            const previewFileName = form.querySelector('[name="PreviewFileName"]');
+            // Preview challenge
+            document.getElementById("previewChallengeBtn").addEventListener("click", function () {
+                const form = this.closest("form");
+                const fileInput = form.querySelector('[name="UploadFile"]');
+                const previewFileName = form.querySelector('[name="PreviewFileName"]');
 
-            if (fileInput.files.length > 0) {
-                previewFileName.value = fileInput.files[0].name;
-            } else {
-                previewFileName.value = "";
-            }
-
-            const previewForm = document.createElement("form");
-            previewForm.method = "POST";
-            previewForm.action = "/InstructorCourses/PreviewChallenge";
-            previewForm.target = "_blank";
-            previewForm.enctype = "application/x-www-form-urlencoded";
-
-            const fields = [
-                "ChallengeId",
-                "CourseId",
-                "Title",
-                "Category",
-                "Difficulty",
-                "Points",
-                "Description",
-                "IsPublished"
-            ];
-
-            const fileNameInput = document.createElement("input");
-            fileNameInput.type = "hidden";
-            fileNameInput.name = "PreviewFileName";
-            fileNameInput.value = previewFileName.value;
-            previewForm.appendChild(fileNameInput);
-
-            fields.forEach(name => {
-                const original = form.querySelector(`[name="${name}"]`);
-                if (!original) return;
-
-                const input = document.createElement("input");
-                input.type = "hidden";
-                input.name = name;
-
-                if (name === "IsPublished") {
-                    input.value = original.checked ? "true" : "false";
+                if (fileInput.files.length > 0) {
+                    previewFileName.value = fileInput.files[0].name;
                 } else {
-                    input.value = original.value;
+                    previewFileName.value = "";
                 }
 
-                previewForm.appendChild(input);
+                const previewForm = document.createElement("form");
+                previewForm.method = "POST";
+                previewForm.action = "/InstructorCourses/PreviewChallenge";
+                previewForm.target = "_blank";
+
+                // Copy every successful form field, including all hint fields.
+                const formData = new FormData(form);
+
+                for (const [name, value] of formData.entries()) {
+                    // Do not upload the actual file during preview.
+                    if (name === "UploadFile") continue;
+
+                    // PreviewFileName is handled separately below.
+                    if (name === "PreviewFileName") continue;
+
+                    const input = document.createElement("input");
+                    input.type = "hidden";
+                    input.name = name;
+                    input.value = value;
+                    previewForm.appendChild(input);
+                }
+
+                const fileNameInput = document.createElement("input");
+                fileNameInput.type = "hidden";
+                fileNameInput.name = "PreviewFileName";
+                fileNameInput.value = previewFileName.value;
+                previewForm.appendChild(fileNameInput);
+
+                document.body.appendChild(previewForm);
+                previewForm.submit();
+                previewForm.remove();
             });
 
-            const token = form.querySelector('input[name="__RequestVerificationToken"]');
-
-            if (token) {
-                const tokenInput = document.createElement("input");
-                tokenInput.type = "hidden";
-                tokenInput.name = token.name;
-                tokenInput.value = token.value;
-                previewForm.appendChild(tokenInput);
-            }
-
-            document.body.appendChild(previewForm);
-            previewForm.submit();
-            previewForm.remove();
-        });
     </script>
 }

@@ -799,8 +799,8 @@ public class InstructorCoursesController(
                 : $"CTF challenge \"{challenge.Title}\" updated.";
 
             return RedirectToAction(
-                nameof(Curriculum),
-                new { id = model.CourseId });
+                nameof(EditChallenge),
+                new { id = challenge.ChallengeId });
         }
         catch
         {
@@ -854,7 +854,17 @@ public class InstructorCoursesController(
             Description = model.Description,
             Points = model.Points,
             FileName = fileName,
-            IsPublished = model.IsPublished
+            IsPublished = model.IsPublished,
+
+            // Include hints submitted in the form, even if not saved yet.
+            Hints = (model.Hints ?? new List<ChallengeHintEditModel>())
+                .Select((hint, index) => new ChallengeHint
+                {
+                    HintText = hint.HintText,
+                    DisplayOrder = index + 1,
+                    DeductionPoints = hint.DeductionPoints
+                })
+                .ToList()
         };
 
         return View("~/Views/InstructorCourses/ChallengePreview.cshtml", previewModel);

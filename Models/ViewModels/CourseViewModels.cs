@@ -301,4 +301,5 @@ public class ChallengePreviewViewModel
     public int Points { get; set; }
     public string? FileName { get; set; }
     public bool IsPublished { get; set; }
+    public List<ChallengeHint> Hints { get; set; } = [];
 }

@@ -1213,6 +1213,14 @@ public class CoursesController(
         if (!IsCourseOwner(course.InstructorId))
             return Forbid();
 
+        // Load the hints configured for this challenge.
+        var hints = await db.ChallengeHints
+            .AsNoTracking()
+            .Where(h => h.ChallengeId == challenge.ChallengeId)
+            .OrderBy(h => h.DisplayOrder)
+            .ThenBy(h => h.ChallengeHintId)
+            .ToListAsync();
+
         var model = new ChallengePreviewViewModel
         {
             CourseId = challenge.CourseId,
@@ -1226,7 +1234,8 @@ public class CoursesController(
             FileName = string.IsNullOrEmpty(challenge.FilePath)
                 ? null
                 : Path.GetFileName(challenge.FilePath),
-            IsPublished = challenge.IsPublished
+            IsPublished = challenge.IsPublished,
+            Hints = hints
         };
 
         return View("~/Views/InstructorCourses/ChallengePreview.cshtml", model);
