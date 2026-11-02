@@ -1,8 +1,5 @@
 using System.ComponentModel.DataAnnotations;
-<<<<<<< Updated upstream
 using System.Globalization;
-=======
->>>>>>> Stashed changes
 using HackAcad.Web.Models.Entities;
 
 namespace HackAcad.Web.Models.ViewModels;
@@ -129,7 +126,6 @@ public class DashboardModel
     public CourseCardViewModel? RecentCourse { get; set; }
     public List<BadgeItem> Badges { get; set; } = [];
     public List<ChallengeSubmission> RecentSubmissions { get; set; } = [];
-<<<<<<< Updated upstream
     public ActivityCalendarViewModel ActivityCalendar { get; set; } = new();
 }
 
@@ -182,6 +178,4 @@ public class ActivityCalendarDayViewModel
             return $"{date}: {TotalEvents} event{(TotalEvents == 1 ? "" : "s")} — {string.Join(", ", details)}.";
         }
     }
-=======
->>>>>>> Stashed changes
 }
