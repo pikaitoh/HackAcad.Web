@@ -104,39 +104,42 @@ public class NotebookExportService
 
                 sb.AppendLine($"    <section class=\"notebook-card static-term-card\" id=\"{blockId}\">");
                 sb.AppendLine($"      <div class=\"block-meta-header\"><strong>{safeBlockTitle}</strong> <span class=\"meta-tag\">Static Demonstration</span></div>");
-                sb.AppendLine("      <div class=\"terminal-wrapper\">");
+                sb.AppendLine("      <div class=\"terminal-wrapper terminal-wrapper-static\">");
                 sb.AppendLine("        <div class=\"terminal-header\">");
                 sb.AppendLine("          <div class=\"terminal-buttons\">");
                 sb.AppendLine("            <span class=\"t-btn t-btn-red\"></span>");
                 sb.AppendLine("            <span class=\"t-btn t-btn-yellow\"></span>");
                 sb.AppendLine("            <span class=\"t-btn t-btn-green\"></span>");
                 sb.AppendLine("          </div>");
-                sb.AppendLine($"         <div class=\"terminal-title\">student@hackacad: ~ (example)</div>");
-                sb.AppendLine("          <div class=\"terminal-badge\">EXAMPLE</div>");
+                sb.AppendLine($"         <div class=\"terminal-title\">student@hackacad: ~ (static reference)</div>");
+                sb.AppendLine("          <div class=\"terminal-badge terminal-badge-static\">STATIC DEMO</div>");
                 sb.AppendLine("        </div>");
-                sb.AppendLine("        <div class=\"terminal-body static-body\">");
+                sb.AppendLine("        <div class=\"terminal-body terminal-body-static\">");
 
                 if (block.Examples != null && block.Examples.Count > 0)
                 {
                     foreach (var ex in block.Examples)
                     {
                         var safeCmd = WebUtility.HtmlEncode(ex.Command ?? "");
-                        sb.AppendLine($"          <div class=\"term-line\"><span class=\"term-prompt\">student@hackacad:{safeCwd}$ </span><span class=\"term-cmd\">{safeCmd}</span></div>");
+                        sb.AppendLine($"          <div class=\"term-line term-line-cmd\"><span class=\"term-prompt\">student@hackacad:{safeCwd}$ </span><span class=\"term-cmd\">{safeCmd}</span></div>");
                         if (!string.IsNullOrEmpty(ex.Output))
                         {
                             var outputLines = ex.Output.Replace("\r\n", "\n").Split('\n');
                             foreach (var line in outputLines)
                             {
-                                sb.AppendLine($"          <div class=\"term-line\">{WebUtility.HtmlEncode(line)}</div>");
+                                sb.AppendLine($"          <div class=\"term-line term-line-out\">{(string.IsNullOrEmpty(line) ? "&nbsp;" : WebUtility.HtmlEncode(line))}</div>");
                             }
                         }
                     }
                 }
                 else
                 {
-                    sb.AppendLine($"          <div class=\"term-line text-muted\"># No commands defined in this example block.</div>");
+                    sb.AppendLine($"          <div class=\"term-line text-muted fst-italic\"># No commands defined in this demonstration block.</div>");
                 }
 
+                sb.AppendLine("        </div>");
+                sb.AppendLine("        <div class=\"terminal-static-footer\">");
+                sb.AppendLine("          <span style=\"display:inline-flex;align-items:center;gap:4px;\"><svg viewBox=\"0 0 24 24\" width=\"13\" height=\"13\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><rect x=\"3\" y=\"11\" width=\"18\" height=\"11\" rx=\"2\" ry=\"2\"></rect><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"></path></svg> Static Command Demonstration • Read-Only Reference</span>");
                 sb.AppendLine("        </div>");
                 sb.AppendLine("      </div>");
                 sb.AppendLine("    </section>");
@@ -475,6 +478,36 @@ public class NotebookExportService
             line-height: 1.5;
         }
         .static-body { height: auto; min-height: 80px; max-height: 480px; }
+        .terminal-wrapper.terminal-wrapper-static {
+            margin-block: 0.5rem;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+        }
+        .terminal-badge-static {
+            background: #334155;
+            color: #cbd5e1;
+            border: 1px solid #475569;
+        }
+        .terminal-body-static {
+            padding: 1rem 1.25rem;
+            min-height: 70px;
+            max-height: 380px;
+            overflow-y: auto;
+            line-height: 1.6;
+        }
+        .terminal-static-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.45rem 1.25rem;
+            background: #1e293b;
+            border-top: 1px solid #334155;
+            color: #94a3b8;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        .term-line-cmd { margin-top: 0.35rem; color: #f8fafc; }
+        .term-line-cmd:first-child { margin-top: 0; }
+        .term-line-out { color: #cbd5e1; white-space: pre-wrap; word-break: break-all; padding-left: 0.25rem; }
         .term-line { white-space: pre-wrap; word-break: break-all; margin-bottom: 0.2rem; }
         .term-banner pre { color: #38bdf8; font-size: 0.7rem; line-height: 1.1; margin: 0; font-family: monospace; }
         .term-highlight { color: #fef08a; font-weight: bold; }

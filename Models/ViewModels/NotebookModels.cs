@@ -9,6 +9,12 @@ public class NotebookDocument
     [JsonPropertyName("version")]
     public int Version { get; set; } = 1;
 
+    [JsonPropertyName("sourceCourseNotebookId")]
+    public int? SourceCourseNotebookId { get; set; }
+
+    [JsonPropertyName("sourceCourseId")]
+    public int? SourceCourseId { get; set; }
+
     [JsonPropertyName("blocks")]
     public List<NotebookBlock> Blocks { get; set; } = [];
 }

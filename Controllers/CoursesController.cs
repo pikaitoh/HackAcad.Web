@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using HackAcad.Web.Data;
 using HackAcad.Web.Models.Entities;
 using HackAcad.Web.Models.ViewModels;
@@ -736,6 +737,129 @@ public class CoursesController(
             Encoding.UTF8.GetBytes(html),
             "text/html",
             $"{safeFilename}.html");
+    }
+
+    // ==========================================
+    // SAVE COURSE NOTEBOOK TO PERSONAL NOTEBOOKS
+    // ==========================================
+    [Authorize(Roles = AccountRoles.Learner)]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveCourseNotebookToPersonal(int id, int notebookId, [FromQuery] bool forceNew = false)
+    {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+        var course = await db.Courses.FindAsync(id);
+        if (course == null || !CanReadCourse(course))
+            return NotFound(new { success = false, message = "Course not found." });
+
+        if (!CanLearnCourse(course))
+            return Forbid();
+
+        var isInstructor = IsCourseOwner(course.InstructorId);
+
+        var enrollment = await db.Enrollments
+            .FirstOrDefaultAsync(e =>
+                e.UserId == currentUserId && e.CourseId == id);
+
+        if (enrollment == null && !isInstructor)
+            return Forbid();
+
+        var courseNotebook = await db.CourseNotebooks
+            .FirstOrDefaultAsync(nb =>
+                nb.CourseNotebookId == notebookId &&
+                nb.CourseId == id &&
+                (nb.IsPublished || isInstructor));
+
+        if (courseNotebook == null)
+            return NotFound(new { success = false, message = "Notebook not found or not published." });
+
+        // Check for existing duplicate copy in student's personal collection
+        if (!forceNew)
+        {
+            var userNotebooks = await db.Notebooks
+                .Where(n => n.UserId == currentUserId)
+                .ToListAsync();
+
+            foreach (var un in userNotebooks)
+            {
+                if (!string.IsNullOrWhiteSpace(un.ContentJson))
+                {
+                    try
+                    {
+                        var unDoc = JsonSerializer.Deserialize<NotebookDocument>(un.ContentJson);
+                        if (unDoc != null && unDoc.SourceCourseNotebookId == notebookId)
+                        {
+                            return Ok(new
+                            {
+                                success = false,
+                                alreadySaved = true,
+                                existingNotebookId = un.NotebookId,
+                                title = un.Title,
+                                message = $"You already saved \"{un.Title}\" to your personal notebooks."
+                            });
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore unparseable JSON
+                    }
+                }
+            }
+        }
+
+        // Deep copy the notebook document
+        NotebookDocument doc;
+        try
+        {
+            doc = string.IsNullOrWhiteSpace(courseNotebook.ContentJson)
+                ? new NotebookDocument()
+                : JsonSerializer.Deserialize<NotebookDocument>(courseNotebook.ContentJson) ?? new NotebookDocument();
+        }
+        catch
+        {
+            doc = new NotebookDocument();
+        }
+
+        doc.SourceCourseNotebookId = courseNotebook.CourseNotebookId;
+        doc.SourceCourseId = id;
+
+        // Ensure unique block IDs for complete independence
+        if (doc.Blocks != null)
+        {
+            foreach (var blk in doc.Blocks)
+            {
+                blk.Id = "blk_" + Guid.NewGuid().ToString("n")[..8];
+            }
+        }
+
+        var copiedJson = JsonSerializer.Serialize(doc);
+        var targetTitle = forceNew
+            ? $"{courseNotebook.Title} (Copy)"
+            : courseNotebook.Title;
+
+        if (targetTitle.Length > 150)
+            targetTitle = targetTitle[..150];
+
+        var personalNotebook = new Notebook
+        {
+            UserId = currentUserId,
+            Title = targetTitle,
+            ContentJson = copiedJson,
+            CreatedAtUtc = DateTime.UtcNow,
+            UpdatedAtUtc = DateTime.UtcNow
+        };
+
+        db.Notebooks.Add(personalNotebook);
+        await db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            success = true,
+            notebookId = personalNotebook.NotebookId,
+            title = personalNotebook.Title,
+            message = $"\"{personalNotebook.Title}\" has been saved to your personal notebooks."
+        });
     }
 
     // ==========================================

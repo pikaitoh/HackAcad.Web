@@ -77,41 +77,50 @@
                 <div class="surface-panel p-4 border rounded-3" id="@blockDomId">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h2 class="h5 mb-0 font-monospace">@(string.IsNullOrWhiteSpace(block.Title) ? "Command & Output Demonstration" : block.Title)</h2>
-                        <span class="badge bg-light text-secondary border">Static Example</span>
+                        <span class="badge bg-secondary-subtle text-secondary border font-monospace small">Static Reference</span>
                     </div>
 
-                    <div class="terminal-wrapper mb-0">
+                    <div class="terminal-wrapper terminal-wrapper-static mb-0">
                         <div class="terminal-header">
                             <div class="terminal-buttons">
                                 <span class="t-btn t-btn-red"></span>
                                 <span class="t-btn t-btn-yellow"></span>
                                 <span class="t-btn t-btn-green"></span>
                             </div>
-                            <div class="terminal-title">student@hackacad: ~ (example)</div>
-                            <div class="terminal-badge">EXAMPLE</div>
+                            <div class="terminal-title">student@hackacad: ~ (static reference)</div>
+                            <div class="terminal-badge terminal-badge-static">STATIC DEMO</div>
                         </div>
-                        <div class="terminal-body" style="height:auto; min-height:80px; max-height:480px;">
+
+                        <div class="terminal-body terminal-body-static">
                             @if (block.Examples != null && block.Examples.Any())
                             {
                                 foreach (var ex in block.Examples)
                                 {
-                                    <div class="term-line">
+                                    <div class="term-line term-line-cmd">
                                         <span class="term-prompt">student@hackacad:@(promptCwd)$ </span><span class="term-cmd">@ex.Command</span>
                                     </div>
+
                                     @if (!string.IsNullOrEmpty(ex.Output))
                                     {
                                         var lines = ex.Output.Replace("\r\n", "\n").Split('\n');
                                         foreach (var l in lines)
                                         {
-                                            <div class="term-line">@l</div>
+                                            <div class="term-line term-line-out">@(string.IsNullOrEmpty(l) ? " " : l)</div>
                                         }
                                     }
                                 }
                             }
                             else
                             {
-                                <div class="term-line text-muted"># No commands in this static example block.</div>
+                                <div class="term-line text-muted fst-italic"># No commands in this static demonstration.</div>
                             }
+                        </div>
+
+                        <div class="terminal-static-footer">
+                            <span class="d-inline-flex align-items-center gap-1">
+                                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                Static Command Demonstration • Read-Only Reference
+                            </span>
                         </div>
                     </div>
                 </div>
