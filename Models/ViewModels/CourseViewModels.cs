@@ -11,10 +11,15 @@ public class CourseCardViewModel
     public string? Description { get; set; }
     public string? Category { get; set; }
     public string? ThumbnailUrl { get; set; }
+<<<<<<< Updated upstream
     public string InstructorName { get; set; } = string.Empty;
     public bool IsEnrolled { get; set; }
     public bool IsCompleted { get; set; }
     public bool IsSaved { get; set; }
+=======
+    public string TeacherName { get; set; } = string.Empty;
+    public bool IsEnrolled { get; set; }
+>>>>>>> Stashed changes
     public int ProgressPercent { get; set; }
     public int LessonCount { get; set; }
     public int ChallengeCount { get; set; }
@@ -30,6 +35,7 @@ public class CourseIndexViewModel
     public List<string> Categories { get; set; } = [];
 }
 
+<<<<<<< Updated upstream
 public class SavedCoursesViewModel
 {
     public List<CourseCardViewModel> Courses { get; set; } = [];
@@ -42,12 +48,22 @@ public class CourseDetailsViewModel
     public bool IsEnrolled { get; set; }
     public bool IsOwnCourse { get; set; }
     public bool IsSaved { get; set; }
+=======
+public class CourseDetailsViewModel
+{
+    public Course Course { get; set; } = null!;
+    public string TeacherName { get; set; } = string.Empty;
+    public bool IsEnrolled { get; set; }
+>>>>>>> Stashed changes
     public int ProgressPercent { get; set; }
     public int? ResumeLessonId { get; set; }
     public List<Lesson> Lessons { get; set; } = [];
     public List<Challenge> Challenges { get; set; } = [];
     public List<SimulationTask> SimulationTasks { get; set; } = [];
+<<<<<<< Updated upstream
     public List<CourseNotebook> CourseNotebooks { get; set; } = [];
+=======
+>>>>>>> Stashed changes
     public HashSet<int> CompletedLessonIds { get; set; } = [];
     public HashSet<int> CompletedChallengeIds { get; set; } = [];
     public HashSet<int> CompletedSimulationIds { get; set; } = [];
@@ -57,8 +73,12 @@ public enum LearnContentType
 {
     Lesson,
     Challenge,
+<<<<<<< Updated upstream
     Simulation,
     Notebook
+=======
+    Simulation
+>>>>>>> Stashed changes
 }
 
 public class CourseLearnViewModel
@@ -66,27 +86,40 @@ public class CourseLearnViewModel
     public Course Course { get; set; } = null!;
     public Enrollment Enrollment { get; set; } = null!;
     public int ProgressPercent { get; set; }
+<<<<<<< Updated upstream
     public bool IsCourseCompleted { get; set; }
+=======
+>>>>>>> Stashed changes
 
     public List<Lesson> Lessons { get; set; } = [];
     public List<Challenge> Challenges { get; set; } = [];
     public List<SimulationTask> SimulationTasks { get; set; } = [];
+<<<<<<< Updated upstream
     public List<CourseNotebook> CourseNotebooks { get; set; } = [];
+=======
+>>>>>>> Stashed changes
 
     public HashSet<int> CompletedLessonIds { get; set; } = [];
     public HashSet<int> CompletedChallengeIds { get; set; } = [];
     public HashSet<int> CompletedSimulationIds { get; set; } = [];
 
     public LearnContentType CurrentType { get; set; }
+<<<<<<< Updated upstream
 
     public Lesson? CurrentLesson { get; set; }
     public Challenge? CurrentChallenge { get; set; }
     public SimulationTask? CurrentSimulation { get; set; }
     public CourseNotebook? CurrentNotebook { get; set; }
+=======
+    public Lesson? CurrentLesson { get; set; }
+    public Challenge? CurrentChallenge { get; set; }
+    public SimulationTask? CurrentSimulation { get; set; }
+>>>>>>> Stashed changes
 
     public int? PrevLessonId { get; set; }
     public int? NextLessonId { get; set; }
     public bool CurrentItemCompleted { get; set; }
+<<<<<<< Updated upstream
 
     public List<ChallengeSubmission> ChallengeHistory { get; set; } = [];
 
@@ -97,13 +130,19 @@ public class CourseLearnViewModel
     public HashSet<int> UnlockedChallengeHintIds { get; set; } = [];
 
     public int CurrentChallengeHintPointsDeducted { get; set; }
+=======
+    public List<ChallengeSubmission> ChallengeHistory { get; set; } = [];
+>>>>>>> Stashed changes
 }
 
 public class CourseCreateEditModel
 {
+<<<<<<< Updated upstream
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
     public string ReviewStatus { get; set; } = CourseReviewStatus.Draft;
 
+=======
+>>>>>>> Stashed changes
     public int CourseId { get; set; }
 
     [Required(ErrorMessage = "Enter a course title."), StringLength(150, ErrorMessage = "Title cannot exceed 150 characters.")]
@@ -161,13 +200,17 @@ public class ChallengeCreateEditModel
     [Display(Name = "Plaintext Flag")]
     public string? PlaintextFlag { get; set; }
 
+<<<<<<< Updated upstream
     [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+=======
+>>>>>>> Stashed changes
     public string? ExistingFilePath { get; set; }
 
     [Display(Name = "Challenge File (Optional)")]
     public IFormFile? UploadFile { get; set; }
 
     public bool IsPublished { get; set; } = true;
+<<<<<<< Updated upstream
 
     // Hints configured by the instructor.
     public List<ChallengeHintEditModel> Hints { get; set; } = [];
@@ -186,26 +229,34 @@ public class ChallengeHintEditModel
 
     [Range(0, 1000, ErrorMessage = "Deduction must be between 0 and 1000 points.")]
     public int DeductionPoints { get; set; } = 10;
+=======
+>>>>>>> Stashed changes
 }
 
 public class SimulationCreateEditModel
 {
     public int TaskId { get; set; }
     public int CourseId { get; set; }
+<<<<<<< Updated upstream
     public int? NotebookId { get; set; }
     public int? CourseNotebookId { get; set; }
     public string? BlockId { get; set; }
     public string? ReturnUrl { get; set; }
+=======
+>>>>>>> Stashed changes
 
     [Required(ErrorMessage = "Enter a task title."), StringLength(150, ErrorMessage = "Title cannot exceed 150 characters.")]
     public string Title { get; set; } = string.Empty;
 
+<<<<<<< Updated upstream
     [StringLength(2000, ErrorMessage = "Description cannot exceed 2000 characters.")]
     public string? Description { get; set; }
 
     [StringLength(50)]
     public string? Difficulty { get; set; }
 
+=======
+>>>>>>> Stashed changes
     public string? Instructions { get; set; }
 
     [Display(Name = "Virtual File System (JSON)")]
@@ -217,7 +268,11 @@ public class SimulationCreateEditModel
     public bool IsPublished { get; set; } = true;
 }
 
+<<<<<<< Updated upstream
 public class InstructorCourseRow
+=======
+public class TeacherCourseRow
+>>>>>>> Stashed changes
 {
     public Course Course { get; set; } = null!;
     public int LessonCount { get; set; }
@@ -227,9 +282,15 @@ public class InstructorCourseRow
     public int CompletedStudentsCount { get; set; }
 }
 
+<<<<<<< Updated upstream
 public class InstructorDashboardViewModel
 {
     public List<InstructorCourseRow> Courses { get; set; } = [];
+=======
+public class TeacherDashboardViewModel
+{
+    public List<TeacherCourseRow> Courses { get; set; } = [];
+>>>>>>> Stashed changes
     public int TotalStudentsEnrolled { get; set; }
     public int TotalSubmissionsReceived { get; set; }
 }
@@ -241,6 +302,7 @@ public class StudentCourseActivityRow
     public string StudentEmail { get; set; } = string.Empty;
     public DateTime EnrolledDate { get; set; }
     public int ProgressPercent { get; set; }
+<<<<<<< Updated upstream
     public TimeSpan? ElapsedCourseTime { get; set; }
     public DateTime? LatestActivityUtc { get; set; }
     public string Status { get; set; } = string.Empty;
@@ -263,6 +325,9 @@ public class StudentCourseActivityRow
             return $"{totalMinutes}m";
         }
     }
+=======
+    public string Status { get; set; } = string.Empty;
+>>>>>>> Stashed changes
 }
 
 public class CourseCurriculumViewModel
@@ -271,6 +336,7 @@ public class CourseCurriculumViewModel
     public List<Lesson> Lessons { get; set; } = [];
     public List<Challenge> Challenges { get; set; } = [];
     public List<SimulationTask> SimulationTasks { get; set; } = [];
+<<<<<<< Updated upstream
     public List<CourseNotebook> CourseNotebooks { get; set; } = [];
     public List<StudentCourseActivityRow> EnrolledStudents { get; set; } = [];
     public List<ChallengeSubmission> RecentSubmissions { get; set; } = [];
@@ -303,3 +369,8 @@ public class ChallengePreviewViewModel
     public bool IsPublished { get; set; }
     public List<ChallengeHint> Hints { get; set; } = [];
 }
+=======
+    public List<StudentCourseActivityRow> EnrolledStudents { get; set; } = [];
+    public List<ChallengeSubmission> RecentSubmissions { get; set; } = [];
+}
+>>>>>>> Stashed changes

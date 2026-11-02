@@ -1,7 +1,10 @@
 @model CourseIndexViewModel
 @{
     ViewData["Title"] = "Explore Courses";
+<<<<<<< Updated upstream
     var returnUrl = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
+=======
+>>>>>>> Stashed changes
 }
 
 <div class="container module-shell">
@@ -10,9 +13,15 @@
             <h1>Course Catalogue</h1>
             <p class="text-secondary">Master web security, Linux forensics, cryptography, and hands-on CTFs.</p>
         </div>
+<<<<<<< Updated upstream
         @if (User.IsInRole(AccountRoles.Instructor))
         {
             <a class="btn btn-primary" asp-controller="InstructorCourses" asp-action="Create">
+=======
+        @if (User.IsInRole(AccountRoles.Teacher))
+        {
+            <a class="btn btn-primary" asp-controller="TeacherCourses" asp-action="Create">
+>>>>>>> Stashed changes
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:0.35rem; vertical-align:-2px;"><path d="M12 5v14M5 12h14"/></svg>Create Course
             </a>
         }
@@ -79,7 +88,11 @@
                         <p>@(c.Description ?? "Practical guided lessons with hands-on CTF challenges and terminal simulations.")</p>
                         
                         <div class="course-card-meta">
+<<<<<<< Updated upstream
                             <span>Instructor: <strong>@c.InstructorName</strong></span>
+=======
+                            <span>Instructor: <strong>@c.TeacherName</strong></span>
+>>>>>>> Stashed changes
                             <span>•</span>
                             <span>@(c.LessonCount) Lessons</span>
                             @if (c.ChallengeCount > 0)
@@ -105,6 +118,7 @@
                             </div>
                         }
 
+<<<<<<< Updated upstream
                         <div class="course-card-footer course-card-actions">
                             @if (c.IsEnrolled)
                             {
@@ -123,6 +137,16 @@
                                         @(c.IsSaved ? "Saved ✓" : "Save course")
                                     </button>
                                 </form>
+=======
+                        <div class="course-card-footer">
+                            @if (c.IsEnrolled)
+                            {
+                                <a asp-action="Learn" asp-route-id="@c.CourseId" class="btn btn-sm btn-primary w-100">Continue Learning</a>
+                            }
+                            else
+                            {
+                                <a asp-action="Details" asp-route-id="@c.CourseId" class="btn btn-sm btn-outline-secondary w-100">View Curriculum</a>
+>>>>>>> Stashed changes
                             }
                         </div>
                     </div>

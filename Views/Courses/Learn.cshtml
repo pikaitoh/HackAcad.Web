@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 
 @model CourseLearnViewModel
 @{
@@ -34,6 +35,19 @@
                 ← Course Overview
             </a>
         </div>
+=======
+@model CourseLearnViewModel
+@{
+    ViewData["Title"] = $"{Model.Course.Title} - Learning Portal";
+    var token = Html.AntiForgeryToken();
+}
+
+<div class="container-fluid px-3 pt-3">
+    <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+        <a asp-action="Details" asp-route-id="@Model.Course.CourseId" class="btn btn-sm btn-outline-secondary">
+            ← Course Details &amp; Overview
+        </a>
+>>>>>>> Stashed changes
         <div class="d-flex align-items-center gap-3">
             <span class="text-secondary small">Course Mastery: <strong>@Model.ProgressPercent%</strong></span>
             <div style="width: 120px;">
@@ -42,6 +56,7 @@
         </div>
     </div>
 
+<<<<<<< Updated upstream
     <!-- Backdrop for Mobile Navigation Drawer -->
     <div class="learn-sidebar-backdrop" id="learnSidebarBackdrop" aria-hidden="true"></div>
 
@@ -54,6 +69,14 @@
                     <div class="text-secondary small">@(Model.Lessons.Count + Model.Challenges.Count + Model.SimulationTasks.Count + Model.CourseNotebooks.Count) Total Activities</div>
                 </div>
                 <button type="button" class="btn-close d-lg-none" id="sidebarCloseBtn" aria-label="Close sidebar"></button>
+=======
+    <div class="learn-container">
+        <!-- Sidebar Curriculum -->
+        <aside class="learn-sidebar">
+            <div class="learn-sidebar-header">
+                <h2>@Model.Course.Title</h2>
+                <div class="text-secondary small">@(Model.Lessons.Count + Model.Challenges.Count + Model.SimulationTasks.Count) Total Activities</div>
+>>>>>>> Stashed changes
             </div>
 
             <nav class="learn-curriculum-nav" aria-label="Curriculum Navigation">
@@ -65,7 +88,10 @@
                     {
                         var isActive = Model.CurrentType == LearnContentType.Lesson && Model.CurrentLesson?.LessonId == l.LessonId;
                         var isDone = Model.CompletedLessonIds.Contains(l.LessonId);
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
                         <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-lessonId="@l.LessonId"
                            class="curriculum-item-link @(isActive ? "active" : "")">
                             <div class="d-flex align-items-center gap-2 text-truncate">
@@ -74,7 +100,11 @@
                             </div>
                             @if (isDone)
                             {
+<<<<<<< Updated upstream
                                 <span class="item-check" title="Completed"><img src="~/images/check.svg" class="sim-icon" alt="" aria-hidden="true" /></span>
+=======
+                                <span class="item-check" title="Completed">✓</span>
+>>>>>>> Stashed changes
                             }
                         </a>
                     }
@@ -88,7 +118,10 @@
                     {
                         var isActive = Model.CurrentType == LearnContentType.Challenge && Model.CurrentChallenge?.ChallengeId == ch.ChallengeId;
                         var isDone = Model.CompletedChallengeIds.Contains(ch.ChallengeId);
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
                         <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-challengeId="@ch.ChallengeId"
                            class="curriculum-item-link @(isActive ? "active" : "")">
                             <div class="d-flex align-items-center gap-2 text-truncate">
@@ -97,7 +130,11 @@
                             </div>
                             @if (isDone)
                             {
+<<<<<<< Updated upstream
                                 <span class="item-check" title="Solved"><img src="~/images/check.svg" class="sim-icon" alt="" aria-hidden="true" /></span>
+=======
+                                <span class="item-check" title="Solved">✓</span>
+>>>>>>> Stashed changes
                             }
                             else
                             {
@@ -115,7 +152,10 @@
                     {
                         var isActive = Model.CurrentType == LearnContentType.Simulation && Model.CurrentSimulation?.TaskId == s.TaskId;
                         var isDone = Model.CompletedSimulationIds.Contains(s.TaskId);
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
                         <a asp-action="Learn" asp-route-id="@Model.Course.CourseId" asp-route-simulationId="@s.TaskId"
                            class="curriculum-item-link @(isActive ? "active" : "")">
                             <div class="d-flex align-items-center gap-2 text-truncate">
@@ -124,11 +164,16 @@
                             </div>
                             @if (isDone)
                             {
+<<<<<<< Updated upstream
                                 <span class="item-check" title="Completed"><img src="~/images/check.svg" class="sim-icon" alt="" aria-hidden="true" /></span>
+=======
+                                <span class="item-check" title="Completed">✓</span>
+>>>>>>> Stashed changes
                             }
                         </a>
                     }
                 }
+<<<<<<< Updated upstream
 
                 <!-- Terminal Notebooks Group -->
                 @if (Model.CourseNotebooks.Any())
@@ -147,11 +192,14 @@
                         </a>
                     }
                 }
+=======
+>>>>>>> Stashed changes
             </nav>
         </aside>
 
         <!-- Main Content Pane -->
         <main class="learn-main-pane">
+<<<<<<< Updated upstream
             @if (Model.IsCourseCompleted)
             {
                 <section class="alert alert-success d-flex flex-wrap justify-content-between align-items-center gap-3" role="status">
@@ -166,6 +214,8 @@
                 </section>
             }
 
+=======
+>>>>>>> Stashed changes
             @* =========================================
                CASE 1: CURRENT ITEM IS LESSON
                ========================================= *@
@@ -178,6 +228,7 @@
                     </div>
                     @if (Model.CurrentItemCompleted)
                     {
+<<<<<<< Updated upstream
                         <span class="badge bg-success p-2 d-inline-flex align-items-center gap-1"><img src="~/images/check.svg" class="sim-icon" alt="" aria-hidden="true" /> Completed</span>
                     }
                 </div>
@@ -198,12 +249,36 @@
                     {
                         <p class="lesson-video-link"><a href="@watchUrl" target="_blank" rel="noopener noreferrer">Watch on YouTube ↗</a><span class="text-secondary"> if the embedded player is unavailable.</span></p>
                     }
+=======
+                        <span class="badge bg-success p-2">Completed ✓</span>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.CurrentLesson.VideoUrl))
+                {
+                    <div class="lesson-video-box">
+                        @if (Model.CurrentLesson.VideoUrl.Contains("youtube.com") || Model.CurrentLesson.VideoUrl.Contains("youtu.be"))
+                        {
+                            var embedUrl = Model.CurrentLesson.VideoUrl.Replace("watch?v=", "embed/");
+                            <iframe src="@embedUrl" title="Lesson Video" allowfullscreen></iframe>
+                        }
+                        else
+                        {
+                            <video src="@Model.CurrentLesson.VideoUrl" controls></video>
+                        }
+                    </div>
+>>>>>>> Stashed changes
                 }
 
                 <div class="lesson-body">
                     @if (!string.IsNullOrEmpty(Model.CurrentLesson.Content))
                     {
+<<<<<<< Updated upstream
                         @Html.Raw(MarkdownService.RenderHtml(Model.CurrentLesson.Content))
+=======
+                        @* Render formatted content with preservation of line breaks and code blocks *@
+                        @Html.Raw(FormatLessonContent(Model.CurrentLesson.Content))
+>>>>>>> Stashed changes
                     }
                     else
                     {
@@ -261,7 +336,11 @@
                     </div>
                     @if (Model.CurrentItemCompleted)
                     {
+<<<<<<< Updated upstream
                         <span class="badge bg-success p-2 d-inline-flex align-items-center gap-1"><img src="~/images/check.svg" class="sim-icon" alt="" aria-hidden="true" /> Solved</span>
+=======
+                        <span class="badge bg-success p-2">Solved ✓</span>
+>>>>>>> Stashed changes
                     }
                 </div>
 
@@ -283,11 +362,18 @@
 
                 <div class="ctf-card-interactive">
                     <h3 style="font-size: 1.15rem; font-weight:700; margin-bottom: 0.75rem;">Challenge Description</h3>
+<<<<<<< Updated upstream
 
                     <div class="lesson-body mb-3">
                         @if (!string.IsNullOrEmpty(Model.CurrentChallenge.Description))
                         {
                             @Html.Raw(MarkdownService.RenderHtml(Model.CurrentChallenge.Description))
+=======
+                    <div class="lesson-body mb-3">
+                        @if (!string.IsNullOrEmpty(Model.CurrentChallenge.Description))
+                        {
+                            @Html.Raw(FormatLessonContent(Model.CurrentChallenge.Description))
+>>>>>>> Stashed changes
                         }
                         else
                         {
@@ -295,6 +381,7 @@
                         }
                     </div>
 
+<<<<<<< Updated upstream
                     <p class="form-text mt-2 mb-0">
                         You can also open
                         <a href="https://gchq.github.io/CyberChef/" target="_blank" rel="noopener noreferrer">
@@ -303,11 +390,16 @@
                         for a larger workspace.
                     </p>
 
+=======
+>>>>>>> Stashed changes
                     <!-- Challenge File Download Box -->
                     @if (!string.IsNullOrEmpty(Model.CurrentChallenge.FilePath))
                     {
                         var fileName = System.IO.Path.GetFileName(Model.CurrentChallenge.FilePath);
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
                         <div class="ctf-file-box">
                             <div class="d-flex align-items-center gap-3">
                                 <span style="font-size: 2rem;">📦</span>
@@ -316,14 +408,20 @@
                                     <div class="text-secondary small">Required Challenge Artifact / Evidence File</div>
                                 </div>
                             </div>
+<<<<<<< Updated upstream
                             <a asp-action="DownloadChallengeFile"
                                asp-route-id="@Model.CurrentChallenge.ChallengeId"
                                class="btn btn-outline-secondary">
                                 Download File
+=======
+                            <a asp-action="DownloadChallengeFile" asp-route-id="@Model.CurrentChallenge.ChallengeId" class="btn btn-outline-secondary">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:0.35rem; vertical-align:-2px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Download File
+>>>>>>> Stashed changes
                             </a>
                         </div>
                     }
 
+<<<<<<< Updated upstream
                     <!-- CyberChef Tool -->
                     <div class="mt-4 p-3 border rounded-3">
                         <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
@@ -491,6 +589,11 @@
                     <div class="mt-4 pt-3 border-top">
                         <h4 style="font-size: 1.05rem; font-weight:700; margin-bottom: 0.5rem;">Submit Flag</h4>
 
+=======
+                    <!-- Flag Submission Box -->
+                    <div class="mt-4 pt-3 border-top">
+                        <h4 style="font-size: 1.05rem; font-weight:700; margin-bottom: 0.5rem;">Submit Flag</h4>
+>>>>>>> Stashed changes
                         @if (Model.CurrentItemCompleted)
                         {
                             <div class="alert alert-success">
@@ -502,12 +605,18 @@
                             <form asp-action="SubmitFlag" method="post">
                                 <input type="hidden" name="courseId" value="@Model.Course.CourseId" />
                                 <input type="hidden" name="challengeId" value="@Model.CurrentChallenge.ChallengeId" />
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
                                 <div class="ctf-flag-input-group">
                                     <input type="text" name="flag" class="form-control ctf-flag-input" placeholder="flag{...}" required />
                                     <button type="submit" class="btn btn-primary" style="white-space:nowrap;">Submit Flag</button>
                                 </div>
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
                                 <div class="form-text mt-1">Enter the exact flag string you recovered from the challenge.</div>
                             </form>
                         }
@@ -518,7 +627,10 @@
                     {
                         <div class="mt-4 pt-3 border-top">
                             <h5 style="font-size: 0.9rem; font-weight:700; color:var(--ha-muted);">Your Recent Flag Attempts</h5>
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
                             <ul class="list-unstyled small mt-2">
                                 @foreach (var sub in Model.ChallengeHistory)
                                 {
@@ -527,7 +639,11 @@
                                             @(sub.IsCorrect ? "✓ Correct" : "✗ Incorrect")
                                         </span>
                                         <code class="text-secondary">@sub.SubmittedFlag</code>
+<<<<<<< Updated upstream
                                         <span class="text-muted">(@UserTime.Format(sub.SubmittedDate) · @UserTime.Id)</span>
+=======
+                                        <span class="text-muted">(@sub.SubmittedDate.ToLocalTime().ToString("g"))</span>
+>>>>>>> Stashed changes
                                     </li>
                                 }
                             </ul>
@@ -545,13 +661,21 @@
                     <div>
                         <div class="d-flex align-items-center gap-2 mb-2">
                             <span class="item-badge-pill badge-sim">Simulated Shell Lab</span>
+<<<<<<< Updated upstream
                             <span class="badge bg-dark">Client-Side Terminal Sandbox</span>
+=======
+                            <span class="badge bg-dark">Client-Side NetAcad Sandbox</span>
+>>>>>>> Stashed changes
                         </div>
                         <h1>@Model.CurrentSimulation.Title</h1>
                     </div>
                     @if (Model.CurrentItemCompleted)
                     {
+<<<<<<< Updated upstream
                         <span class="badge bg-success p-2 d-inline-flex align-items-center gap-1"><img src="~/images/check.svg" class="sim-icon" alt="" aria-hidden="true" /> Completed</span>
+=======
+                        <span class="badge bg-success p-2">Completed ✓</span>
+>>>>>>> Stashed changes
                     }
                 </div>
 
@@ -570,6 +694,7 @@
                 </div>
 
                 <div id="simulation-success-banner" style="display:none;" class="alert alert-success">
+<<<<<<< Updated upstream
                     <h4 class="alert-heading d-flex align-items-center gap-2"><img src="~/images/check.svg" class="sim-icon sim-icon-lg" alt="" aria-hidden="true" />Simulation Lab Completed!</h4>
                     <p class="mb-0">Your command sequence and target objectives were verified. Progress has been saved to your account.</p>
                     <p id="simulation-reward" class="mt-2 mb-0" hidden></p>
@@ -577,11 +702,16 @@
                         <input type="hidden" name="courseId" value="@Model.Course.CourseId" />
                         <button type="submit" class="btn btn-success">Finish Course</button>
                     </form>
+=======
+                    <h4 class="alert-heading">🎉 Simulation Lab Completed!</h4>
+                    <p class="mb-0">Your command sequence and target objectives were verified. Progress has been saved to your account.</p>
+>>>>>>> Stashed changes
                 </div>
 
                 <!-- Terminal Display Container -->
                 <div id="sim-terminal-container"></div>
             }
+<<<<<<< Updated upstream
 
             
             @* =========================================
@@ -770,11 +900,14 @@
                 </div>
             }
 
+=======
+>>>>>>> Stashed changes
         </main>
     </div>
 </div>
 
 @section Scripts {
+<<<<<<< Updated upstream
     <link rel="stylesheet" href="~/css/simulation-builder.css" asp-append-version="true" />
     <script src="~/js/terminal-dialogs.js" asp-append-version="true"></script>
     <script src="~/js/simulation-terminal.js" asp-append-version="true"></script>
@@ -1139,10 +1272,14 @@
         });
     </script>
 
+=======
+    <script src="~/js/simulation-terminal.js" asp-append-version="true"></script>
+>>>>>>> Stashed changes
     @if (Model.CurrentType == LearnContentType.Simulation && Model.CurrentSimulation != null)
     {
         <script>
             document.addEventListener('DOMContentLoaded', function () {
+<<<<<<< Updated upstream
                 var config = @Html.Raw(SimulationVerifier.SafeJson(Model.CurrentSimulation.VirtualFileSystemJson));
 
                 if (!config) {
@@ -1163,10 +1300,24 @@
 
                     var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
+=======
+                var config = @Html.Raw(string.IsNullOrWhiteSpace(Model.CurrentSimulation.VirtualFileSystemJson) ? "{}" : Model.CurrentSimulation.VirtualFileSystemJson);
+                var taskId = @Model.CurrentSimulation.TaskId;
+                var courseId = @Model.Course.CourseId;
+
+                window.initSimulationTerminal('sim-terminal-container', config, function () {
+                    // Send completion request to server via AJAX
+                    var formData = new FormData();
+                    formData.append('taskId', taskId);
+                    formData.append('courseId', courseId);
+                    
+                    var token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+>>>>>>> Stashed changes
                     if (token) {
                         formData.append('__RequestVerificationToken', token);
                     }
 
+<<<<<<< Updated upstream
                     return fetch('/Courses/CompleteSimulation', {
                         method: 'POST',
                         body: formData
@@ -1190,8 +1341,55 @@
                             document.getElementById('finish-course-after-simulation').hidden = false;
                         }
                     });
+=======
+                    fetch('/Courses/CompleteSimulation', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(res => res.json())
+                    .then(data => {
+                        console.log("Lab completion synced:", data);
+                    })
+                    .catch(err => console.error("Error saving lab progress:", err));
+>>>>>>> Stashed changes
                 });
             });
         </script>
     }
 }
+<<<<<<< Updated upstream
+=======
+
+@functions {
+    public static string FormatLessonContent(string content)
+    {
+        if (string.IsNullOrEmpty(content)) return "";
+        
+        // Basic Markdown converter for demo
+        var html = System.Net.WebUtility.HtmlEncode(content);
+        
+        // Code blocks: ```bash ... ```
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"```(?:[a-zA-Z0-9]+)?\r?\n([\s\S]*?)```", m =>
+            $"<pre><code>{m.Groups[1].Value}</code></pre>");
+            
+        // Inline code: `code`
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"`([^`]+)`", m =>
+            $"<code>{m.Groups[1].Value}</code>");
+            
+        // Headers: ###, ##, #
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"^### (.*?)$", "<h3>$1</h3>", System.Text.RegularExpressions.RegexOptions.Multiline);
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"^## (.*?)$", "<h2>$1</h2>", System.Text.RegularExpressions.RegexOptions.Multiline);
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"^# (.*?)$", "<h2>$1</h2>", System.Text.RegularExpressions.RegexOptions.Multiline);
+        
+        // Bold: **text**
+        html = System.Text.RegularExpressions.Regex.Replace(html, @"\*\*([^\*]+)\*\*", "<strong>$1</strong>");
+        
+        // Paragraphs / line breaks
+        html = html.Replace("\r\n\r\n", "</p><p>").Replace("\n\n", "</p><p>");
+        html = "<p>" + html + "</p>";
+        html = html.Replace("\n", "<br/>");
+        
+        return html;
+    }
+}
+>>>>>>> Stashed changes

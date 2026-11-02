@@ -1,0 +1,372 @@
+@model CourseCurriculumViewModel
+@{
+    ViewData["Title"] = $"Curriculum: {Model.Course.Title}";
+}
+
+<div class="container module-shell">
+    <div class="mb-3">
+        <a asp-action="Index" class="btn btn-sm btn-outline-secondary">← Back to Teacher Studio</a>
+    </div>
+
+    <!-- Course Header Bar -->
+    <div class="workspace-start mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <span class="badge mb-2" style="background:#f2cf45; color:#193e46; font-weight:700;">@(Model.Course.Category ?? "Domain")</span>
+                <h1 style="color:white; font-size:1.85rem; font-weight:800; margin-bottom:0.35rem;">@Model.Course.Title</h1>
+                <div style="color:var(--ha-on-dark); font-size:0.875rem;">
+                    <span>Status: <strong>@(Model.Course.IsPublished ? "Published" : "Draft")</strong></span>
+                    <span class="mx-2">•</span>
+                    <span>@Model.Lessons.Count Lessons</span>
+                    <span class="mx-2">•</span>
+                    <span>@Model.Challenges.Count CTFs</span>
+                    <span class="mx-2">•</span>
+                    <span>@Model.SimulationTasks.Count Labs</span>
+                    <span class="mx-2">•</span>
+                    <span>@Model.EnrolledStudents.Count Enrolled</span>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a asp-controller="Courses" asp-action="Details" asp-route-id="@Model.Course.CourseId" class="btn btn-outline-light" target="_blank">
+                    Preview Student View ↗
+                </a>
+                <a asp-action="Edit" asp-route-id="@Model.Course.CourseId" class="btn btn-primary">
+                    Edit Settings
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nav Tabs for Curriculum Modules -->
+    <ul class="nav nav-pills mb-4" id="curriculumTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="lessons-tab" data-bs-toggle="pill" data-bs-target="#lessons-content" type="button" role="tab">
+                📚 Lessons (@Model.Lessons.Count)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="challenges-tab" data-bs-toggle="pill" data-bs-target="#challenges-content" type="button" role="tab">
+                🚩 CTF Challenges (@Model.Challenges.Count)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="simulations-tab" data-bs-toggle="pill" data-bs-target="#simulations-content" type="button" role="tab">
+                💻 Terminal Labs (@Model.SimulationTasks.Count)
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="students-tab" data-bs-toggle="pill" data-bs-target="#students-content" type="button" role="tab">
+                👥 Enrolled Students (@Model.EnrolledStudents.Count)
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Contents -->
+    <div class="tab-content" id="curriculumTabContent">
+        <!-- 1. LESSONS TAB -->
+        <div class="tab-pane fade show active" id="lessons-content" role="tabpanel">
+            <div class="surface-panel p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h2>Theory &amp; Technical Lessons</h2>
+                        <span class="text-secondary">Create structured reading material and multimedia tutorials</span>
+                    </div>
+                    <a asp-action="AddLesson" asp-route-courseId="@Model.Course.CourseId" class="btn btn-primary btn-sm">
+                        + Add Lesson
+                    </a>
+                </div>
+
+                @if (Model.Lessons.Count == 0)
+                {
+                    <div class="empty-state p-4 text-center">
+                        <p class="text-secondary">No lessons in this course yet. Add your first lesson above.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle module-table">
+                            <thead>
+                                <tr>
+                                    <th style="width: 5rem;">Order</th>
+                                    <th>Lesson Title</th>
+                                    <th>Media</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var l in Model.Lessons)
+                                {
+                                    <tr>
+                                        <td><strong>#@l.OrderIndex</strong></td>
+                                        <td>
+                                            <strong>@l.Title</strong>
+                                            <div class="record-secondary">
+                                                @(string.IsNullOrEmpty(l.Content) ? "No text" : (l.Content.Length > 80 ? l.Content.Substring(0, 80) + "..." : l.Content))
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(l.VideoUrl))
+                                            {
+                                                <span class="badge bg-info text-dark">Video Attached</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">Text-only</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-inline-flex gap-2">
+                                                <a asp-action="EditLesson" asp-route-id="@l.LessonId" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                                <form asp-action="DeleteLesson" asp-route-id="@l.LessonId" method="post" onsubmit="return confirm('Delete this lesson?');">
+                                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- 2. CTF CHALLENGES TAB -->
+        <div class="tab-pane fade" id="challenges-content" role="tabpanel">
+            <div class="surface-panel p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h2>CTF Cybersecurity Challenges</h2>
+                        <span class="text-secondary">Upload target artifacts/logs and set SHA-256 protected flags</span>
+                    </div>
+                    <a asp-action="AddChallenge" asp-route-courseId="@Model.Course.CourseId" class="btn btn-primary btn-sm">
+                        + Add CTF Challenge
+                    </a>
+                </div>
+
+                @if (Model.Challenges.Count == 0)
+                {
+                    <div class="empty-state p-4 text-center">
+                        <p class="text-secondary">No CTF challenges created yet. Add a challenge to test learners' skills!</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle module-table">
+                            <thead>
+                                <tr>
+                                    <th>Challenge Title</th>
+                                    <th>Category</th>
+                                    <th>Difficulty</th>
+                                    <th>Points</th>
+                                    <th>Artifact File</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var ch in Model.Challenges)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>@ch.Title</strong>
+                                            <div class="record-secondary">@(ch.Description != null && ch.Description.Length > 60 ? ch.Description.Substring(0, 60) + "..." : ch.Description)</div>
+                                        </td>
+                                        <td><span class="badge bg-light text-dark">@ch.Category</span></td>
+                                        <td><span class="difficulty-badge diff-@ch.Difficulty?.ToLowerInvariant()">@ch.Difficulty</span></td>
+                                        <td><strong>@ch.Points</strong> pts</td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(ch.FilePath))
+                                            {
+                                                <span class="text-success small">✓ @System.IO.Path.GetFileName(ch.FilePath)</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted small">None</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (ch.IsPublished)
+                                            {
+                                                <span class="badge bg-success">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Draft</span>
+                                            }
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-inline-flex gap-2">
+                                                <a asp-action="EditChallenge" asp-route-id="@ch.ChallengeId" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                                <form asp-action="DeleteChallenge" asp-route-id="@ch.ChallengeId" method="post" onsubmit="return confirm('Delete this CTF challenge?');">
+                                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- 3. SIMULATIONS TAB -->
+        <div class="tab-pane fade" id="simulations-content" role="tabpanel">
+            <div class="surface-panel p-4">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h2>Simulated Terminal Lab Exercises</h2>
+                        <span class="text-secondary">Configure virtual Linux file trees, allowed commands, and automated objectives</span>
+                    </div>
+                    <a asp-action="AddSimulation" asp-route-courseId="@Model.Course.CourseId" class="btn btn-primary btn-sm">
+                        + Add Terminal Lab
+                    </a>
+                </div>
+
+                @if (Model.SimulationTasks.Count == 0)
+                {
+                    <div class="empty-state p-4 text-center">
+                        <p class="text-secondary">No terminal labs in this course yet. Create interactive NetAcad-style labs above.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle module-table">
+                            <thead>
+                                <tr>
+                                    <th>Lab Title</th>
+                                    <th>Instructions</th>
+                                    <th>Virtual Shell Config</th>
+                                    <th>Reward Token</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var s in Model.SimulationTasks)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>@s.Title</strong>
+                                        </td>
+                                        <td>
+                                            <div class="record-secondary">@(s.Instructions != null && s.Instructions.Length > 70 ? s.Instructions.Substring(0, 70) + "..." : s.Instructions)</div>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-light text-dark font-monospace">JSON Configured</span>
+                                        </td>
+                                        <td>
+                                            <code class="small text-secondary">@(string.IsNullOrEmpty(s.RewardFlagHash) ? "None" : s.RewardFlagHash)</code>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-inline-flex gap-2">
+                                                <a asp-action="EditSimulation" asp-route-id="@s.TaskId" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                                <form asp-action="DeleteSimulation" asp-route-id="@s.TaskId" method="post" onsubmit="return confirm('Delete this simulation task?');">
+                                                    <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- 4. STUDENTS TAB -->
+        <div class="tab-pane fade" id="students-content" role="tabpanel">
+            <div class="surface-panel p-4 mb-4">
+                <h2>Enrolled Learners</h2>
+                <p class="text-secondary mb-3">Monitor enrolled students and their learning progress in real time.</p>
+
+                @if (Model.EnrolledStudents.Count == 0)
+                {
+                    <div class="empty-state p-4 text-center">
+                        <p class="text-secondary">No students have enrolled in this course yet.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table align-middle module-table">
+                            <thead>
+                                <tr>
+                                    <th>Student</th>
+                                    <th>Enrolled Date</th>
+                                    <th>Progress</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var st in Model.EnrolledStudents)
+                                {
+                                    <tr>
+                                        <td>
+                                            <strong>@st.StudentName</strong>
+                                            <div class="record-secondary">@st.StudentEmail</div>
+                                        </td>
+                                        <td>@st.EnrolledDate.ToLocalTime().ToString("d MMM yyyy")</td>
+                                        <td style="width: 14rem;">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <progress value="@st.ProgressPercent" max="100" style="width:100px; height:6px;"></progress>
+                                                <strong>@st.ProgressPercent%</strong>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge @(st.Status == "Completed" ? "bg-success" : "bg-warning text-dark")">
+                                                @st.Status
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+
+            <!-- Recent Flag Submissions in this Course -->
+            @if (Model.RecentSubmissions.Any())
+            {
+                <div class="surface-panel p-4">
+                    <h3>Recent CTF Submissions in Course</h3>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Time</th>
+                                    <th>Submitted Flag</th>
+                                    <th>Result</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var sub in Model.RecentSubmissions)
+                                {
+                                    <tr>
+                                        <td>@sub.SubmittedDate.ToLocalTime().ToString("g")</td>
+                                        <td><code>@sub.SubmittedFlag</code></td>
+                                        <td>
+                                            <span class="badge @(sub.IsCorrect ? "bg-success" : "bg-danger")">
+                                                @(sub.IsCorrect ? "Correct" : "Incorrect")
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+}

@@ -17,7 +17,11 @@ namespace HackAcad.Web.Controllers;
 [Route("Identity/Account/[action]")]
 public partial class AccountController(UserManager<ApplicationUser> users, SignInManager<ApplicationUser> signIn,
     UserAccounts accounts, ApplicationDbContext db, EmailVerification verification, PhoneVerification phones,
+<<<<<<< Updated upstream
     AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, TimeProvider clock, BadgeService badges, ActivityCalendarService activityCalendar, Personalization personalization, AccountConnections connections, AdminSecurity adminSecurity) : Controller
+=======
+    AccountRecords records, Microsoft.Extensions.Caching.Memory.IMemoryCache securityCache, BadgeService badges) : Controller
+>>>>>>> Stashed changes
 {
     [AllowAnonymous, HttpGet]
     public IActionResult Register() => User.Identity?.IsAuthenticated == true ? RedirectToAction(nameof(Dashboard)) : View(new RegisterModel());
@@ -197,10 +201,14 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         if (user is null) return Challenge();
 
         var enrollments = await db.Enrollments
+<<<<<<< Updated upstream
             .Where(e => e.UserId == id
                 && db.Courses.Any(c => c.CourseId == e.CourseId && c.IsPublished)
                 && (!isInstructor
                     || !db.Courses.Any(c => c.CourseId == e.CourseId && c.InstructorId == id)))
+=======
+            .Where(e => e.UserId == id)
+>>>>>>> Stashed changes
             .OrderByDescending(e => e.EnrolledDate)
             .ToListAsync();
 
@@ -208,8 +216,13 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         var courses = await db.Courses.Where(c => courseIds.Contains(c.CourseId)).ToListAsync();
         var courseMap = courses.ToDictionary(c => c.CourseId);
 
+<<<<<<< Updated upstream
         var instructorIds = courses.Select(c => c.InstructorId).Distinct().ToList();
         var instructorNames = await db.Users.Where(u => instructorIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName);
+=======
+        var teacherIds = courses.Select(c => c.TeacherId).Distinct().ToList();
+        var teacherNames = await db.Users.Where(u => teacherIds.Contains(u.Id)).ToDictionaryAsync(u => u.Id, u => u.DisplayName);
+>>>>>>> Stashed changes
 
         var enrolledCards = new List<CourseCardViewModel>();
         foreach (var e in enrollments)
@@ -222,6 +235,7 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             var totalItems = lessonCount + challengeCount + simulationCount;
 
             var completedCount = await db.ProgressRecords
+<<<<<<< Updated upstream
                 .CountAsync(p => p.EnrollmentId == e.EnrollmentId && p.IsCompleted
                     && (p.ContentType == ProgressContentType.Lesson && db.Lessons.Any(l => l.LessonId == p.LessonId && l.CourseId == course.CourseId)
                         || p.ContentType == ProgressContentType.Challenge && db.Challenges.Any(c => c.ChallengeId == p.ChallengeId && c.CourseId == course.CourseId && c.IsPublished)
@@ -230,6 +244,12 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             var pct = totalItems > 0 ? (int)Math.Round((double)completedCount / totalItems * 100) : 0;
             var isCompleted = totalItems > 0 && completedCount >= totalItems;
             instructorNames.TryGetValue(course.InstructorId, out var instructorName);
+=======
+                .CountAsync(p => p.EnrollmentId == e.EnrollmentId && p.IsCompleted);
+
+            var pct = totalItems > 0 ? (int)Math.Round((double)completedCount / totalItems * 100) : 0;
+            teacherNames.TryGetValue(course.TeacherId, out var teacherName);
+>>>>>>> Stashed changes
 
             enrolledCards.Add(new CourseCardViewModel
             {
@@ -238,9 +258,14 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
                 Description = course.Description,
                 Category = course.Category,
                 ThumbnailUrl = course.ThumbnailUrl,
+<<<<<<< Updated upstream
                 InstructorName = instructorName ?? "Instructor",
                 IsEnrolled = true,
                 IsCompleted = isCompleted,
+=======
+                TeacherName = teacherName ?? "Instructor",
+                IsEnrolled = true,
+>>>>>>> Stashed changes
                 ProgressPercent = Math.Clamp(pct, 0, 100),
                 LessonCount = lessonCount,
                 ChallengeCount = challengeCount,
@@ -250,9 +275,13 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
         }
 
         var solvedChallengeIds = await db.ChallengeSubmissions
+<<<<<<< Updated upstream
             .Where(s => s.UserId == id && s.IsCorrect
                 && db.Challenges.Any(c => c.ChallengeId == s.ChallengeId && c.IsPublished
                     && db.Courses.Any(course => course.CourseId == c.CourseId && course.IsPublished)))
+=======
+            .Where(s => s.UserId == id && s.IsCorrect)
+>>>>>>> Stashed changes
             .Select(s => s.ChallengeId)
             .Distinct()
             .ToListAsync();
@@ -262,12 +291,18 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             .SumAsync(c => (int?)c.Points) ?? 0;
 
         var badgesList = await badges.GetUserBadgesAsync(id);
+<<<<<<< Updated upstream
         var activity = await activityCalendar.BuildAsync(user, enrollments.Select(e => e.EnrollmentId).ToList(), activityYear);
 
         var recentSubmissions = await db.ChallengeSubmissions
             .Where(s => s.UserId == id
                 && db.Challenges.Any(c => c.ChallengeId == s.ChallengeId && c.IsPublished
                     && db.Courses.Any(course => course.CourseId == c.CourseId && course.IsPublished)))
+=======
+
+        var recentSubmissions = await db.ChallengeSubmissions
+            .Where(s => s.UserId == id)
+>>>>>>> Stashed changes
             .OrderByDescending(s => s.SubmittedDate)
             .Take(5)
             .ToListAsync();
@@ -281,11 +316,17 @@ public partial class AccountController(UserManager<ApplicationUser> users, SignI
             SolvedChallenges = solvedChallengeIds.Count,
             TotalPoints = totalPoints,
             EnrolledCourses = enrolledCards,
+<<<<<<< Updated upstream
             // Keep the dashboard hero focused on a course the student can still work on.
             RecentCourse = enrolledCards.FirstOrDefault(c => !c.IsCompleted),
             Badges = badgesList,
             RecentSubmissions = recentSubmissions,
             ActivityCalendar = activity
+=======
+            RecentCourse = enrolledCards.FirstOrDefault(),
+            Badges = badgesList,
+            RecentSubmissions = recentSubmissions
+>>>>>>> Stashed changes
         });
     }
 

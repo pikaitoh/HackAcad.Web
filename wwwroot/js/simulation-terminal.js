@@ -1,6 +1,10 @@
 /**
  * HackAcad Simulated Terminal Engine
+<<<<<<< Updated upstream
  * Client-side CLI simulation environment.
+=======
+ * NetAcad-style client-side CLI simulation environment.
+>>>>>>> Stashed changes
  * Executes allowed commands inside a virtual filesystem and tracks lab objectives.
  */
 (function () {
@@ -31,6 +35,7 @@
             }
         };
 
+<<<<<<< Updated upstream
         const allBuiltins = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "whoami", "id", "echo", "history", "date", "touch", "nano", "chmod"];
         const obsoleteBuiltins = ["ping", "nmap", "curl", "base64"];
 
@@ -102,10 +107,30 @@
                 if (!allowedCommands.includes("help")) allowedCommands.push("help");
                 if (!allowedCommands.includes("clear")) allowedCommands.push("clear");
 
+=======
+        let allowedCommands = ["help", "clear", "pwd", "ls", "cd", "cat", "grep", "whoami", "chmod", "echo", "base64", "ping", "nmap", "curl", "history", "date", "id"];
+        let currentPath = ["home", "student"];
+        let filePermissions = {}; // e.g. "audit.sh": "755"
+        let objectives = [];
+        let commandHistory = [];
+        let historyIndex = -1;
+        let isTaskCompleted = false;
+
+        // Parse teacher config
+        if (config) {
+            try {
+                const parsed = typeof config === 'string' ? JSON.parse(config) : config;
+                if (parsed.allowedCommands && Array.isArray(parsed.allowedCommands)) {
+                    allowedCommands = parsed.allowedCommands.map(c => c.toLowerCase().trim());
+                    if (!allowedCommands.includes("help")) allowedCommands.push("help");
+                    if (!allowedCommands.includes("clear")) allowedCommands.push("clear");
+                }
+>>>>>>> Stashed changes
                 if (parsed.fileSystem) virtualFS = parsed.fileSystem;
                 if (parsed.initialDirectory) {
                     currentPath = parsed.initialDirectory.replace(/^\/+|\/+$/g, '').split('/').filter(Boolean);
                 }
+<<<<<<< Updated upstream
 
                 isSequential = parsed.sequentialObjectives === true;
 
@@ -143,16 +168,27 @@
                             requiredFiles: reqFiles
                         };
                     });
+=======
+                if (parsed.objectives && Array.isArray(parsed.objectives)) {
+                    objectives = parsed.objectives.map(o => ({ ...o, completed: false }));
+>>>>>>> Stashed changes
                 }
             } catch (e) {
                 console.warn("Using default simulation environment:", e);
             }
         }
 
+<<<<<<< Updated upstream
         if (objectives.length === 0 && !isNotebook) {
             objectives = [
                 { id: "explore", text: "Explore the filesystem with pwd", command: "pwd", executionDirectory: "", hint: "Type 'pwd' and press Enter", completed: false },
                 { id: "find_flag", text: "Locate and read notes.txt using cat", command: "cat notes.txt", executionDirectory: "/home/student", hint: "Run 'cat notes.txt'", completed: false }
+=======
+        if (objectives.length === 0) {
+            objectives = [
+                { id: "explore", text: "Explore the filesystem using cd and ls", completed: false },
+                { id: "find_flag", text: "Locate and read the secret file using cat", completed: false }
+>>>>>>> Stashed changes
             ];
         }
 
@@ -166,7 +202,11 @@
                         <span class="t-btn t-btn-green"></span>
                     </div>
                     <div class="terminal-title">student@hackacad: ~ (bash simulation)</div>
+<<<<<<< Updated upstream
                     <div class="terminal-badge">HackAcad Sandbox</div>
+=======
+                    <div class="terminal-badge">NetAcad Sandbox</div>
+>>>>>>> Stashed changes
                 </div>
                 <div class="terminal-body" id="term-output">
                     <div class="term-line term-banner">
@@ -175,14 +215,22 @@
  | |__| | __ _  ___| | __  / _ \\   ___ __ _   __| |
  |  __  |/ _\` |/ __| |/ / / ___ \\ / __/ _\` | / _\` |
  |_|  |_|\\__,_|\\___|_|\\_\\/_/   \\_\\___\\__,_|\\__,_|
+<<<<<<< Updated upstream
   Virtual Security Sandbox • Terminal Engine v2.0</pre>
+=======
+  Virtual Security Sandbox • NetAcad Engine v2.0</pre>
+>>>>>>> Stashed changes
                     </div>
                     <div class="term-line text-muted">Type <span class="term-highlight">help</span> to view allowed lab commands. Tab to auto-complete.</div>
                     <div class="term-line text-muted">Type <span class="term-highlight">clear</span> to reset screen.</div>
                     <div class="term-line">&nbsp;</div>
                 </div>
                 <div class="terminal-input-row">
+<<<<<<< Updated upstream
                     <span class="terminal-prompt" id="term-prompt">student@hackacad:${escapeHtml(getPathString())}$ </span>
+=======
+                    <span class="terminal-prompt" id="term-prompt">student@hackacad:${getPathString()}$ </span>
+>>>>>>> Stashed changes
                     <input type="text" id="term-input" class="terminal-input" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" autofocus />
                 </div>
             </div>
@@ -203,7 +251,11 @@
         function getDirectoryNode(pathArray) {
             let curr = virtualFS;
             for (let part of pathArray) {
+<<<<<<< Updated upstream
                 if (!curr || typeof curr !== 'object' || !Object.hasOwn(curr, part)) {
+=======
+                if (!curr || typeof curr !== 'object' || curr[part] === undefined) {
+>>>>>>> Stashed changes
                     return null;
                 }
                 curr = curr[part];
@@ -214,7 +266,10 @@
         function printLine(content, className = '') {
             const line = document.createElement('div');
             line.className = `term-line ${className}`;
+<<<<<<< Updated upstream
             if (className === 'term-error') commandSucceeded = false;
+=======
+>>>>>>> Stashed changes
             line.innerHTML = content;
             outputEl.appendChild(line);
             outputEl.scrollTop = outputEl.scrollHeight;
@@ -228,6 +283,7 @@
             printLine(escaped, className);
         }
 
+<<<<<<< Updated upstream
         function printHint(idx, hintText) {
             if (!hintText || !hintText.trim()) return;
             const cleanHint = hintText.trim();
@@ -270,10 +326,20 @@
                 <li class="objective-item ${obj.completed ? 'completed' : 'pending'}">
                     <span class="obj-icon">${obj.completed ? checkSvg : pendingSvg}</span>
                     <span class="obj-text">${isSequential ? `<strong>Step ${idx + 1}:</strong> ` : ''}${escapeHtml(obj.text)}</span>
+=======
+        function renderObjectives() {
+            const listEl = document.getElementById('simulation-objectives-list');
+            if (!listEl) return;
+            listEl.innerHTML = objectives.map(obj => `
+                <li class="objective-item ${obj.completed ? 'completed' : 'pending'}">
+                    <span class="obj-icon">${obj.completed ? '✓' : '○'}</span>
+                    <span class="obj-text">${obj.text}</span>
+>>>>>>> Stashed changes
                 </li>
             `).join('');
         }
 
+<<<<<<< Updated upstream
         function checkObjectives(submittedCommand, commandToRun, dirBeforeCommand) {
             if (!commandSucceeded) return;
             const cleanSubmitted = (submittedCommand || '').trim();
@@ -334,10 +400,43 @@
                         triggerSuccess();
                     }
                 }
+=======
+        function checkObjectives(cmd, args, output) {
+            const fullCmd = `${cmd} ${args.join(' ')}`.trim();
+            const currDirStr = getPathString();
+
+            objectives.forEach(obj => {
+                if (obj.completed) return;
+
+                if (obj.type === 'cwd' && currDirStr.includes(obj.target)) {
+                    obj.completed = true;
+                } else if (obj.type === 'cat' && cmd === 'cat' && args.some(a => a.includes(obj.target))) {
+                    obj.completed = true;
+                } else if (obj.type === 'chmod' && cmd === 'chmod' && args.some(a => a.includes(obj.target))) {
+                    obj.completed = true;
+                } else if (obj.type === 'command' && cmd === obj.target) {
+                    obj.completed = true;
+                } else if (cmd === 'cd') {
+                    if (obj.id === 'explore') obj.completed = true;
+                } else if (cmd === 'cat') {
+                    if (obj.id === 'find_flag' && (output.includes('flag{') || output.includes('FLAG_'))) {
+                        obj.completed = true;
+                    }
+                }
+            });
+
+            renderObjectives();
+
+            // Check if all objectives are completed
+            if (!isTaskCompleted && objectives.every(o => o.completed)) {
+                isTaskCompleted = true;
+                triggerSuccess();
+>>>>>>> Stashed changes
             }
         }
 
         function triggerSuccess() {
+<<<<<<< Updated upstream
             printOutput('Lab objectives met. Waiting for server verification...');
             if (typeof onCompleteCallback === 'function') {
                 Promise.resolve(onCompleteCallback([...commandHistory])).catch(error => {
@@ -563,10 +662,31 @@
             return { satisfied: true };
         }
 
+=======
+            printLine('&nbsp;');
+            printLine(`<div class="term-success-box">
+  ★ ==================================================== ★<br>
+  [+] MISSION OBJECTIVES COMPLETE!<br>
+  [+] Great job, operator. Your solution has been verified.<br>
+  ★ ==================================================== ★
+</div>`, 'term-success');
+
+            const bannerEl = document.getElementById('simulation-success-banner');
+            if (bannerEl) {
+                bannerEl.style.display = 'block';
+            }
+
+            if (typeof onCompleteCallback === 'function') {
+                onCompleteCallback();
+            }
+        }
+
+>>>>>>> Stashed changes
         // Handle Command Execution
         function executeCommand(rawInput) {
             const trimmed = rawInput.trim();
             if (!trimmed) {
+<<<<<<< Updated upstream
                 printLine(`<span class="term-prompt">${escapeHtml(promptEl.textContent)}</span>`);
                 return;
             }
@@ -653,10 +773,29 @@
             // Check if command is permitted by instructor in this exercise
             if (!allowedCommands.includes(cmd)) {
                 printLine(`hackacad-sh: <strong>${escapeHtml(cmd)}</strong>: command not allowed in this lab exercise.`, 'term-error');
+=======
+                printLine(`<span class="term-prompt">${promptEl.textContent}</span>`);
+                return;
+            }
+
+            commandHistory.push(trimmed);
+            historyIndex = commandHistory.length;
+
+            printLine(`<span class="term-prompt">${promptEl.textContent}</span> <span class="term-cmd">${trimmed}</span>`);
+
+            const parts = trimmed.split(/\s+/);
+            const cmd = parts[0].toLowerCase();
+            const args = parts.slice(1);
+
+            // Check if command is permitted by teacher in this exercise
+            if (!allowedCommands.includes(cmd)) {
+                printLine(`hackacad-sh: <strong>${cmd}</strong>: command not allowed in this lab exercise.`, 'term-error');
+>>>>>>> Stashed changes
                 printLine(`Type <span class="term-highlight">help</span> for allowed commands.`, 'text-secondary');
                 return;
             }
 
+<<<<<<< Updated upstream
             let capturedOutput = '';
             let captureLines = [];
 
@@ -679,6 +818,13 @@
             switch (cmd) {
                 case 'help':
                     emitLine('<strong>Available Lab Commands:</strong>');
+=======
+            let outputResult = '';
+
+            switch (cmd) {
+                case 'help':
+                    printLine('<strong>Available Lab Commands:</strong>');
+>>>>>>> Stashed changes
                     allowedCommands.forEach(c => {
                         let desc = '';
                         switch (c) {
@@ -688,17 +834,28 @@
                             case 'ls': desc = 'List files and subdirectories'; break;
                             case 'cd': desc = 'Change working directory'; break;
                             case 'cat': desc = 'Display contents of a file'; break;
+<<<<<<< Updated upstream
                             case 'touch': desc = 'Create an empty file or update timestamp'; break;
                             case 'nano': desc = 'Edit file in simulated terminal editor'; break;
+=======
+>>>>>>> Stashed changes
                             case 'grep': desc = 'Search for patterns in file'; break;
                             case 'chmod': desc = 'Change file access permissions'; break;
                             case 'whoami': desc = 'Display current user identity'; break;
                             case 'id': desc = 'Display user and group IDs'; break;
                             case 'echo': desc = 'Print text to terminal'; break;
+<<<<<<< Updated upstream
+=======
+                            case 'base64': desc = 'Base64 encode or decode (-d)'; break;
+                            case 'ping': desc = 'Simulate ICMP ping to a remote host'; break;
+                            case 'nmap': desc = 'Network exploration and port scan'; break;
+                            case 'curl': desc = 'Simulate HTTP request to a URL'; break;
+>>>>>>> Stashed changes
                             case 'history': desc = 'Display command history'; break;
                             case 'date': desc = 'Display current system time'; break;
                             default: desc = 'Lab utility'; break;
                         }
+<<<<<<< Updated upstream
                         emitLine(`  <span class="term-highlight">${escapeHtml(c.padEnd(10))}</span> - ${desc}`);
                     });
                     if (customCommands.length > 0) {
@@ -707,6 +864,10 @@
                             emitLine(`  <span class="term-highlight">${escapeHtml(cc.command.padEnd(20))}</span> - ${escapeHtml(cc.description || 'Scenario command')}`);
                         });
                     }
+=======
+                        printLine(`  <span class="term-highlight">${c.padEnd(10)}</span> - ${desc}`);
+                    });
+>>>>>>> Stashed changes
                     break;
 
                 case 'clear':
@@ -714,6 +875,7 @@
                     break;
 
                 case 'pwd':
+<<<<<<< Updated upstream
                     emitOutput(getPathString());
                     break;
 
@@ -727,10 +889,30 @@
 
                 case 'date':
                     emitOutput(new Date().toUTCString());
+=======
+                    outputResult = getPathString();
+                    printLine(outputResult);
+                    break;
+
+                case 'whoami':
+                    outputResult = 'student';
+                    printLine(outputResult);
+                    break;
+
+                case 'id':
+                    outputResult = 'uid=1000(student) gid=1000(student) groups=1000(student),4(adm),27(sudo)';
+                    printLine(outputResult);
+                    break;
+
+                case 'date':
+                    outputResult = new Date().toUTCString();
+                    printLine(outputResult);
+>>>>>>> Stashed changes
                     break;
 
                 case 'history':
                     commandHistory.forEach((h, idx) => {
+<<<<<<< Updated upstream
                         emitLine(`  ${(idx + 1).toString().padStart(3, ' ')}  ${escapeHtml(h)}`);
                     });
                     break;
@@ -772,6 +954,12 @@
                     return; // Nano handles its own prompt restore
                 }
 
+=======
+                        printLine(`  ${(idx + 1).toString().padStart(3, ' ')}  ${h}`);
+                    });
+                    break;
+
+>>>>>>> Stashed changes
                 case 'ls': {
                     const isLong = args.includes('-l') || args.includes('-la') || args.includes('-al');
                     const showAll = args.includes('-a') || args.includes('-la') || args.includes('-al');
@@ -784,6 +972,7 @@
 
                     const entries = Object.keys(targetDir);
                     if (isLong) {
+<<<<<<< Updated upstream
                         emitLine(`total ${entries.length * 4}`);
                         if (showAll) {
                             emitLine(`drwxr-xr-x 2 student student 4096 Oct 18 10:00 .`);
@@ -797,21 +986,44 @@
                                 ? `<span class="term-dir">${escapeHtml(name)}/</span>`
                                 : (filePermissions[[...currentPath, name].join('/')] ? `<span class="term-exec">${escapeHtml(name)}*</span>` : escapeHtml(name));
                             emitLine(`${perm} 1 student student ${size.toString().padStart(5, ' ')} Oct 18 10:00 ${coloredName}`);
+=======
+                        printLine(`total ${entries.length * 4}`);
+                        if (showAll) {
+                            printLine(`drwxr-xr-x 2 student student 4096 Oct 18 10:00 .`);
+                            printLine(`drwxr-xr-x 4 root    root    4096 Oct 18 10:00 ..`);
+                        }
+                        entries.forEach(name => {
+                            const isDir = typeof targetDir[name] === 'object';
+                            const perm = isDir ? 'drwxr-xr-x' : (filePermissions[name] ? `-rwxr-xr-x` : `-rw-r--r--`);
+                            const size = isDir ? 4096 : (targetDir[name] ? targetDir[name].length : 0);
+                            const coloredName = isDir
+                                ? `<span class="term-dir">${name}/</span>`
+                                : (filePermissions[name] ? `<span class="term-exec">${name}*</span>` : name);
+                            printLine(`${perm} 1 student student ${size.toString().padStart(5, ' ')} Oct 18 10:00 ${coloredName}`);
+>>>>>>> Stashed changes
                         });
                     } else {
                         const formatted = entries.map(name => {
                             const isDir = typeof targetDir[name] === 'object';
                             return isDir
+<<<<<<< Updated upstream
                                 ? `<span class="term-dir">${escapeHtml(name)}/</span>`
                                 : (filePermissions[[...currentPath, name].join('/')] ? `<span class="term-exec">${escapeHtml(name)}*</span>` : escapeHtml(name));
                         });
                         emitLine(formatted.join('&nbsp;&nbsp;&nbsp;&nbsp;'));
+=======
+                                ? `<span class="term-dir">${name}/</span>`
+                                : (filePermissions[name] ? `<span class="term-exec">${name}*</span>` : name);
+                        });
+                        printLine(formatted.join('&nbsp;&nbsp;&nbsp;&nbsp;'));
+>>>>>>> Stashed changes
                     }
                     break;
                 }
 
                 case 'cd': {
                     const dest = args[0] || '/home/student';
+<<<<<<< Updated upstream
                     const resolved = resolvePath(dest);
                     const directory = getDirectoryNode(resolved);
                     if (directory && typeof directory === 'object') {
@@ -819,16 +1031,74 @@
                         updatePrompt();
                     } else {
                         printOutput(`cd: ${dest}: No such directory`, 'term-error');
+=======
+                    if (dest === '~' || dest === '/home/student') {
+                        currentPath = ["home", "student"];
+                        updatePrompt();
+                    } else if (dest === '/') {
+                        currentPath = [];
+                        updatePrompt();
+                    } else if (dest === '..') {
+                        if (currentPath.length > 0) currentPath.pop();
+                        updatePrompt();
+                    } else {
+                        const parts = dest.startsWith('/') ? dest.split('/').filter(Boolean) : [...currentPath, ...dest.split('/').filter(Boolean)];
+                        const resolved = [];
+                        for (let p of parts) {
+                            if (p === '.') continue;
+                            if (p === '..') {
+                                if (resolved.length > 0) resolved.pop();
+                            } else {
+                                resolved.push(p);
+                            }
+                        }
+
+                        const target = getDirectoryNode(resolved);
+                        if (target !== null && typeof target === 'object') {
+                            currentPath = resolved;
+                            updatePrompt();
+                        } else {
+                            printLine(`cd: ${dest}: No such directory`, 'term-error');
+                        }
+>>>>>>> Stashed changes
                     }
                     break;
                 }
 
                 case 'cat': {
+<<<<<<< Updated upstream
                     const content = args[0] ? readFile(args[0]) : null;
                     if (content === null) {
                         printOutput('cat: choose an existing file', 'term-error');
                     } else {
                         emitOutput(content);
+=======
+                    if (args.length === 0) {
+                        printLine('cat: missing file operand', 'term-error');
+                        break;
+                    }
+                    const fileName = args[0];
+                    const currNode = getDirectoryNode(currentPath);
+
+                    if (currNode && typeof currNode === 'object' && currNode[fileName] !== undefined) {
+                        if (typeof currNode[fileName] === 'object') {
+                            printLine(`cat: ${fileName}: Is a directory`, 'term-error');
+                        } else {
+                            outputResult = currNode[fileName];
+                            printOutput(outputResult);
+                        }
+                    } else {
+                        // Check if absolute path like /var/secret/audit.sh
+                        const absParts = fileName.replace(/^\/+|\/+$/g, '').split('/');
+                        const file = absParts.pop();
+                        const dir = getDirectoryNode(absParts);
+                        if (dir && typeof dir === 'object' && dir[file] !== undefined && typeof dir[file] !== 'object') {
+                            outputResult = dir[file];
+                            printOutput(outputResult);
+                        } else {
+                            printLine(`cat: ${fileName}: No such file or directory`, 'term-error');
+                        }
+>>>>>>> Stashed changes
                     }
                     break;
                 }
@@ -857,6 +1127,7 @@
                         const matches = lines.filter(l => l.toLowerCase().includes(pattern.toLowerCase()));
                         if (matches.length > 0) {
                             matches.forEach(m => {
+<<<<<<< Updated upstream
                                 const literalPattern = escapeHtml(pattern).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                                 const highlighted = escapeHtml(m).replace(new RegExp(literalPattern, 'gi'), '<span class="term-match">$&</span>');
                                 emitLine(highlighted);
@@ -865,27 +1136,115 @@
                         }
                     } else {
                         printLine(`grep: ${escapeHtml(fileName)}: No such file or directory`, 'term-error');
+=======
+                                const highlighted = m.replace(new RegExp(pattern, 'gi'), `<span class="term-match">$&</span>`);
+                                printLine(highlighted);
+                            });
+                            outputResult = matches.join('\n');
+                        }
+                    } else {
+                        printLine(`grep: ${fileName}: No such file or directory`, 'term-error');
+>>>>>>> Stashed changes
                     }
                     break;
                 }
 
                 case 'chmod': {
+<<<<<<< Updated upstream
                     if (args.length < 2 || !/^[0-7]{3,4}$/.test(args[0]) || readFile(args[1]) === null) {
                         printOutput('chmod: use a valid mode and an existing file', 'term-error');
                         break;
                     }
                     filePermissions[resolvePath(args[1]).join('/')] = args[0];
                     emitOutput(`Changed permissions of '${args[1]}' to ${args[0]}`);
+=======
+                    if (args.length < 2) {
+                        printLine('Usage: chmod [MODE] [FILE]', 'term-error');
+                        break;
+                    }
+                    const mode = args[0];
+                    const fileName = args[1];
+                    filePermissions[fileName] = mode;
+                    printLine(`Changed permissions of '${fileName}' to ${mode}`);
+>>>>>>> Stashed changes
                     break;
                 }
 
                 case 'echo': {
                     const text = args.join(' ');
+<<<<<<< Updated upstream
                     emitOutput(text);
+=======
+                    printOutput(text);
+                    break;
+                }
+
+                case 'base64': {
+                    if (args.includes('-d')) {
+                        const target = args[args.indexOf('-d') + 1];
+                        if (!target) {
+                            printLine('base64: missing argument to decode', 'term-error');
+                            break;
+                        }
+                        try {
+                            const decoded = atob(target);
+                            outputResult = decoded;
+                            printOutput(decoded);
+                        } catch (e) {
+                            printLine('base64: invalid input', 'term-error');
+                        }
+                    } else {
+                        const target = args[0] || '';
+                        printOutput(btoa(target));
+                    }
+                    break;
+                }
+
+                case 'ping': {
+                    const host = args[args.length - 1] || 'localhost';
+                    printLine(`PING ${host} (127.0.0.1) 56(84) bytes of data.`);
+                    printLine(`64 bytes from ${host} (127.0.0.1): icmp_seq=1 ttl=64 time=0.035 ms`);
+                    printLine(`64 bytes from ${host} (127.0.0.1): icmp_seq=2 ttl=64 time=0.041 ms`);
+                    printLine(`64 bytes from ${host} (127.0.0.1): icmp_seq=3 ttl=64 time=0.038 ms`);
+                    printLine(`--- ${host} ping statistics ---`);
+                    printLine(`3 packets transmitted, 3 received, 0% packet loss, time 2004ms`);
+                    break;
+                }
+
+                case 'nmap': {
+                    const target = args[args.length - 1] || 'target.hackacad.local';
+                    printLine(`Starting Nmap 7.94 ( https://nmap.org ) at 2026-10-18 10:00 UTC`);
+                    printLine(`Nmap scan report for ${target} (10.10.10.50)`);
+                    printLine(`Host is up (0.00045s latency).`);
+                    printLine(`Not shown: 997 closed tcp ports (reset)`);
+                    printLine(`PORT     STATE SERVICE VERSION`);
+                    printLine(`22/tcp   open  ssh     OpenSSH 8.9p1 Ubuntu`);
+                    printLine(`80/tcp   open  http    nginx 1.18.0`);
+                    printLine(`8080/tcp open  http    HackAcad Internal Auth API`);
+                    printLine(`Nmap done: 1 IP address (1 host up) scanned in 1.42 seconds`);
+                    outputResult = 'nmap done';
+                    break;
+                }
+
+                case 'curl': {
+                    const url = args[0] || 'http://localhost';
+                    printLine(`&gt; GET ${url} HTTP/1.1`);
+                    printLine(`&lt; HTTP/1.1 200 OK`);
+                    printLine(`&lt; Content-Type: application/json`);
+                    printLine(`&lt; Server: HackAcad-Sandbox/1.0`);
+                    printLine(`&lt; `);
+                    if (url.includes('secret') || url.includes('flag') || url.includes('debug')) {
+                        outputResult = '{"status":"success","data":{"token":"flag{w3b_r3c0n_curl_m4st3r}"}}';
+                    } else {
+                        outputResult = '{"status":"active","message":"HackAcad endpoint is operational."}';
+                    }
+                    printOutput(outputResult);
+>>>>>>> Stashed changes
                     break;
                 }
 
                 default:
+<<<<<<< Updated upstream
                     printLine(`hackacad-sh: ${escapeHtml(cmd)}: command not found`, 'term-error');
                     break;
             }
@@ -898,6 +1257,13 @@
             }
 
             checkObjectives(trimmed, commandToRun, dirBeforeCommand);
+=======
+                    printLine(`hackacad-sh: ${cmd}: command not found`, 'term-error');
+                    break;
+            }
+
+            checkObjectives(cmd, args, outputResult);
+>>>>>>> Stashed changes
         }
 
         // Key Listeners
@@ -923,6 +1289,10 @@
                 }
             } else if (e.key === 'Tab') {
                 e.preventDefault();
+<<<<<<< Updated upstream
+=======
+                // Autocomplete
+>>>>>>> Stashed changes
                 const val = inputEl.value;
                 const tokens = val.split(' ');
                 const lastToken = tokens[tokens.length - 1];
@@ -946,6 +1316,7 @@
 
         // Initial render of objectives
         renderObjectives();
+<<<<<<< Updated upstream
 
         // Print initial hint(s) once on startup
         introduceAvailableHints();
@@ -966,5 +1337,7 @@
 
     window.resetSimulationAttempt = function () {
         try { sessionStorage.clear(); } catch (e) { }
+=======
+>>>>>>> Stashed changes
     };
 })();

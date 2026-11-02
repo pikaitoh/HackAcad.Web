@@ -2,7 +2,10 @@
 @{
     ViewData["Title"] = Model.Course.Title;
     var signedIn = User.Identity?.IsAuthenticated == true;
+<<<<<<< Updated upstream
     var returnUrl = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
+=======
+>>>>>>> Stashed changes
 }
 
 <div class="container module-shell">
@@ -20,18 +23,25 @@
                     @(Model.Course.Description ?? "Hands-on guided cybersecurity training path with theoretical lessons, downloadable CTF challenges, and real-time terminal labs.")
                 </p>
                 <div style="color:var(--ha-on-dark); font-size:0.875rem;">
+<<<<<<< Updated upstream
                     <span>Created by <strong>@Model.InstructorName</strong></span>
+=======
+                    <span>Created by <strong>@Model.TeacherName</strong></span>
+>>>>>>> Stashed changes
                     <span class="mx-2">•</span>
                     <span>@Model.Lessons.Count Lessons</span>
                     <span class="mx-2">•</span>
                     <span>@Model.Challenges.Count CTF Challenges</span>
                     <span class="mx-2">•</span>
                     <span>@Model.SimulationTasks.Count Terminal Labs</span>
+<<<<<<< Updated upstream
                     @if (Model.CourseNotebooks.Any())
                     {
                         <span class="mx-2">•</span>
                         <span>@Model.CourseNotebooks.Count Terminal Notebooks</span>
                     }
+=======
+>>>>>>> Stashed changes
                 </div>
             </div>
 
@@ -50,7 +60,11 @@
                         Continue Learning →
                     </a>
                 }
+<<<<<<< Updated upstream
                 else if ((User.IsInRole(AccountRoles.Student) || User.IsInRole(AccountRoles.Instructor)) && !Model.IsOwnCourse)
+=======
+                else if (signedIn)
+>>>>>>> Stashed changes
                 {
                     <h3 style="font-size:1.15rem; margin-bottom:0.5rem;">Free Enrolment</h3>
                     <p class="text-secondary small mb-3">Instant self-paced access. Progress automatically saved as you learn.</p>
@@ -58,6 +72,7 @@
                         <button type="submit" class="btn btn-primary w-100 btn-lg">Enrol Now</button>
                     </form>
                 }
+<<<<<<< Updated upstream
                 else if (signedIn)
                 {
                     <h3 style="font-size:1.15rem; margin-bottom:0.5rem;">@(Model.IsOwnCourse ? "Your course" : "Course preview")</h3>
@@ -71,6 +86,8 @@
                         <a asp-controller="InstructorCourses" asp-action="Index" class="btn btn-outline-secondary w-100">Back to Instructor Studio</a>
                     }
                 }
+=======
+>>>>>>> Stashed changes
                 else
                 {
                     <h3 style="font-size:1.15rem; margin-bottom:0.5rem;">Start Learning Today</h3>
@@ -79,6 +96,7 @@
                         Log in to Enrol
                     </a>
                 }
+<<<<<<< Updated upstream
                 @if (Model.Course.IsPublished && (User.IsInRole(AccountRoles.Student) || User.IsInRole(AccountRoles.Instructor)))
                 {
                     <form asp-action="SaveCourse" method="post" class="mt-3">
@@ -89,6 +107,8 @@
                         </button>
                     </form>
                 }
+=======
+>>>>>>> Stashed changes
             </div>
         </div>
     </div>
@@ -99,8 +119,13 @@
 
         <!-- Module 1: Lessons -->
         <div class="mb-4">
+<<<<<<< Updated upstream
             <h3 style="font-size: 1.05rem; font-weight:700; color:var(--ha-primary); margin-bottom: 0.75rem;" class="d-flex align-items-center gap-1">
                 <img src="/images/file.svg" class="sim-icon me-1" alt="" /> Guided Lessons (@Model.Lessons.Count)
+=======
+            <h3 style="font-size: 1.05rem; font-weight:700; color:var(--ha-primary); margin-bottom: 0.75rem;">
+                📚 Guided Lessons (@Model.Lessons.Count)
+>>>>>>> Stashed changes
             </h3>
             @if (Model.Lessons.Count == 0)
             {
@@ -115,6 +140,7 @@
                         <div class="list-group-item d-flex justify-content-between align-items-center py-3">
                             <div class="d-flex align-items-center gap-3">
                                 <span class="badge @(isDone ? "bg-success" : "bg-light text-dark")" style="font-size:0.85rem; width:2rem; text-align:center;">
+<<<<<<< Updated upstream
                                     @if (isDone)
                                     {
                                         <img src="/images/check.svg" class="sim-icon" alt="" style="filter: brightness(0) invert(1);" />
@@ -123,6 +149,9 @@
                                     {
                                         @l.OrderIndex.ToString()
                                     }
+=======
+                                    @(isDone ? "✓" : l.OrderIndex.ToString())
+>>>>>>> Stashed changes
                                 </span>
                                 <div>
                                     <strong style="font-size:0.95rem;">@l.Title</strong>
@@ -148,8 +177,13 @@
         @if (Model.Challenges.Any())
         {
             <div class="mb-4">
+<<<<<<< Updated upstream
                 <h3 style="font-size: 1.05rem; font-weight:700; color:#b12e3f; margin-bottom: 0.75rem;" class="d-flex align-items-center gap-1">
                     <img src="/images/warning.svg" class="sim-icon me-1" alt="" /> CTF Challenges (@Model.Challenges.Count)
+=======
+                <h3 style="font-size: 1.05rem; font-weight:700; color:#b12e3f; margin-bottom: 0.75rem;">
+                    🚩 CTF Challenges (@Model.Challenges.Count)
+>>>>>>> Stashed changes
                 </h3>
                 <div class="list-group">
                     @foreach (var ch in Model.Challenges)
@@ -163,9 +197,13 @@
                                     <span class="points-pill">+@ch.Points pts</span>
                                     @if (isDone)
                                     {
+<<<<<<< Updated upstream
                                         <span class="badge bg-success ms-1 d-inline-flex align-items-center gap-1">
                                             <img src="/images/check.svg" class="sim-icon" alt="" style="filter: brightness(0) invert(1); width:12px; height:12px;" /> Solved
                                         </span>
+=======
+                                        <span class="badge bg-success ms-1">Solved ✓</span>
+>>>>>>> Stashed changes
                                     }
                                 </div>
                                 <div class="text-secondary small">@(ch.Description ?? "Examine question resources and uncover the secret flag.")</div>
@@ -186,8 +224,13 @@
         @if (Model.SimulationTasks.Any())
         {
             <div class="mb-3">
+<<<<<<< Updated upstream
                 <h3 style="font-size: 1.05rem; font-weight:700; color:#0284c7; margin-bottom: 0.75rem;" class="d-flex align-items-center gap-1">
                     <img src="/images/terminal.svg" class="sim-icon me-1" alt="" /> Hands-on Terminal Labs (@Model.SimulationTasks.Count)
+=======
+                <h3 style="font-size: 1.05rem; font-weight:700; color:#0284c7; margin-bottom: 0.75rem;">
+                    💻 Hands-on Terminal Labs (@Model.SimulationTasks.Count)
+>>>>>>> Stashed changes
                 </h3>
                 <div class="list-group">
                     @foreach (var s in Model.SimulationTasks)
@@ -200,9 +243,13 @@
                                     <span class="badge bg-info text-dark">Simulated Shell</span>
                                     @if (isDone)
                                     {
+<<<<<<< Updated upstream
                                         <span class="badge bg-success ms-1 d-inline-flex align-items-center gap-1">
                                             <img src="/images/check.svg" class="sim-icon" alt="" style="filter: brightness(0) invert(1); width:12px; height:12px;" /> Completed
                                         </span>
+=======
+                                        <span class="badge bg-success ms-1">Completed ✓</span>
+>>>>>>> Stashed changes
                                     }
                                 </div>
                                 <div class="text-secondary small">@(s.Instructions ?? "Execute lab tasks in a safe client-side sandbox.")</div>
@@ -218,6 +265,7 @@
                 </div>
             </div>
         }
+<<<<<<< Updated upstream
 
         <!-- Module 4: Terminal Notebooks -->
         @if (Model.CourseNotebooks.Any())
@@ -248,5 +296,7 @@
                 </div>
             </div>
         }
+=======
+>>>>>>> Stashed changes
     </div>
 </div>
