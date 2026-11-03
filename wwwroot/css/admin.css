@@ -442,6 +442,40 @@
     max-width:900px;
     margin-inline:auto;
 }
+/* ADMIN - Keep current account checks and historical sign-in evidence easy to scan together. */
+.account-signin-summary {
+    background:var(--ha-tint);
+    border-radius:.5rem;
+    padding:1rem 1.25rem;
+    margin-block:1rem 1.25rem;
+    font-size:.875rem;
+}
+.account-signin-summary :is(p,ul) { margin:.5rem 0 0; }
+.account-signin-summary ul { padding-inline-start:1.25rem; }
+.account-signin-facts {
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:1rem 2rem;
+    margin:0 0 1.5rem;
+    font-size:.875rem;
+}
+.account-signin-facts dt { color:var(--ha-muted); font-weight:500; margin-bottom:.25rem; }
+.account-signin-facts dd { margin:0; overflow-wrap:anywhere; }
+.account-context-more { margin-bottom:1.25rem; font-size:.875rem; }
+.account-context-more summary { color:var(--ha-primary); cursor:pointer; }
+.account-context-more .account-signin-facts { margin:1rem 0 0; }
+.account-disable-reason { font-size:.875rem; overflow-wrap:anywhere; }
+.context-section-heading { display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-bottom:.75rem; }
+.context-section-heading h2 { margin:0; }
+.context-section-heading a,.context-time-window { font-size:.8125rem; }
+.context-table-scroll { max-height:22rem; overflow-y:auto; scrollbar-gutter:stable; }
+.context-login-table { min-width:32rem; margin-bottom:0; }
+.context-login-table th { position:sticky; top:0; background:var(--ha-tint); z-index:1; }
+.context-login-table td { overflow-wrap:anywhere; }
+.context-empty { color:var(--ha-muted); margin:1rem 0 0; }
+@media (max-width:640px) {
+    .account-signin-facts { grid-template-columns:1fr; gap:1rem; }
+}
 .support-messages,.security-actions {
     margin:0;
     padding:0;

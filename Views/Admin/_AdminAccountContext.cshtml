@@ -1,0 +1,38 @@
+@* ADMIN - Explain current sign-in restrictions without exposing credentials or changing account access. *@
+@model AdminAccountContextModel
+<div class="admin-account-context" data-account-context="@Model.UserId">
+    <h3 class="h5">Sign-in checks</h3>
+    <div class="account-signin-summary" role="note">
+        <strong>@(Model.SignInBlocked ? "Sign-in is currently restricted" : "No current account restriction recorded")</strong>
+        @if (Model.SignInBlocked)
+        {
+            <ul>
+                @if (Model.Disabled) { <li>The account is disabled. Review the access decision before restoring access.</li> }
+                @if (!Model.EmailConfirmed) { <li>The user must confirm their email address before signing in.</li> }
+                @if (Model.LockedUntilUtc is { } until) { <li>The account is temporarily locked until @UserTime.Format(until). Ask the user to wait before trying again.</li> }
+            </ul>
+        }
+        else { <p>The account is active, its email is verified and no temporary lock is in effect. Compare the attempts below with the issue reported.</p> }
+    </div>
+    @if (Model.Disabled && !string.IsNullOrWhiteSpace(Model.DisabledReason))
+    {
+        <p class="account-disable-reason"><strong>Recorded reason for disabling:</strong> @Model.DisabledReason</p>
+    }
+    <dl class="account-signin-facts">
+        <div><dt>Account access</dt><dd>@(Model.Disabled ? "Disabled" : "Active")</dd></div>
+        <div><dt>Email verification</dt><dd>@(Model.EmailConfirmed ? "Verified" : "Not verified")</dd></div>
+        <div><dt>Temporary lock</dt><dd>@(Model.LockedUntilUtc is { } locked ? "Until " + UserTime.Format(locked) : "Not locked")</dd></div>
+        <div><dt>Two-factor authentication</dt><dd>@Model.TwoFactorMethod</dd></div>
+        <div><dt>Sign-in methods</dt><dd>@(Model.SignInMethods.Count == 0 ? "No sign-in method recorded" : string.Join(", ", Model.SignInMethods))</dd></div>
+        <div><dt>Last successful sign-in</dt><dd>@(Model.LastSuccessfulSignInUtc is { } success ? UserTime.Format(success) : "No successful sign-in recorded")</dd></div>
+    </dl>
+    <details class="account-context-more">
+        <summary>More account details</summary>
+        <dl class="account-signin-facts">
+        <div><dt>Consecutive failed attempts</dt><dd>@Model.FailedAttempts</dd></div>
+        <div><dt>Last unsuccessful attempt</dt><dd>@(Model.LastFailedSignInUtc is { } failure ? UserTime.Format(failure) : "No unsuccessful attempt recorded")</dd></div>
+        <div><dt>Last password change</dt><dd>@(Model.LastPasswordChangedUtc is { } changed ? UserTime.Format(changed) : "Not recorded")</dd></div>
+        <div><dt>Usable browser sessions</dt><dd>@Model.ActiveSessions <span class="record-secondary">A usable session does not mean the user is online.</span></dd></div>
+        </dl>
+    </details>
+</div>

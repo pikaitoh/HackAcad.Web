@@ -79,6 +79,7 @@ public class SupportListModel
 }
 public class SupportThreadModel
 {
+    public AdminAccountContextModel? AccountContext { get; set; }
     public bool CanReply => Ticket.CanUserReply(Messages.LastOrDefault(m => !m.Internal)?.ByAdmin == true);
     public SupportTicket Ticket { get; set; } = null!;
     public List<SupportMessage> Messages { get; set; } = [];
@@ -87,6 +88,39 @@ public class SupportThreadModel
     public bool Disabled { get; set; }
     public List<AdminActivity> AccessChanges { get; set; } = [];
     public SupportMessageInput Input { get; set; } = new();
+}
+
+// ADMIN - Read-only investigation context. Never expose credentials, secret keys or verification tokens.
+public class AdminAccountContextModel
+{
+    public string UserId { get; set; } = "";
+    public string DisplayName { get; set; } = "";
+    public string Email { get; set; } = "";
+    public bool Disabled { get; set; }
+    public bool EmailConfirmed { get; set; }
+    public DateTime? LockedUntilUtc { get; set; }
+    public int FailedAttempts { get; set; }
+    public string TwoFactorMethod { get; set; } = "Not enabled";
+    public List<string> SignInMethods { get; set; } = [];
+    public int ActiveSessions { get; set; }
+    public DateTime? LastSuccessfulSignInUtc { get; set; }
+    public DateTime? LastFailedSignInUtc { get; set; }
+    public DateTime? LastPasswordChangedUtc { get; set; }
+    public string? DisabledReason { get; set; }
+    public bool SignInBlocked => Disabled || !EmailConfirmed || LockedUntilUtc.HasValue;
+    public AdminSignInActivityModel Activity { get; set; } = new();
+}
+
+public class AdminSignInActivityModel
+{
+    public string Title { get; set; } = "Recent sign-in attempts";
+    public string Description { get; set; } = "Latest activity recorded for this account, newest first.";
+    public string? UserId { get; set; }
+    public bool ShowUsers { get; set; }
+    public DateTime? FromUtc { get; set; }
+    public DateTime? ToUtc { get; set; }
+    public int Total { get; set; }
+    public List<LoginLogRow> Records { get; set; } = [];
 }
 public class AdminAccessInput
 {

@@ -10,9 +10,9 @@ public partial class AdminController
 {
     // Filter sign-in records by identity, outcome and inclusive local dates using a half-open UTC range.
     [HttpGet]
-    public async Task<IActionResult> LoginLogs(string? search, string? result, DateOnly? from, DateOnly? to, int page = 1)
+    public async Task<IActionResult> LoginLogs(string? search, string? result, DateOnly? from, DateOnly? to, int page = 1, string? userId = null)
     {
-        var model = new LoginLogsModel { Search = search?.Trim(), Result = result, From = from, To = to };
+        var model = new LoginLogsModel { Search = search?.Trim(), Result = result, From = from, To = to, UserId = userId };
         if (from > to)
             ModelState.AddModelError("To", "Choose an end date on or after the start date.");
         DateTime? start = null, end = null;
@@ -43,6 +43,8 @@ public partial class AdminController
                         Device = record.Device,
                         IpAddress = record.IpAddress
                     };
+        if (!string.IsNullOrEmpty(userId))
+            query = query.Where(r => r.UserId == userId);
         if (!string.IsNullOrEmpty(model.Search))
             query = query.Where(r => r.Username.Contains(model.Search) || r.Email.Contains(model.Search));
         if (result == "success")

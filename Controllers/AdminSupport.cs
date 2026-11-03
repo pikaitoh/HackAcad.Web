@@ -65,6 +65,7 @@ public partial class AdminController
             DisplayName = user.DisplayName,
             Email = user.Email ?? "",
             Disabled = user.IsDisabled,
+            AccountContext = await AccountContextData(user.Id),
             Input = input ?? new(),
             Messages = await db.SupportMessages.AsNoTracking().Where(m => m.TicketId == ticket.Id).OrderBy(m => m.Id).ToListAsync(),
             AccessChanges = await db.AdminActivities.AsNoTracking().Where(a => a.TargetType == "User" && a.TargetId == user.Id && (a.Action == "Disabled account" || a.Action == "Reactivated account")).OrderByDescending(a => a.Id).Take(10).ToListAsync()

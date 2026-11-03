@@ -161,6 +161,7 @@ public partial class AdminController
             return NotFound();
         ViewData["ReadOnlyAdmin"] = await db.Admins.AnyAsync(a => a.UserId == users.GetUserId(User) && a.IsReadOnly);
         ViewData["ReturnUrl"] = SecurityReturn(returnUrl);
+        await LoadAlertContext(alert);
         return View(alert);
     }
 
@@ -180,7 +181,10 @@ public partial class AdminController
             ModelState.AddModelError("Status", "Choose a valid status.");
         ViewData["ReturnUrl"] = SecurityReturn(input.ReturnUrl);
         if (!ModelState.IsValid)
+        {
+            await LoadAlertContext(alert);
             return View(alert);
+        }
         if (alert.Status == input.Status && alert.Notes == input.Notes.Trim())
             return LocalRedirect(SecurityReturn(input.ReturnUrl));
         var before = System.Text.Json.JsonSerializer.Serialize(new

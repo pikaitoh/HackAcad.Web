@@ -1,0 +1,48 @@
+@* ADMIN - Bounded sign-in evidence; historical events stay distinct from the current account checks. *@
+@model AdminSignInActivityModel
+<section class="surface-panel admin-signin-activity mb-4">
+    <div class="context-section-heading">
+        <h2 class="h5">@Model.Title</h2>
+        @if (Model.UserId is not null) { <a asp-action="LoginLogs" asp-route-userId="@Model.UserId">Open login logs</a> }
+    </div>
+    <p class="text-secondary small">@Model.Description</p>
+    @if (Model.FromUtc is { } from && Model.ToUtc is { } to)
+    {
+        <p class="context-time-window"><strong>Time window:</strong> @UserTime.Format(from) – @UserTime.Format(to) (@UserTime.Id)</p>
+    }
+    @if (Model.Total == 0)
+    {
+        <p class="context-empty">@(Model.FromUtc.HasValue ? "No sign-in records match this alert's account or IP and time window." : "No sign-in attempts have been recorded for this account.")</p>
+    }
+    else
+    {
+        <p class="text-secondary small">Showing @Model.Records.Count of @Model.Total recorded @(Model.Total == 1 ? "attempt" : "attempts"), newest first.</p>
+        <div class="table-responsive context-table-scroll" tabindex="0" role="region" aria-label="@Model.Title; scroll to review more records">
+            <table class="table align-middle module-table context-login-table">
+                <caption class="visually-hidden">@Model.Title in @UserTime.Id, newest first</caption>
+                <thead><tr>@if (Model.ShowUsers) { <th scope="col">Account</th> }<th scope="col">Time</th><th scope="col">Result</th><th scope="col">Device / IP address</th></tr></thead>
+                <tbody>
+                @foreach (var record in Model.Records)
+                {
+                    var successful = record.Outcome.StartsWith("Signed in", StringComparison.Ordinal);
+                    var outcome = record.Outcome switch
+                    {
+                        "Failed" => "Sign-in failed",
+                        "Verification failed" => "2FA verification failed",
+                        "Locked out" => "Blocked by temporary lock",
+                        "Disabled account sign-in attempt" => "Blocked: account disabled",
+                        _ => record.Outcome
+                    };
+                    <tr>
+                        @if (Model.ShowUsers) { <td>@record.Username@if (!string.IsNullOrEmpty(record.Email)) { <span class="record-secondary">@record.Email</span> }</td> }
+                        <td><time datetime="@(DateTime.SpecifyKind(record.OccurredUtc, DateTimeKind.Utc).ToString("O"))">@UserTime.Format(record.OccurredUtc, "dd MMM yyyy")<span class="record-secondary">@UserTime.Format(record.OccurredUtc, "HH:mm:ss")</span></time></td>
+                        <td><span class="status-label @(successful ? "status-active" : "status-disabled")">@outcome</span></td>
+                        <td>@(string.IsNullOrWhiteSpace(record.Device) ? "Device not recorded" : record.Device)<span class="record-secondary">@(string.IsNullOrWhiteSpace(record.IpAddress) ? "IP not recorded" : record.IpAddress)</span></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+        <p class="form-text mb-0">Device names are estimated from the browser. Use the time, result and IP together when reviewing a sign-in.</p>
+    }
+</section>

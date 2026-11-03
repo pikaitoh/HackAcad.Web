@@ -2,15 +2,16 @@
 @model LoginLogsModel
 @{ ViewData["Title"] = "Login logs"; }
 <div class="admin-content">
-    <div class="page-heading"><div><h1>Login logs</h1><p class="text-secondary">Sign-in attempts across user accounts. Times shown in @UserTime.Id.</p></div></div>
+    <div class="page-heading"><div><h1>Login logs</h1><p class="text-secondary">@(string.IsNullOrEmpty(Model.UserId) ? "Sign-in attempts across user accounts." : "Sign-in attempts for the selected account. Clear filters to view all accounts.") Times shown in @UserTime.Id.</p></div></div>
     <form asp-action="LoginLogs" method="get" class="filter-bar login-log-filters" data-validated-form novalidate>
+        @if (!string.IsNullOrEmpty(Model.UserId)) { <input asp-for="UserId" type="hidden" /> }
         <div class="filter-search"><label asp-for="Search" class="form-label">Search users</label><input asp-for="Search" class="form-control" placeholder="Username or email" maxlength="256" /></div>
         <div><label asp-for="Result" class="form-label"></label><select asp-for="Result" class="form-select"><option value="">All results</option><option value="success">Successful</option><option value="failed">Failed</option><option value="locked">Locked out</option></select></div>
         <div><label asp-for="From" class="form-label">From date</label><input asp-for="From" type="date" class="form-control" aria-invalid="@(ViewData.ModelState["From"]?.Errors.Count > 0 ? "true" : null)" aria-describedby="from-error" /><span asp-validation-for="From" id="from-error" class="field-error"></span></div>
         <div><label asp-for="To" class="form-label">To date</label><input asp-for="To" data-val-after-other="From" data-val-after="Choose an end date on or after the start date." type="date" class="form-control" aria-invalid="@(ViewData.ModelState["To"]?.Errors.Count > 0 ? "true" : null)" aria-describedby="to-error" /><span asp-validation-for="To" id="to-error" class="field-error"></span></div>
         <div class="login-log-filter-actions"><button class="btn btn-primary" type="submit">Apply filters</button><a asp-action="LoginLogs" class="btn btn-outline-secondary">Clear</a></div>
     </form>
-@if (ViewData.ModelState.IsValid) { <p class="text-secondary small list-results">@ListPresentation.Summary(Model.Total, "sign-in attempt", !string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrEmpty(Model.Result) || Model.From.HasValue || Model.To.HasValue)</p> }
+@if (ViewData.ModelState.IsValid) { <p class="text-secondary small list-results">@ListPresentation.Summary(Model.Total, "sign-in attempt", !string.IsNullOrWhiteSpace(Model.Search) || !string.IsNullOrEmpty(Model.Result) || Model.From.HasValue || Model.To.HasValue || !string.IsNullOrEmpty(Model.UserId))</p> }
     @if (ViewData.ModelState.IsValid && Model.Records.Count == 0)
     {
         <div class="empty-state"><h2 class="h5">No sign-ins to show</h2><p>Try another user, date range or result. New sign-in attempts will appear here.</p></div>
