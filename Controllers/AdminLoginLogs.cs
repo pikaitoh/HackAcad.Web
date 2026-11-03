@@ -10,9 +10,11 @@ public partial class AdminController
 {
     // Filter sign-in records by identity, outcome and inclusive local dates using a half-open UTC range.
     [HttpGet]
-    public async Task<IActionResult> LoginLogs(string? search, string? result, DateOnly? from, DateOnly? to, int page = 1, string? userId = null)
+    public async Task<IActionResult> LoginLogs(string? search, string? result, DateOnly? from, DateOnly? to, int page = 1, string? userId = null, string? ipAddress = null)
     {
-        var model = new LoginLogsModel { Search = search?.Trim(), Result = result, From = from, To = to, UserId = userId };
+        ViewData["ReadOnlyAdmin"] = await db.Admins.AnyAsync(a => a.UserId == users.GetUserId(User) && a.IsReadOnly);
+        var model = new LoginLogsModel { Search = search?.Trim(), Result = result, From = from, To = to, UserId = userId,
+            IpAddress = string.IsNullOrWhiteSpace(ipAddress) ? null : ipAddress.Trim() };
         if (from > to)
             ModelState.AddModelError("To", "Choose an end date on or after the start date.");
         DateTime? start = null, end = null;
@@ -38,6 +40,22 @@ public partial class AdminController
                         UserId = user.Id,
                         Username = user.DisplayName,
                         Email = user.Email ?? "",
+                        OccurredUtc = record.OccurredUtc,
+                        Outcome = record.Outcome,
+                        Device = record.Device,
+                        IpAddress = record.IpAddress
+                    };
+        // ADMIN - IP investigations use the same events as the alert, including attempts without a registered account.
+        if (model.IpAddress is not null)
+            query = from record in db.SecurityEvents.AsNoTracking().Where(e => e.IpAddress == model.IpAddress)
+                    join user in db.Users on record.UserId equals user.Id into matchingUsers
+                    from user in matchingUsers.DefaultIfEmpty()
+                    select new LoginLogRow
+                    {
+                        Id = record.Id,
+                        UserId = user == null ? "" : user.Id,
+                        Username = user == null ? record.UserId == null ? "Unrecognised account" : "Account no longer available" : user.DisplayName,
+                        Email = user == null ? "" : user.Email ?? "",
                         OccurredUtc = record.OccurredUtc,
                         Outcome = record.Outcome,
                         Device = record.Device,

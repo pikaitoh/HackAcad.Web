@@ -114,11 +114,10 @@ public class AdminAccountContextModel
 public class AdminSignInActivityModel
 {
     public string Title { get; set; } = "Recent sign-in attempts";
-    public string Description { get; set; } = "Latest activity recorded for this account, newest first.";
+    public string Description { get; set; } = "Sign-in history for this account, newest first.";
     public string? UserId { get; set; }
+    public string? IpAddress { get; set; }
     public bool ShowUsers { get; set; }
-    public DateTime? FromUtc { get; set; }
-    public DateTime? ToUtc { get; set; }
     public int Total { get; set; }
     public List<LoginLogRow> Records { get; set; } = [];
 }

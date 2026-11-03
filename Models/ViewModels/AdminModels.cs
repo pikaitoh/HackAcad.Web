@@ -132,6 +132,7 @@ public class LoginLogRow
 public class LoginLogsModel
 {
     public string? UserId { get; set; }
+    public string? IpAddress { get; set; }
     public string? Search { get; set; }
     public string? Result { get; set; }
     public DateOnly? From { get; set; }
