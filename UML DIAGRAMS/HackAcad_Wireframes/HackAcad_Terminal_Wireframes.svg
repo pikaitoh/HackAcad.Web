@@ -1,0 +1,454 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1350" width="1920" height="1350">
+  <defs>
+    <!-- Hand-drawn sketchy turbulence filter -->
+    <filter id="pencil" x="-3%" y="-3%" width="106%" height="106%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.035" numOctaves="3" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="2.2" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+
+    <filter id="pencil-subtle" x="-2%" y="-2%" width="104%" height="104%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="2" result="noise" />
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.4" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+
+    <!-- Diagonal cross-hatch pattern for active menu tab & shaded bars -->
+    <pattern id="hatch" width="8" height="8" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="8" stroke="#33373d" stroke-width="1.2" />
+    </pattern>
+    
+    <pattern id="hatch-light" width="6" height="6" patternTransform="rotate(45 0 0)" patternUnits="userSpaceOnUse">
+      <line x1="0" y1="0" x2="0" y2="6" stroke="#6b7280" stroke-width="1.0" />
+    </pattern>
+
+    <style>
+      .sketch-title { font-family: 'Architects Daughter', 'Caveat', 'Comic Neue', 'Chalkboard', 'Comic Sans MS', cursive, sans-serif; font-size: 20px; font-weight: bold; fill: #1c1d20; }
+      .sketch-logo { font-family: 'Architects Daughter', 'Caveat', 'Comic Neue', 'Chalkboard', 'Comic Sans MS', cursive, sans-serif; font-size: 19px; font-weight: bold; fill: #1c1d20; }
+      .sketch-heading { font-family: 'Architects Daughter', 'Caveat', 'Comic Neue', 'Chalkboard', 'Comic Sans MS', cursive, sans-serif; font-size: 15px; font-weight: bold; fill: #1c1d20; }
+      .sketch-text { font-family: 'Architects Daughter', 'Caveat', 'Comic Neue', 'Chalkboard', 'Comic Sans MS', cursive, sans-serif; font-size: 12.5px; fill: #2c2e33; }
+      .sketch-subtext { font-family: 'Architects Daughter', 'Caveat', 'Comic Neue', 'Chalkboard', 'Comic Sans MS', cursive, sans-serif; font-size: 11px; fill: #5f6368; }
+      .sketch-code { font-family: 'Liberation Mono', 'Courier New', monospace; font-size: 11.5px; fill: #1a1a1a; }
+      .sketch-btn-text { font-family: 'Architects Daughter', 'Caveat', 'Comic Neue', 'Chalkboard', 'Comic Sans MS', cursive, sans-serif; font-size: 12px; font-weight: bold; fill: #1c1d20; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <!-- Canvas Background -->
+  <rect width="1920" height="1350" fill="#2c2d30" />
+
+  <g transform="translate(35, 35)">
+    <!-- Window Frame -->
+    <rect x="0" y="0" width="910" height="600" rx="4" fill="#ffffff" stroke="#1f2124" stroke-width="2" filter="url(#pencil)"/>
+    <rect x="2" y="2" width="906" height="596" rx="3" fill="none" stroke="#2b2d31" stroke-width="1" filter="url(#pencil)"/>
+    <!-- Header Bar -->
+    <text x="22" y="32" class="sketch-logo">HackAcad</text>
+    <text x="720" y="31" class="sketch-text">Theme</text>
+    <text x="780" y="31" class="sketch-text">Alerts</text>
+    <!-- Profile Circle -->
+    <circle cx="865" cy="27" r="13" fill="#ffffff" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <text x="865" y="31" class="sketch-subtext" text-anchor="middle" font-size="9px">Student</text>
+    <!-- Header Divider -->
+    <line x1="0" y1="46" x2="910" y2="46" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <!-- Sidebar Divider -->
+    <line x1="125" y1="46" x2="125" y2="600" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <text x="18" y="72" class="sketch-heading">Navigation</text>
+    <text x="18" y="102" class="sketch-text">Dashboard</text>
+    <text x="18" y="132" class="sketch-text">Courses</text>
+    <text x="18" y="162" class="sketch-text">Curriculum</text>
+    <!-- Active Nav Item -->
+    <rect x="10" y="176" width="105" height="24" rx="2" fill="url(#hatch)" stroke="#1f2124" stroke-width="1.5" filter="url(#pencil)"/>
+    <rect x="12" y="178" width="101" height="20" fill="#ffffff" fill-opacity="0.82"/>
+    <text x="18" y="192" class="sketch-text" font-weight="bold">Labs</text>
+    <text x="18" y="222" class="sketch-text">Notebooks</text>
+    <text x="18" y="252" class="sketch-text">CTF Arena</text>
+    <text x="18" y="282" class="sketch-text">Badges</text>
+    <text x="18" y="312" class="sketch-text">Settings</text>
+    <!-- Main Content Area -->
+    <text x="150" y="82" class="sketch-title">Simulated terminal lab</text>
+
+    <!-- Screen 1 Inner Content -->
+    <text x="150" y="115" class="sketch-subtext">Course: Linux Systems &amp; Security / Module 3: Virtual Shell Lab</text>
+    <rect x="660" y="65" width="105" height="22" rx="3" fill="#ffffff" stroke="#222" stroke-width="1.2" filter="url(#pencil-subtle)"/>
+    <text x="712" y="80" class="sketch-btn-text" font-size="10px">Client-side sandbox</text>
+    <rect x="775" y="65" width="95" height="22" rx="3" fill="url(#hatch-light)" stroke="#222" stroke-width="1.2" filter="url(#pencil-subtle)"/>
+    <text x="822" y="80" class="sketch-btn-text" font-size="10px">In progress</text>
+
+    <!-- Lab Objectives Box -->
+    <rect x="150" y="130" width="725" height="115" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.6" filter="url(#pencil)"/>
+    <text x="168" y="152" class="sketch-heading">Lab objectives (Sequential)</text>
+    
+    <!-- Step 1 (Completed) -->
+    <rect x="168" y="166" width="16" height="16" rx="2" fill="#ffffff" stroke="#1f2124" stroke-width="1.5"/>
+    <path d="M171 174 L175 178 L181 169" fill="none" stroke="#1f2124" stroke-width="2" filter="url(#pencil-subtle)"/>
+    <text x="195" y="179" class="sketch-text">Step #1: Navigate into confidential folder (<tspan font-family="monospace">cd /var/secret</tspan>)</text>
+    
+    <!-- Step 2 (Completed) -->
+    <rect x="168" y="191" width="16" height="16" rx="2" fill="#ffffff" stroke="#1f2124" stroke-width="1.5"/>
+    <path d="M171 199 L175 203 L181 194" fill="none" stroke="#1f2124" stroke-width="2" filter="url(#pencil-subtle)"/>
+    <text x="195" y="204" class="sketch-text">Step #2: Change script permission to executable (<tspan font-family="monospace">chmod 755 audit.sh</tspan>)</text>
+
+    <!-- Step 3 (Pending with Hint) -->
+    <rect x="168" y="216" width="16" height="16" rx="2" fill="#ffffff" stroke="#1f2124" stroke-width="1.5"/>
+    <text x="195" y="229" class="sketch-text" font-weight="bold">Step #3: Read and verify audit script contents (<tspan font-family="monospace">cat audit.sh</tspan>)</text>
+    
+    <!-- Hint bubble -->
+    <rect x="680" y="213" width="180" height="22" rx="10" fill="#ffffff" stroke="#444" stroke-width="1.2" filter="url(#pencil-subtle)"/>
+    <text x="770" y="228" class="sketch-btn-text" font-size="10px">💡 Hint: Type cat audit.sh</text>
+
+    <!-- Simulated Terminal Window -->
+    <rect x="150" y="260" width="725" height="280" rx="4" fill="#ffffff" stroke="#1f2124" stroke-width="2" filter="url(#pencil)"/>
+    <!-- Terminal Header Bar -->
+    <rect x="150" y="260" width="725" height="26" fill="none" stroke="#1f2124" stroke-width="1.5" filter="url(#pencil)"/>
+    <!-- Terminal window dots -->
+    <circle cx="166" cy="273" r="3.5" fill="#1f2124"/>
+    <circle cx="178" cy="273" r="3.5" fill="none" stroke="#1f2124" stroke-width="1.2"/>
+    <circle cx="190" cy="273" r="3.5" fill="none" stroke="#1f2124" stroke-width="1.2"/>
+    <text x="360" y="277" class="sketch-code" font-size="11px">student@hackacad: ~ (bash simulation)</text>
+    <rect x="765" y="264" width="95" height="18" rx="2" fill="#ffffff" stroke="#1f2124" stroke-width="1"/>
+    <text x="812" y="276" class="sketch-btn-text" font-size="9px">SANDBOX</text>
+
+    <!-- Terminal Body Text -->
+    <text x="165" y="305" class="sketch-code">HackAcad Security Linux Terminal v2.0</text>
+    <text x="165" y="325" class="sketch-code">Type &apos;help&apos; to view permitted lab utilities. Tab to auto-complete.</text>
+    <text x="165" y="355" class="sketch-code">student@hackacad:~$ <tspan font-weight="bold">cd /var/secret</tspan></text>
+    <text x="165" y="380" class="sketch-code">student@hackacad:/var/secret$ <tspan font-weight="bold">chmod 755 audit.sh</tspan></text>
+    <text x="165" y="405" class="sketch-code" fill="#006600">[✓ Step #2 Completed]: chmod 755 audit.sh</text>
+    <text x="165" y="430" class="sketch-code">student@hackacad:/var/secret$ <tspan font-weight="bold">cat audit.sh</tspan></text>
+    <text x="165" y="455" class="sketch-code">#!/bin/bash</text>
+    <text x="165" y="475" class="sketch-code"># Audit Token: FLAG&#123;l1nux_sh3ll_m4st3ry&#125;</text>
+    <text x="165" y="500" class="sketch-code" fill="#006600">[✓ Step #3 Completed]: cat audit.sh -- ALL OBJECTIVES SATISFIED!</text>
+    <text x="165" y="525" class="sketch-code">student@hackacad:/var/secret$ <tspan fill="#111">█</tspan></text>
+
+    <!-- Footer Action Buttons -->
+    <rect x="150" y="555" width="130" height="30" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.6" filter="url(#pencil)"/>
+    <text x="215" y="574" class="sketch-btn-text">↺ Reset terminal</text>
+
+    <rect x="295" y="555" width="115" height="30" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.6" filter="url(#pencil)"/>
+    <text x="352" y="574" class="sketch-btn-text">💡 Step hints</text>
+
+    <rect x="735" y="555" width="140" height="30" rx="3" fill="url(#hatch)" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <rect x="737" y="557" width="136" height="26" fill="#ffffff" fill-opacity="0.88"/>
+    <text x="805" y="574" class="sketch-btn-text">Finish lab ✓</text>
+  </g>
+
+  <g transform="translate(975, 35)">
+    <!-- Window Frame -->
+    <rect x="0" y="0" width="910" height="600" rx="4" fill="#ffffff" stroke="#1f2124" stroke-width="2" filter="url(#pencil)"/>
+    <rect x="2" y="2" width="906" height="596" rx="3" fill="none" stroke="#2b2d31" stroke-width="1" filter="url(#pencil)"/>
+    <!-- Header Bar -->
+    <text x="22" y="32" class="sketch-logo">HackAcad</text>
+    <text x="720" y="31" class="sketch-text">Theme</text>
+    <text x="780" y="31" class="sketch-text">Alerts</text>
+    <!-- Profile Circle -->
+    <circle cx="865" cy="27" r="13" fill="#ffffff" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <text x="865" y="31" class="sketch-subtext" text-anchor="middle" font-size="9px">Student</text>
+    <!-- Header Divider -->
+    <line x1="0" y1="46" x2="910" y2="46" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <!-- Sidebar Divider -->
+    <line x1="125" y1="46" x2="125" y2="600" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <text x="18" y="72" class="sketch-heading">Navigation</text>
+    <text x="18" y="102" class="sketch-text">Dashboard</text>
+    <text x="18" y="132" class="sketch-text">Courses</text>
+    <text x="18" y="162" class="sketch-text">Curriculum</text>
+    <text x="18" y="192" class="sketch-text">Labs</text>
+    <!-- Active Nav Item -->
+    <rect x="10" y="206" width="105" height="24" rx="2" fill="url(#hatch)" stroke="#1f2124" stroke-width="1.5" filter="url(#pencil)"/>
+    <rect x="12" y="208" width="101" height="20" fill="#ffffff" fill-opacity="0.82"/>
+    <text x="18" y="222" class="sketch-text" font-weight="bold">Notebooks</text>
+    <text x="18" y="252" class="sketch-text">CTF Arena</text>
+    <text x="18" y="282" class="sketch-text">Badges</text>
+    <text x="18" y="312" class="sketch-text">Settings</text>
+    <!-- Main Content Area -->
+    <text x="150" y="82" class="sketch-title">Terminal notebooks</text>
+
+    <!-- Screen 2 Inner Content -->
+    <!-- Subtitle -->
+    <text x="150" y="112" class="sketch-subtext">Personal study notes, interactive simulated terminal demonstrations, &amp; offline HTML export.</text>
+    
+    <!-- Search Bar & Filters -->
+    <rect x="150" y="125" width="380" height="32" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.5" filter="url(#pencil)"/>
+    <text x="165" y="146" class="sketch-subtext">Search personal notebooks...</text>
+
+    <rect x="545" y="125" width="150" height="32" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.5" filter="url(#pencil)"/>
+    <text x="560" y="146" class="sketch-text">All blocks / types</text>
+    <path d="M675 138 L682 146 L689 138" fill="none" stroke="#222" stroke-width="1.6"/>
+
+    <rect x="710" y="125" width="165" height="32" rx="3" fill="url(#hatch)" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <rect x="712" y="127" width="161" height="28" fill="#ffffff" fill-opacity="0.9"/>
+    <text x="792" y="146" class="sketch-btn-text">+ New notebook</text>
+
+    <!-- Table of Notebooks (Style matching user reference image tables) -->
+    <rect x="150" y="175" width="725" height="355" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    
+    <!-- Table Header -->
+    <line x1="150" y1="205" x2="875" y2="205" stroke="#1f2124" stroke-width="1.5" filter="url(#pencil)"/>
+    <text x="165" y="196" class="sketch-heading" font-size="12px">Notebook title</text>
+    <text x="400" y="196" class="sketch-heading" font-size="12px">Content blocks</text>
+    <text x="580" y="196" class="sketch-heading" font-size="12px">Last updated</text>
+    <text x="730" y="196" class="sketch-heading" font-size="12px">Actions</text>
+
+    <!-- Row 1 -->
+    <text x="165" y="235" class="sketch-text" font-weight="bold">Linux Shell Mastery Notes</text>
+    <text x="165" y="250" class="sketch-subtext">Practice sandboxes for user auditing &amp; bash commands</text>
+    <rect x="400" y="226" width="140" height="20" rx="3" fill="none" stroke="#666" stroke-width="1"/>
+    <text x="408" y="240" class="sketch-subtext">4 blocks (CLI, MD, Ex)</text>
+    <text x="580" y="240" class="sketch-subtext">2 hours ago</text>
+    <!-- Buttons -->
+    <rect x="705" y="224" width="45" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="727" y="240" class="sketch-btn-text" font-size="11px">Edit</text>
+    <rect x="756" y="224" width="50" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="781" y="240" class="sketch-btn-text" font-size="11px">View</text>
+    <rect x="812" y="224" width="55" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="839" y="240" class="sketch-btn-text" font-size="11px">Export</text>
+    <line x1="150" y1="265" x2="875" y2="265" stroke="#ccc" stroke-width="1"/>
+
+    <!-- Row 2 -->
+    <text x="165" y="295" class="sketch-text" font-weight="bold">Privilege Escalation Scenarios</text>
+    <text x="165" y="310" class="sketch-subtext">SUID binaries, sudo abuse, and cron automation</text>
+    <rect x="400" y="286" width="140" height="20" rx="3" fill="none" stroke="#666" stroke-width="1"/>
+    <text x="408" y="300" class="sketch-subtext">3 blocks (Markdown, CLI)</text>
+    <text x="580" y="300" class="sketch-subtext">Yesterday</text>
+    <rect x="705" y="284" width="45" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="727" y="300" class="sketch-btn-text" font-size="11px">Edit</text>
+    <rect x="756" y="284" width="50" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="781" y="300" class="sketch-btn-text" font-size="11px">View</text>
+    <rect x="812" y="284" width="55" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="839" y="300" class="sketch-btn-text" font-size="11px">Export</text>
+    <line x1="150" y1="325" x2="875" y2="325" stroke="#ccc" stroke-width="1"/>
+
+    <!-- Row 3 -->
+    <text x="165" y="355" class="sketch-text" font-weight="bold">System Auditing &amp; Log Analysis</text>
+    <text x="165" y="370" class="sketch-subtext">Parsing /var/log/auth.log with simulated grep</text>
+    <rect x="400" y="346" width="140" height="20" rx="3" fill="none" stroke="#666" stroke-width="1"/>
+    <text x="408" y="360" class="sketch-subtext">5 blocks (Static, CLI, MD)</text>
+    <text x="580" y="360" class="sketch-subtext">3 days ago</text>
+    <rect x="705" y="344" width="45" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="727" y="360" class="sketch-btn-text" font-size="11px">Edit</text>
+    <rect x="756" y="344" width="50" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="781" y="360" class="sketch-btn-text" font-size="11px">View</text>
+    <rect x="812" y="344" width="55" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="839" y="360" class="sketch-btn-text" font-size="11px">Export</text>
+    <line x1="150" y1="385" x2="875" y2="385" stroke="#ccc" stroke-width="1"/>
+
+    <!-- Row 4 -->
+    <text x="165" y="415" class="sketch-text" font-weight="bold">Custom Python Scripts Lab</text>
+    <text x="165" y="430" class="sketch-subtext">Exact-match custom commands with requiredFiles prerequisite</text>
+    <rect x="400" y="406" width="140" height="20" rx="3" fill="none" stroke="#666" stroke-width="1"/>
+    <text x="408" y="420" class="sketch-subtext">2 blocks (Interactive CLI)</text>
+    <text x="580" y="420" class="sketch-subtext">Oct 26</text>
+    <rect x="705" y="404" width="45" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="727" y="420" class="sketch-btn-text" font-size="11px">Edit</text>
+    <rect x="756" y="404" width="50" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="781" y="420" class="sketch-btn-text" font-size="11px">View</text>
+    <rect x="812" y="404" width="55" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="839" y="420" class="sketch-btn-text" font-size="11px">Export</text>
+    <line x1="150" y1="445" x2="875" y2="445" stroke="#ccc" stroke-width="1"/>
+
+    <!-- Table summary / Pagination -->
+    <text x="165" y="555" class="sketch-subtext">Page 1 of 1 (4 notebooks total)</text>
+    <text x="780" y="555" class="sketch-subtext">&lt; Previous   Next &gt;</text>
+  </g>
+
+  <g transform="translate(35, 670)">
+    <!-- Window Frame -->
+    <rect x="0" y="0" width="910" height="640" rx="4" fill="#ffffff" stroke="#1f2124" stroke-width="2" filter="url(#pencil)"/>
+    <rect x="2" y="2" width="906" height="636" rx="3" fill="none" stroke="#2b2d31" stroke-width="1" filter="url(#pencil)"/>
+    <!-- Header Bar -->
+    <text x="22" y="32" class="sketch-logo">HackAcad</text>
+    <text x="720" y="31" class="sketch-text">Theme</text>
+    <text x="780" y="31" class="sketch-text">Alerts</text>
+    <!-- Profile Circle -->
+    <circle cx="865" cy="27" r="13" fill="#ffffff" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <text x="865" y="31" class="sketch-subtext" text-anchor="middle" font-size="9px">Student</text>
+    <!-- Header Divider -->
+    <line x1="0" y1="46" x2="910" y2="46" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <!-- Sidebar Divider -->
+    <line x1="125" y1="46" x2="125" y2="640" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <text x="18" y="72" class="sketch-heading">Navigation</text>
+    <text x="18" y="102" class="sketch-text">Dashboard</text>
+    <text x="18" y="132" class="sketch-text">Courses</text>
+    <text x="18" y="162" class="sketch-text">Curriculum</text>
+    <text x="18" y="192" class="sketch-text">Labs</text>
+    <!-- Active Nav Item -->
+    <rect x="10" y="206" width="105" height="24" rx="2" fill="url(#hatch)" stroke="#1f2124" stroke-width="1.5" filter="url(#pencil)"/>
+    <rect x="12" y="208" width="101" height="20" fill="#ffffff" fill-opacity="0.82"/>
+    <text x="18" y="222" class="sketch-text" font-weight="bold">Notebooks</text>
+    <text x="18" y="252" class="sketch-text">CTF Arena</text>
+    <text x="18" y="282" class="sketch-text">Badges</text>
+    <text x="18" y="312" class="sketch-text">Settings</text>
+    <!-- Main Content Area -->
+    <text x="150" y="82" class="sketch-title">Notebook editor</text>
+
+    <!-- Screen 3 Inner Content -->
+    <!-- Top Action Bar -->
+    <text x="150" y="112" class="sketch-subtext">&lt; All Notebooks / <tspan font-weight="bold" fill="#006600">● Saved</tspan></text>
+    
+    <rect x="495" y="95" width="100" height="26" rx="3" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="545" y="112" class="sketch-btn-text" font-size="11px">Reader mode</text>
+
+    <rect x="605" y="95" width="145" height="26" rx="3" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="677" y="112" class="sketch-btn-text" font-size="11px">Export standalone HTML</text>
+
+    <rect x="760" y="95" width="115" height="26" rx="3" fill="url(#hatch)" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <rect x="762" y="97" width="111" height="22" fill="#ffffff" fill-opacity="0.9"/>
+    <text x="817" y="112" class="sketch-btn-text" font-size="11px">Save notebook</text>
+
+    <!-- Title Card -->
+    <rect x="150" y="130" width="725" height="50" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.6" filter="url(#pencil)"/>
+    <text x="165" y="148" class="sketch-subtext">NOTEBOOK TITLE</text>
+    <text x="165" y="168" class="sketch-heading" font-size="16px">Linux Shell Mastery Notes</text>
+    <rect x="740" y="140" width="120" height="22" rx="2" fill="none" stroke="#666" stroke-width="1"/>
+    <text x="800" y="155" class="sketch-btn-text" font-size="10px">PERSONAL NOTEBOOK</text>
+
+    <!-- Block 1: Markdown Note Card -->
+    <rect x="150" y="190" width="725" height="110" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.5" filter="url(#pencil)"/>
+    <rect x="150" y="190" width="725" height="26" fill="url(#hatch-light)" stroke="#1f2124" stroke-width="1.2"/>
+    <text x="165" y="208" class="sketch-heading" font-size="12px">Block #1: Markdown Notes</text>
+    <text x="755" y="207" class="sketch-subtext">[▲ Move] [▼ Move] [✖ Delete]</text>
+    
+    <text x="168" y="238" class="sketch-heading" font-size="14px"># 1. Essential Linux Directory Overview</text>
+    <text x="168" y="258" class="sketch-text">• <tspan font-family="monospace">/home/student</tspan>: Standard unprivileged user home sandbox.</text>
+    <text x="168" y="278" class="sketch-text">• <tspan font-family="monospace">/var/log/auth.log</tspan>: Contains authentication and privilege escalation records.</text>
+
+    <!-- Block 2: Interactive Terminal Block (With simulation editor button) -->
+    <rect x="150" y="310" width="725" height="175" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.6" filter="url(#pencil)"/>
+    <rect x="150" y="310" width="725" height="26" fill="url(#hatch-light)" stroke="#1f2124" stroke-width="1.2"/>
+    <text x="165" y="328" class="sketch-heading" font-size="12px">Block #2: Interactive Simulated Terminal Demonstration</text>
+    <text x="755" y="327" class="sketch-subtext">[▲ Move] [▼ Move] [✖ Delete]</text>
+
+    <!-- Block Subheader: Config Summary & EditSimulation Button -->
+    <rect x="165" y="345" width="695" height="40" rx="3" fill="#ffffff" stroke="#888" stroke-width="1.2" stroke-dasharray="3,3"/>
+    <text x="178" y="362" class="sketch-text" font-weight="bold">Virtual Environment Configuration</text>
+    <text x="178" y="377" class="sketch-subtext">13 allowed commands · 1 custom command (python main.py) · Virtual Root /</text>
+    
+    <!-- Configure in Simulation Editor Button (THE KEY REQUIREMENT!) -->
+    <rect x="625" y="350" width="220" height="28" rx="3" fill="url(#hatch)" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <rect x="627" y="352" width="216" height="24" fill="#ffffff" fill-opacity="0.9"/>
+    <text x="737" y="368" class="sketch-btn-text" font-size="11px">⚙ Configure in Simulation Editor</text>
+
+    <!-- Terminal preview mount -->
+    <rect x="165" y="395" width="695" height="80" rx="2" fill="#ffffff" stroke="#1f2124" stroke-width="1.2"/>
+    <text x="175" y="415" class="sketch-code">student@hackacad:~$ <tspan font-weight="bold">python main.py</tspan></text>
+    <text x="175" y="435" class="sketch-code">Hello, World! Audit sandbox verification successful.</text>
+    <text x="175" y="455" class="sketch-code">student@hackacad:~$ █</text>
+    <text x="760" y="465" class="sketch-subtext">[ ↺ Reset terminal ]</text>
+
+    <!-- Add Block Tray -->
+    <rect x="150" y="495" width="725" height="60" rx="4" fill="#ffffff" stroke="#2b2d31" stroke-width="1.8" stroke-dasharray="6,4" filter="url(#pencil)"/>
+    <text x="512" y="515" class="sketch-heading" font-size="12px" text-anchor="middle">+ Add Content to Notebook</text>
+    
+    <rect x="235" y="525" width="165" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="317" y="541" class="sketch-btn-text" font-size="11px">+ Add Markdown Notes</text>
+
+    <rect x="420" y="525" width="185" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="512" y="541" class="sketch-btn-text" font-size="11px">+ Add Interactive Terminal</text>
+
+    <rect x="625" y="525" width="175" height="24" rx="2" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="712" y="541" class="sketch-btn-text" font-size="11px">+ Add Static CLI Example</text>
+  </g>
+
+  <g transform="translate(975, 670)">
+    <!-- Window Frame -->
+    <rect x="0" y="0" width="910" height="640" rx="4" fill="#ffffff" stroke="#1f2124" stroke-width="2" filter="url(#pencil)"/>
+    <rect x="2" y="2" width="906" height="636" rx="3" fill="none" stroke="#2b2d31" stroke-width="1" filter="url(#pencil)"/>
+    <!-- Header Bar -->
+    <text x="22" y="32" class="sketch-logo">HackAcad</text>
+    <text x="720" y="31" class="sketch-text">Theme</text>
+    <text x="780" y="31" class="sketch-text">Alerts</text>
+    <!-- Profile Circle -->
+    <circle cx="865" cy="27" r="13" fill="#ffffff" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <text x="865" y="31" class="sketch-subtext" text-anchor="middle" font-size="9px">Instructor</text>
+    <!-- Header Divider -->
+    <line x1="0" y1="46" x2="910" y2="46" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <!-- Sidebar Divider -->
+    <line x1="125" y1="46" x2="125" y2="640" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <text x="18" y="72" class="sketch-heading">Navigation</text>
+    <text x="18" y="102" class="sketch-text">Dashboard</text>
+    <text x="18" y="132" class="sketch-text">Courses</text>
+    <text x="18" y="162" class="sketch-text">Curriculum</text>
+    <!-- Active Nav Item -->
+    <rect x="10" y="176" width="105" height="24" rx="2" fill="url(#hatch)" stroke="#1f2124" stroke-width="1.5" filter="url(#pencil)"/>
+    <rect x="12" y="178" width="101" height="20" fill="#ffffff" fill-opacity="0.82"/>
+    <text x="18" y="192" class="sketch-text" font-weight="bold">Labs</text>
+    <text x="18" y="222" class="sketch-text">Notebooks</text>
+    <text x="18" y="252" class="sketch-text">Submissions</text>
+    <text x="18" y="282" class="sketch-text">Students</text>
+    <text x="18" y="312" class="sketch-text">Settings</text>
+    <!-- Main Content Area -->
+    <text x="150" y="82" class="sketch-title">Visual simulation builder</text>
+
+    <!-- Screen 4 Inner Content -->
+    <!-- Top Action Bar -->
+    <text x="150" y="112" class="sketch-subtext">&lt; Back to curriculum / Lab Configuration</text>
+
+    <rect x="520" y="95" width="105" height="26" rx="3" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="572" y="112" class="sketch-btn-text" font-size="11px">[x] Published</text>
+
+    <rect x="635" y="95" width="115" height="26" rx="3" fill="#ffffff" stroke="#222" stroke-width="1.3" filter="url(#pencil-subtle)"/>
+    <text x="692" y="112" class="sketch-btn-text" font-size="11px">▶ Test preview</text>
+
+    <rect x="760" y="95" width="115" height="26" rx="3" fill="url(#hatch)" stroke="#1f2124" stroke-width="1.8" filter="url(#pencil)"/>
+    <rect x="762" y="97" width="111" height="22" fill="#ffffff" fill-opacity="0.9"/>
+    <text x="817" y="112" class="sketch-btn-text" font-size="11px">Save simulation</text>
+
+    <!-- SECTION 1: Lab Details (Metadata) -->
+    <rect x="150" y="130" width="725" height="65" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.5" filter="url(#pencil)"/>
+    <text x="165" y="148" class="sketch-heading" font-size="12px">1. Lab Details &amp; Metadata</text>
+    <text x="165" y="168" class="sketch-subtext">Lab Title:</text>
+    <rect x="230" y="155" width="370" height="24" rx="2" fill="#ffffff" stroke="#444" stroke-width="1.2"/>
+    <text x="240" y="171" class="sketch-text">Linux Privilege Escalation &amp; File Audit</text>
+    <text x="620" y="168" class="sketch-subtext">Difficulty:</text>
+    <rect x="675" y="155" width="100" height="24" rx="2" fill="#ffffff" stroke="#444" stroke-width="1.2"/>
+    <text x="685" y="171" class="sketch-text">Beginner v</text>
+
+    <!-- SECTION 2: Virtual Linux Filesystem (Tree + Inspector) -->
+    <rect x="150" y="203" width="725" height="115" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.5" filter="url(#pencil)"/>
+    <text x="165" y="220" class="sketch-heading" font-size="12px">2. Virtual Linux Filesystem Hierarchy</text>
+    
+    <!-- Tree View Panel -->
+    <rect x="165" y="228" width="300" height="80" rx="2" fill="#ffffff" stroke="#666" stroke-width="1"/>
+    <text x="175" y="244" class="sketch-code" font-size="10.5px">/ (virtual root)</text>
+    <text x="185" y="260" class="sketch-code" font-size="10.5px">├── home/student/ [main.py, notes.txt]</text>
+    <text x="185" y="276" class="sketch-code" font-size="10.5px">├── var/secret/ [audit.sh]</text>
+    <text x="185" y="292" class="sketch-code" font-size="10.5px">└── etc/passwd</text>
+    <text x="350" y="244" class="sketch-subtext">[+ Folder] [+ File]</text>
+
+    <!-- Inspector Panel -->
+    <rect x="475" y="228" width="385" height="80" rx="2" fill="#ffffff" stroke="#666" stroke-width="1"/>
+    <text x="485" y="244" class="sketch-text" font-weight="bold">Inspector: /home/student/main.py</text>
+    <rect x="485" y="250" width="365" height="50" rx="1" fill="#ffffff" stroke="#999" stroke-width="1"/>
+    <text x="495" y="268" class="sketch-code" font-size="10px">print(&quot;Hello, World! Audit verified.&quot;)</text>
+    <text x="495" y="284" class="sketch-code" font-size="10px"># Target script for student execution</text>
+
+    <!-- SECTION 3: Allowed Shell Commands (13 Core Utilities) -->
+    <rect x="150" y="325" width="725" height="60" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.5" filter="url(#pencil)"/>
+    <text x="165" y="342" class="sketch-heading" font-size="12px">3. Allowed Shell Commands</text>
+    <text x="165" y="362" class="sketch-text">[x] pwd  [x] cd  [x] ls  [x] cat  [x] touch  [x] nano  [x] grep  [x] chmod  [x] whoami  [x] echo  [x] id  [x] date  [x] history</text>
+    <text x="165" y="377" class="sketch-subtext">(help and clear are always enabled by default; obsolete commands removed)</text>
+
+    <!-- SECTION 4: Exact-Match Custom Commands WITH COLLAPSIBLE ADVANCED OPTIONS -->
+    <rect x="150" y="392" width="725" height="150" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.6" filter="url(#pencil)"/>
+    <text x="165" y="410" class="sketch-heading" font-size="12px">4. Exact-Match Custom Commands &amp; Prerequisites</text>
+    <text x="740" y="410" class="sketch-subtext">[+ Add Custom Command]</text>
+    
+    <!-- Custom Command Card #1 -->
+    <rect x="165" y="418" width="695" height="115" rx="3" fill="#ffffff" stroke="#444" stroke-width="1.3"/>
+    <text x="178" y="434" class="sketch-text" font-weight="bold">Custom Command #1: Exact string: <tspan font-family="monospace">python main.py</tspan></text>
+    <text x="650" y="434" class="sketch-subtext">Enabled: [x] | [▲ Move] [✖ Delete]</text>
+    
+    <!-- Essential Predefined Output -->
+    <text x="178" y="452" class="sketch-subtext">Predefined Output: Hello, World! Audit sandbox verification successful.</text>
+    
+    <!-- Advanced Options Toggle & Expanded Box -->
+    <rect x="178" y="460" width="670" height="65" rx="2" fill="url(#hatch-light)" fill-opacity="0.2" stroke="#666" stroke-width="1"/>
+    <text x="188" y="475" class="sketch-heading" font-size="11px">▼ Advanced Options (Configured) - Collapsible</text>
+    <text x="188" y="493" class="sketch-text">• <tspan font-weight="bold">Required Files &amp; Directories:</tspan> <tspan font-family="monospace">main.py</tspan> (Must exist in active CWD for command to succeed)</text>
+    <text x="188" y="511" class="sketch-text">• <tspan font-weight="bold">Teacher Description:</tspan> Execute python script | <tspan font-weight="bold">Student Hint:</tspan> Run python main.py</text>
+
+    <!-- SECTION 5: Lab Objectives Checklist -->
+    <rect x="150" y="550" width="725" height="70" rx="3" fill="#ffffff" stroke="#1f2124" stroke-width="1.5" filter="url(#pencil)"/>
+    <text x="165" y="568" class="sketch-heading" font-size="12px">5. Lab Objectives (Step-by-Step Evaluation)</text>
+    <text x="560" y="568" class="sketch-subtext">[x] Enforce Sequential Order  [+ Add Objective]</text>
+    <text x="165" y="590" class="sketch-text">Step 1: Expected: <tspan font-family="monospace">cd /var/secret</tspan> | Required Dir: <tspan font-family="monospace">/</tspan> | Hint: Navigate to secret folder</text>
+    <text x="165" y="608" class="sketch-text">Step 2: Expected: <tspan font-family="monospace">chmod 755 audit.sh</tspan> | Required Dir: <tspan font-family="monospace">/var/secret</tspan> | Hint: Set file executable</text>
+  </g>
+
+</svg>

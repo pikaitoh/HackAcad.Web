@@ -1,0 +1,308 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net">
+  <diagram name="Terminal Modules Wireframes" id="wireframes_page_1">
+    <mxGraphModel dx="100" dy="100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1950" pageHeight="1450" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="bg" parent="1" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#2c2d30;strokeColor=none;" vertex="1">
+          <mxGeometry x="0" y="0" width="1950" height="1450" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_win" parent="1" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#ffffff;strokeColor=#1e2022;strokeWidth=2;shadow=0;" vertex="1">
+          <mxGeometry x="40" y="40" width="900" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_logo" parent="1" value="HackAcad" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontStyle=1;fontSize=18;fontColor=#1c1d20;" vertex="1">
+          <mxGeometry x="60" y="50" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_theme" parent="1" value="Theme" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontSize=11;fontColor=#5f6368;" vertex="1">
+          <mxGeometry x="760" y="55" width="45" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_alerts" parent="1" value="Alerts" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontSize=11;fontColor=#5f6368;" vertex="1">
+          <mxGeometry x="815" y="55" width="45" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_avatar" parent="1" value="Student" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontSize=9;fontFamily=Comic Sans MS;" vertex="1">
+          <mxGeometry x="890" y="53" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_hline" parent="1" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#1f2124;strokeWidth=1.8;exitX=0;exitY=0;entryX=1;entryY=0;" vertex="1">
+          <mxGeometry x="40" y="86" width="900" height="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_sline" parent="1" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#1f2124;strokeWidth=1.8;" vertex="1">
+          <mxGeometry x="165" y="86" width="1" height="574" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_navhead" parent="1" value="Navigation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontStyle=1;fontSize=13;fontColor=#1c1d20;" vertex="1">
+          <mxGeometry x="55" y="100" width="90" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_nav_Dashboard" parent="1" value="Dashboard" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="130" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_nav_Courses" parent="1" value="Courses" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="158" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_nav_Curriculum" parent="1" value="Curriculum" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="186" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_nav_Labs" parent="1" value="Labs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e2e8f0;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=12;" vertex="1">
+          <mxGeometry x="50" y="211" width="105" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_nav_Notebooks" parent="1" value="Notebooks" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="242" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_nav_CTF Arena" parent="1" value="CTF Arena" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="270" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_nav_Badges" parent="1" value="Badges" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="298" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_nav_Settings" parent="1" value="Settings" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="326" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_title" parent="1" value="Simulated terminal lab" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontStyle=1;fontSize=16;fontColor=#1c1d20;" vertex="1">
+          <mxGeometry x="190" y="100" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_sub" parent="1" value="Course: Linux Systems &amp;amp; Security / Module 3: Virtual Shell Lab" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontSize=11;fontColor=#5f6368;" vertex="1">
+          <mxGeometry x="190" y="130" width="450" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_tag1" parent="1" value="Client-side sandbox" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=11;fontColor=#1c1d20;align=center;" vertex="1">
+          <mxGeometry x="710" y="95" width="110" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_tag2" parent="1" value="In progress" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#cbd5e1;strokeColor=#1f2124;strokeWidth=1.8;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=11;fontColor=#1c1d20;align=center;" vertex="1">
+          <mxGeometry x="830" y="95" width="90" height="22" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_obj_box" parent="1" value="&lt;b&gt;Lab objectives (Sequential)&lt;/b&gt;&lt;br/&gt;[✓] Step #1: Navigate into confidential folder (cd /var/secret)&lt;br/&gt;[✓] Step #2: Change script permission to executable (chmod 755 audit.sh)&lt;br/&gt;[ ] Step #3: Read and verify audit script contents (cat audit.sh)&lt;br/&gt;&lt;div align='right'&gt;&lt;i&gt;💡 Hint: Type cat audit.sh&lt;/i&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;align=left;spacingLeft=12;spacingTop=6;" vertex="1">
+          <mxGeometry x="190" y="155" width="730" height="105" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_term_box" parent="1" value="&lt;b&gt;[o o o]  student@hackacad: ~ (bash simulation)          [ SANDBOX ]&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;HackAcad Security Linux Terminal v2.0&lt;br/&gt;student@hackacad:~$ &lt;b&gt;cd /var/secret&lt;/b&gt;&lt;br/&gt;student@hackacad:/var/secret$ &lt;b&gt;chmod 755 audit.sh&lt;/b&gt;&lt;br/&gt;&lt;font color='#007700'&gt;[✓ Step #2 Completed]: chmod 755 audit.sh&lt;/font&gt;&lt;br/&gt;student@hackacad:/var/secret$ &lt;b&gt;cat audit.sh&lt;/b&gt;&lt;br/&gt;#!/bin/bash&lt;br/&gt;# Token: FLAG{l1nux_sh3ll_m4st3ry}&lt;br/&gt;&lt;font color='#007700'&gt;[✓ Step #3 Completed]: ALL OBJECTIVES SATISFIED!&lt;/font&gt;&lt;br/&gt;student@hackacad:/var/secret$ █" style="rounded=1;whiteSpace=wrap;html=1;arcSize=2;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Liberation Mono, Courier New, monospace;fontSize=11;align=left;spacingLeft=10;" vertex="1">
+          <mxGeometry x="190" y="275" width="730" height="310" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_btn_reset" parent="1" value="↺ Reset terminal" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=11;fontColor=#1c1d20;align=center;" vertex="1">
+          <mxGeometry x="190" y="600" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_btn_hints" parent="1" value="💡 Step hints" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=11;fontColor=#1c1d20;align=center;" vertex="1">
+          <mxGeometry x="320" y="600" width="110" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="s1_btn_finish" parent="1" value="Finish lab ✓" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#cbd5e1;strokeColor=#1f2124;strokeWidth=1.8;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=11;fontColor=#1c1d20;align=center;" vertex="1">
+          <mxGeometry x="800" y="600" width="120" height="28" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_win" parent="1" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#ffffff;strokeColor=#1e2022;strokeWidth=2;shadow=0;" vertex="1">
+          <mxGeometry x="980" y="40" width="920" height="620" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_logo" parent="1" value="HackAcad" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontStyle=1;fontSize=18;fontColor=#1c1d20;" vertex="1">
+          <mxGeometry x="1000" y="50" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_theme" parent="1" value="Theme" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontSize=11;fontColor=#5f6368;" vertex="1">
+          <mxGeometry x="1720" y="55" width="45" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_alerts" parent="1" value="Alerts" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontSize=11;fontColor=#5f6368;" vertex="1">
+          <mxGeometry x="1775" y="55" width="45" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_avatar" parent="1" value="Student" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontSize=9;fontFamily=Comic Sans MS;" vertex="1">
+          <mxGeometry x="1850" y="53" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_hline" parent="1" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#1f2124;strokeWidth=1.8;exitX=0;exitY=0;entryX=1;entryY=0;" vertex="1">
+          <mxGeometry x="980" y="86" width="920" height="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_sline" parent="1" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#1f2124;strokeWidth=1.8;" vertex="1">
+          <mxGeometry x="1105" y="86" width="1" height="574" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_navhead" parent="1" value="Navigation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontStyle=1;fontSize=13;fontColor=#1c1d20;" vertex="1">
+          <mxGeometry x="995" y="100" width="90" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_nav_Dashboard" parent="1" value="Dashboard" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="130" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_nav_Courses" parent="1" value="Courses" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="158" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_nav_Curriculum" parent="1" value="Curriculum" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="186" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_nav_Labs" parent="1" value="Labs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="214" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_nav_Notebooks" parent="1" value="Notebooks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e2e8f0;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=12;" vertex="1">
+          <mxGeometry x="990" y="239" width="105" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_nav_CTF Arena" parent="1" value="CTF Arena" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="270" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_nav_Badges" parent="1" value="Badges" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="298" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_nav_Settings" parent="1" value="Settings" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="326" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_title" parent="1" value="Terminal notebooks" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontStyle=1;fontSize=16;fontColor=#1c1d20;" vertex="1">
+          <mxGeometry x="1130" y="100" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_sub" parent="1" value="Personal study notes, interactive simulated terminal demonstrations, &amp;amp; offline HTML export." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontSize=11;fontColor=#5f6368;" vertex="1">
+          <mxGeometry x="1130" y="130" width="500" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_search" parent="1" value="Search personal notebooks..." style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;align=left;spacingLeft=10;fontColor=#888;" vertex="1">
+          <mxGeometry x="1130" y="155" width="360" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_filter" parent="1" value="All blocks / types  ▼" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;align=center;" vertex="1">
+          <mxGeometry x="1500" y="155" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_new" parent="1" value="+ New notebook" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#cbd5e1;strokeColor=#1f2124;strokeWidth=1.8;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=11;fontColor=#1c1d20;align=center;" vertex="1">
+          <mxGeometry x="1650" y="155" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s2_table" parent="1" value="&lt;b&gt;Notebook title                       Content blocks           Last updated      Actions&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;&lt;b&gt;Linux Shell Mastery Notes&lt;/b&gt;             4 blocks (CLI, MD, Ex)    2 hours ago       [Edit] [View] [Export]&lt;br/&gt;Practice sandboxes for user auditing&lt;br/&gt;&lt;hr/&gt;&lt;b&gt;Privilege Escalation Scenarios&lt;/b&gt;        3 blocks (Markdown, CLI)  Yesterday         [Edit] [View] [Export]&lt;br/&gt;SUID binaries, sudo abuse, &amp;amp; cron&lt;br/&gt;&lt;hr/&gt;&lt;b&gt;System Auditing &amp;amp; Log Analysis&lt;/b&gt;        5 blocks (CLI, Sandbox)   3 days ago        [Edit] [View] [Export]&lt;br/&gt;Parsing auth.log with grep&lt;br/&gt;&lt;hr/&gt;&lt;b&gt;Custom Python Scripts Lab&lt;/b&gt;             2 blocks (Interactive)    Oct 26            [Edit] [View] [Export]&lt;br/&gt;Custom CCs with requiredFiles&lt;br/&gt;&lt;br/&gt;Page 1 of 1 (4 notebooks total)                                              &amp;lt; Previous  Next &amp;gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;align=left;spacingLeft=15;spacingTop=10;fontFamily=Comic Sans MS, sans-serif;fontSize=11;" vertex="1">
+          <mxGeometry x="1130" y="200" width="750" height="410" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_win" parent="1" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#ffffff;strokeColor=#1e2022;strokeWidth=2;shadow=0;" vertex="1">
+          <mxGeometry x="40" y="700" width="900" height="670" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_logo" parent="1" value="HackAcad" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontStyle=1;fontSize=18;fontColor=#1c1d20;" vertex="1">
+          <mxGeometry x="60" y="710" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_theme" parent="1" value="Theme" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontSize=11;fontColor=#5f6368;" vertex="1">
+          <mxGeometry x="760" y="715" width="45" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_alerts" parent="1" value="Alerts" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontSize=11;fontColor=#5f6368;" vertex="1">
+          <mxGeometry x="815" y="715" width="45" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_avatar" parent="1" value="Student" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontSize=9;fontFamily=Comic Sans MS;" vertex="1">
+          <mxGeometry x="890" y="713" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_hline" parent="1" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#1f2124;strokeWidth=1.8;exitX=0;exitY=0;entryX=1;entryY=0;" vertex="1">
+          <mxGeometry x="40" y="746" width="900" height="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_sline" parent="1" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#1f2124;strokeWidth=1.8;" vertex="1">
+          <mxGeometry x="165" y="746" width="1" height="624" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_navhead" parent="1" value="Navigation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontStyle=1;fontSize=13;fontColor=#1c1d20;" vertex="1">
+          <mxGeometry x="55" y="760" width="90" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_nav_Dashboard" parent="1" value="Dashboard" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="790" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_nav_Courses" parent="1" value="Courses" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="818" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_nav_Curriculum" parent="1" value="Curriculum" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="846" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_nav_Labs" parent="1" value="Labs" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="874" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_nav_Notebooks" parent="1" value="Notebooks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e2e8f0;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=12;" vertex="1">
+          <mxGeometry x="50" y="899" width="105" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_nav_CTF Arena" parent="1" value="CTF Arena" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="930" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_nav_Badges" parent="1" value="Badges" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="958" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_nav_Settings" parent="1" value="Settings" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="55" y="986" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_title" parent="1" value="Notebook editor" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontStyle=1;fontSize=16;fontColor=#1c1d20;" vertex="1">
+          <mxGeometry x="190" y="760" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_bar" parent="1" value="&amp;lt; All Notebooks / &lt;font color='#008800'&gt;● Saved&lt;/font&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontSize=11;fontColor=#5f6368;" vertex="1">
+          <mxGeometry x="190" y="790" width="250" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_btn_reader" parent="1" value="Reader mode" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=11;fontColor=#1c1d20;align=center;" vertex="1">
+          <mxGeometry x="550" y="785" width="100" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_btn_exp" parent="1" value="Export standalone HTML" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=11;fontColor=#1c1d20;align=center;" vertex="1">
+          <mxGeometry x="660" y="785" width="145" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_btn_save" parent="1" value="Save notebook" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#cbd5e1;strokeColor=#1f2124;strokeWidth=1.8;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=11;fontColor=#1c1d20;align=center;" vertex="1">
+          <mxGeometry x="815" y="785" width="105" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_title_card" parent="1" value="NOTEBOOK TITLE:&lt;br/&gt;&lt;b&gt;Linux Shell Mastery Notes&lt;/b&gt; &lt;span style='float:right'&gt;[ PERSONAL NOTEBOOK ]&lt;/span&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;align=left;spacingLeft=12;" vertex="1">
+          <mxGeometry x="190" y="825" width="730" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_b1" parent="1" value="&lt;b&gt;Block #1: Markdown Notes&lt;/b&gt; [▲ Move] [▼ Move] [✖ Delete]&lt;br/&gt;&lt;br/&gt;&lt;b&gt;# 1. Essential Linux Directory Overview&lt;/b&gt;&lt;br/&gt;• /home/student: Standard unprivileged user home sandbox.&lt;br/&gt;• /var/log/auth.log: Contains authentication and privilege escalation records." style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;align=left;spacingLeft=12;spacingTop=6;" vertex="1">
+          <mxGeometry x="190" y="880" width="730" height="95" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_b2" parent="1" value="&lt;b&gt;Block #2: Interactive Simulated Terminal Demonstration&lt;/b&gt; [▲ Move] [▼ Move] [✖ Delete]&lt;br/&gt;&lt;br/&gt;&lt;i&gt;Virtual Environment Configuration: 13 allowed commands · 1 custom command · /home/student&lt;/i&gt;&lt;br/&gt;&lt;div align='right'&gt;&lt;b&gt;[ ⚙ Configure in Simulation Editor ]&lt;/b&gt;&lt;/div&gt;&lt;br/&gt;student@hackacad:~$ &lt;b&gt;python main.py&lt;/b&gt;&lt;br/&gt;Hello, World! Audit sandbox verification successful.&lt;br/&gt;student@hackacad:~$ █                                                     [ ↺ Reset terminal ]" style="rounded=1;whiteSpace=wrap;html=1;arcSize=2;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Liberation Mono, Courier New, monospace;fontSize=11;align=left;spacingLeft=10;" vertex="1">
+          <mxGeometry x="190" y="985" width="730" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="s3_add_tray" parent="1" value="&lt;b&gt;+ Add Content to Notebook&lt;/b&gt;&lt;br/&gt;&lt;br/&gt;[ + Add Markdown Notes ]     [ + Add Interactive Terminal ]     [ + Add Static CLI Example ]" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;strokeDasharray=4;align=center;" vertex="1">
+          <mxGeometry x="190" y="1145" width="730" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_win" parent="1" value="" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#ffffff;strokeColor=#1e2022;strokeWidth=2;shadow=0;" vertex="1">
+          <mxGeometry x="980" y="700" width="920" height="670" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_logo" parent="1" value="HackAcad" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontStyle=1;fontSize=18;fontColor=#1c1d20;" vertex="1">
+          <mxGeometry x="1000" y="710" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_theme" parent="1" value="Theme" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontSize=11;fontColor=#5f6368;" vertex="1">
+          <mxGeometry x="1720" y="715" width="45" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_alerts" parent="1" value="Alerts" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontSize=11;fontColor=#5f6368;" vertex="1">
+          <mxGeometry x="1775" y="715" width="45" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_avatar" parent="1" value="Instructor" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontSize=9;fontFamily=Comic Sans MS;" vertex="1">
+          <mxGeometry x="1850" y="713" width="24" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_hline" parent="1" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#1f2124;strokeWidth=1.8;exitX=0;exitY=0;entryX=1;entryY=0;" vertex="1">
+          <mxGeometry x="980" y="746" width="920" height="1" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_sline" parent="1" value="" style="endArrow=none;html=1;rounded=0;strokeColor=#1f2124;strokeWidth=1.8;" vertex="1">
+          <mxGeometry x="1105" y="746" width="1" height="624" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_navhead" parent="1" value="Navigation" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontStyle=1;fontSize=13;fontColor=#1c1d20;" vertex="1">
+          <mxGeometry x="995" y="760" width="90" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_nav_Dashboard" parent="1" value="Dashboard" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="790" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_nav_Courses" parent="1" value="Courses" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="818" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_nav_Curriculum" parent="1" value="Curriculum" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="846" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_nav_Labs" parent="1" value="Labs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e2e8f0;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=12;" vertex="1">
+          <mxGeometry x="990" y="871" width="105" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_nav_Notebooks" parent="1" value="Notebooks" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="902" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_nav_Submissions" parent="1" value="Submissions" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="930" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_nav_Students" parent="1" value="Students" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="958" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_nav_Settings" parent="1" value="Settings" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, sans-serif;fontSize=12;fontColor=#2c2e33;" vertex="1">
+          <mxGeometry x="995" y="986" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_title" parent="1" value="Visual simulation builder" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontStyle=1;fontSize=16;fontColor=#1c1d20;" vertex="1">
+          <mxGeometry x="1130" y="760" width="400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_bar" parent="1" value="&amp;lt; Back to curriculum / Lab Configuration" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontFamily=Comic Sans MS, Architects Daughter, sans-serif;fontSize=11;fontColor=#5f6368;" vertex="1">
+          <mxGeometry x="1130" y="790" width="250" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_btn_pub" parent="1" value="[x] Published" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=11;fontColor=#1c1d20;align=center;" vertex="1">
+          <mxGeometry x="1520" y="785" width="95" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_btn_prev" parent="1" value="▶ Test preview" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=11;fontColor=#1c1d20;align=center;" vertex="1">
+          <mxGeometry x="1625" y="785" width="105" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_btn_save" parent="1" value="Save simulation" style="rounded=1;whiteSpace=wrap;html=1;arcSize=4;fillColor=#cbd5e1;strokeColor=#1f2124;strokeWidth=1.8;fontFamily=Comic Sans MS, sans-serif;fontStyle=1;fontSize=11;fontColor=#1c1d20;align=center;" vertex="1">
+          <mxGeometry x="1740" y="785" width="110" height="26" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_s1" parent="1" value="&lt;b&gt;1. Lab Details &amp;amp; Metadata&lt;/b&gt;&lt;br/&gt;Lab Title: [ Linux Privilege Escalation &amp;amp; File Audit ]    Difficulty: [ Beginner ▼ ]" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;align=left;spacingLeft=12;spacingTop=6;" vertex="1">
+          <mxGeometry x="1130" y="825" width="750" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_s2" parent="1" value="&lt;b&gt;2. Virtual Linux Filesystem Hierarchy&lt;/b&gt;  [+ Folder] [+ File]&lt;br/&gt;&lt;b&gt;Tree View:&lt;/b&gt;                                            &lt;b&gt;Inspector: /home/student/main.py&lt;/b&gt;&lt;br/&gt;/ (virtual root)                                    print('Hello, World! Audit verified.')&lt;br/&gt;├── home/student/ [main.py, notes.txt]              # Target script for student execution&lt;br/&gt;├── var/secret/ [audit.sh]&lt;br/&gt;└── etc/passwd" style="rounded=1;whiteSpace=wrap;html=1;arcSize=2;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;fontFamily=Liberation Mono, Courier New, monospace;fontSize=11;align=left;spacingLeft=10;" vertex="1">
+          <mxGeometry x="1130" y="890" width="750" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_s3" parent="1" value="&lt;b&gt;3. Allowed Shell Commands&lt;/b&gt;&lt;br/&gt;[x] pwd  [x] cd  [x] ls  [x] cat  [x] touch  [x] nano  [x] grep  [x] chmod  [x] whoami  [x] echo  [x] id  [x] date  [x] history&lt;br/&gt;&lt;i&gt;(help and clear are always enabled by default; obsolete commands ping/nmap/curl/base64 removed)&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;align=left;spacingLeft=12;spacingTop=6;" vertex="1">
+          <mxGeometry x="1130" y="1000" width="750" height="55" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_s4" parent="1" value="&lt;b&gt;4. Exact-Match Custom Commands &amp;amp; Prerequisites&lt;/b&gt;  [+ Add Custom Command]&lt;br/&gt;&lt;b&gt;Custom Command #1:&lt;/b&gt; Exact string: [ python main.py ]  Enabled: [x] [▲ Move] [✖ Delete]&lt;br/&gt;Predefined Output: [ Hello, World! Audit sandbox verification successful. ]&lt;br/&gt;&lt;b&gt;▼ Advanced Options (Configured) - Collapsible&lt;/b&gt;&lt;br/&gt;• &lt;b&gt;Required Files &amp;amp; Directories:&lt;/b&gt; [ main.py ] (Must exist in active CWD for command to succeed)&lt;br/&gt;• &lt;b&gt;Teacher Description:&lt;/b&gt; Execute python script | &lt;b&gt;Student Hint:&lt;/b&gt; Run python main.py" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;align=left;spacingLeft=12;spacingTop=6;strokeColor=#15803d;" vertex="1">
+          <mxGeometry x="1130" y="1065" width="750" height="115" as="geometry" />
+        </mxCell>
+        <mxCell id="s4_s5" parent="1" value="&lt;b&gt;5. Lab Objectives (Step-by-Step Evaluation)&lt;/b&gt;  [x] Enforce Sequential Order  [+ Add Objective]&lt;br/&gt;Step 1: Expected: [ cd /var/secret ] | Required Dir: [ / ] | Hint: Navigate to secret folder&lt;br/&gt;Step 2: Expected: [ chmod 755 audit.sh ] | Required Dir: [ /var/secret ] | Hint: Set file executable" style="rounded=1;whiteSpace=wrap;html=1;arcSize=3;fillColor=#ffffff;strokeColor=#1f2124;strokeWidth=1.5;align=left;spacingLeft=12;spacingTop=6;" vertex="1">
+          <mxGeometry x="1130" y="1190" width="750" height="65" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
