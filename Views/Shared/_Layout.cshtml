@@ -31,6 +31,10 @@
     <link rel="stylesheet" href="~/css/admin.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/learning.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/education.css" asp-append-version="true" />
+    @if (signedIn && !isAdmin)
+    {
+        <link rel="stylesheet" href="~/css/badge-achievement.css" asp-append-version="true" />
+    }
     @await RenderSectionAsync("Styles", required: false)
     <link rel="stylesheet" href="~/css/personalization.css" asp-append-version="true" />
 </head>
@@ -59,6 +63,11 @@
         @RenderBody()
     </main>
     <footer class="site-footer"><div class="container footer-inner"><span>&copy; 2026 HackAcad</span><span>Learn. Practise. Prove it.</span></div></footer>
+    @if (signedIn && !isAdmin)
+    {
+        <partial name="_BadgeAchievementDialog" model='@(headerUser.FindFirstValue(ClaimTypes.NameIdentifier) ?? "")' />
+        <script src="~/js/badge-achievement.js" asp-append-version="true" defer></script>
+    }
     <script src="~/js/account-forms.js" asp-append-version="true" defer></script>
     <script src="~/js/header-tools.js" asp-append-version="true" defer></script>
     <script src="~/js/account-menu.js" asp-append-version="true" defer></script>

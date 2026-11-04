@@ -1186,6 +1186,10 @@
                             reward.hidden = false;
                         }
 
+                        if (Array.isArray(data.newlyAwardedBadges) && data.newlyAwardedBadges.length) {
+                            window.HackAcadBadgeAchievements?.enqueue(data.newlyAwardedBadges);
+                        }
+
                         if (data.courseCompleted) {
                             document.getElementById('finish-course-after-simulation').hidden = false;
                         }

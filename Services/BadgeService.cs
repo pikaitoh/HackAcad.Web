@@ -15,6 +15,14 @@ public class BadgeService(ApplicationDbContext db, TimeProvider clock, Personali
     // Calculate earned badge progress and synchronize permanent awards.
     public async Task<List<BadgeItem>> GetUserBadgesAsync(string userId, DateTime? activityEventUtc = null)
     {
+        var result = await EvaluateUserBadgesAsync(userId, activityEventUtc);
+        return result.Badges;
+    }
+
+    public async Task<BadgeEvaluationResult> EvaluateUserBadgesAsync(
+        string userId,
+        DateTime? activityEventUtc = null)
+    {
         // Load learner enrollments and completed work.
         var isInstructor = await db.Instructors.AnyAsync(i => i.UserId == userId);
         var enrollments = await db.Enrollments
@@ -165,8 +173,17 @@ public class BadgeService(ApplicationDbContext db, TimeProvider clock, Personali
             streak,
             awardDates);
         var badges = BuildBadges(snapshot);
-        await SynchronizeAwardsAsync(userId, badges, snapshot.AwardDates, activityEventUtc);
-        return badges;
+        var newlyAwardedBadges = await SynchronizeAwardsAsync(
+            userId,
+            badges,
+            snapshot.AwardDates,
+            activityEventUtc);
+
+        return new BadgeEvaluationResult
+        {
+            Badges = badges,
+            NewlyAwardedBadges = newlyAwardedBadges
+        };
     }
 
     // Define the badge catalog and each badge's current progress.
@@ -242,12 +259,13 @@ public class BadgeService(ApplicationDbContext db, TimeProvider clock, Personali
     }
 
     // Persist permanent awards and notify learners when they earn one.
-    private async Task SynchronizeAwardsAsync(
+    private async Task<List<BadgeItem>> SynchronizeAwardsAsync(
         string userId,
         List<BadgeItem> badges,
         IReadOnlyDictionary<string, DateTime?> awardDates,
         DateTime? activityEventUtc)
     {
+        var persistedAwardIds = new HashSet<string>();
         var existingAwards = await db.UserBadgeAwards
             .Where(award => award.UserId == userId)
             .ToDictionaryAsync(award => award.BadgeId);
@@ -267,6 +285,7 @@ public class BadgeService(ApplicationDbContext db, TimeProvider clock, Personali
             try
             {
                 await db.SaveChangesAsync();
+                persistedAwardIds.UnionWith(newAwards.Select(award => award.BadgeId));
             }
             catch (DbUpdateException exception) when (IsDuplicateAward(exception))
             {
@@ -301,6 +320,8 @@ public class BadgeService(ApplicationDbContext db, TimeProvider clock, Personali
                 $"You earned the {badge.Title} badge. View your badge collection.",
                 "/Identity/Account/Badges");
         }
+
+        return badges.Where(badge => persistedAwardIds.Contains(badge.Id)).ToList();
     }
 
     private static bool IsNewAwardForActivity(

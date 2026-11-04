@@ -1,0 +1,24 @@
+@model string
+@{
+    var queuedBadgesJson = TempData["NewBadgeAchievements"] as string ?? "[]";
+}
+
+<dialog class="badge-achievement-dialog" id="badge-achievement-dialog"
+        data-user-key="@Model"
+        aria-labelledby="badge-achievement-title"
+        aria-describedby="badge-achievement-description">
+    <div class="badge-achievement-card">
+        <div class="badge-achievement-confetti" data-badge-confetti aria-hidden="true"></div>
+        <button class="badge-achievement-close" type="button" data-badge-close aria-label="Close achievement">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg>
+        </button>
+        <p class="badge-achievement-kicker">Achievement Unlocked!</p>
+        <div class="badge-achievement-icon" data-badge-icon aria-hidden="true"></div>
+        <h2 id="badge-achievement-title" data-badge-title></h2>
+        <p class="badge-achievement-description" id="badge-achievement-description" data-badge-description></p>
+        <p class="badge-achievement-congratulation" data-badge-congratulation></p>
+        <button class="badge-achievement-confirm" type="button" data-badge-close>Awesome!</button>
+    </div>
+</dialog>
+
+<script type="application/json" id="badge-achievement-boot-data">@Html.Raw(queuedBadgesJson)</script>

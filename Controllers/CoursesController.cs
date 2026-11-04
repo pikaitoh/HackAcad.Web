@@ -405,9 +405,10 @@ public class CoursesController(
             db.Enrollments.Add(newEnrollment);
             await db.SaveChangesAsync();
 
-            await badges.GetUserBadgesAsync(
+            var badgeEvaluation = await badges.EvaluateUserBadgesAsync(
                 currentUserId,
                 newEnrollment.EnrolledDate);
+            QueueBadgeAchievements(badgeEvaluation.NewlyAwardedBadges);
 
             TempData["Success"] =
                 $"Enrolled in {course.Title}! Welcome to your training.";
@@ -902,9 +903,10 @@ public class CoursesController(
 
         await db.SaveChangesAsync();
 
-        await badges.GetUserBadgesAsync(
+        var badgeEvaluation = await badges.EvaluateUserBadgesAsync(
             currentUserId,
             enrollment.FinishedUtc);
+        QueueBadgeAchievements(badgeEvaluation.NewlyAwardedBadges);
 
         TempData["Success"] =
             $"Congratulations! You completed {course.Title}. Keep up the great work!";
@@ -970,10 +972,11 @@ public class CoursesController(
 
         enrollment.LastLessonId = lessonId;
 
-        await SaveProgressAndStatus(
+        var newlyAwardedBadges = await SaveProgressAndStatus(
             enrollment,
             courseId,
             completedUtc);
+        QueueBadgeAchievements(newlyAwardedBadges);
 
         var nextLesson = await db.Lessons
             .Where(l =>
@@ -1289,10 +1292,11 @@ public class CoursesController(
                 existingProgress.LastUpdatedDate = completedUtc;
             }
 
-            await SaveProgressAndStatus(
+            var newlyAwardedBadges = await SaveProgressAndStatus(
                 enrollment,
                 courseId,
                 submission.SubmittedDate);
+            QueueBadgeAchievements(newlyAwardedBadges);
 
             TempData["FlagSuccess"] = existingAward == null
                 ? $"🎉 Correct Flag! You earned {finalScore} out of {challenge.Points} points after hint penalties."
@@ -1486,7 +1490,7 @@ public class CoursesController(
             existingProgress.LastUpdatedDate = completedUtc;
         }
 
-        await SaveProgressAndStatus(
+        var newlyAwardedBadges = await SaveProgressAndStatus(
             enrollment,
             courseId,
             completedUtc);
@@ -1496,7 +1500,8 @@ public class CoursesController(
             success = true,
             message = "Lab exercise completed successfully! Progress saved.",
             reward = simulation.RewardFlagHash,
-            courseCompleted = await IsCourseCompleteAsync(enrollment, courseId)
+            courseCompleted = await IsCourseCompleteAsync(enrollment, courseId),
+            newlyAwardedBadges = ToBadgeAchievementPayload(newlyAwardedBadges)
         });
     }
 
@@ -1534,7 +1539,7 @@ public class CoursesController(
         return Convert.ToHexString(bytes).ToLowerInvariant();
     }
 
-    private async Task SaveProgressAndStatus(
+    private async Task<List<BadgeItem>> SaveProgressAndStatus(
         Enrollment enrollment,
         int courseId,
         DateTime activityEventUtc)
@@ -1553,12 +1558,32 @@ public class CoursesController(
 
         await personalization.SyncRewards(enrollment.UserId);
 
-        await badges.GetUserBadgesAsync(
+        var badgeEvaluation = await badges.EvaluateUserBadgesAsync(
             enrollment.UserId,
             activityEventUtc);
 
         await transaction.CommitAsync();
+        return badgeEvaluation.NewlyAwardedBadges;
     }
+
+    // Queue only newly persisted awards for the next page or response.
+    private void QueueBadgeAchievements(IEnumerable<BadgeItem> newlyAwardedBadges)
+    {
+        var payload = ToBadgeAchievementPayload(newlyAwardedBadges);
+        if (payload.Count == 0) return;
+
+        TempData["NewBadgeAchievements"] = JsonSerializer.Serialize(payload);
+    }
+
+    private static List<BadgeAchievementPayload> ToBadgeAchievementPayload(
+        IEnumerable<BadgeItem> badges) => badges
+        .Select(badge => new BadgeAchievementPayload(
+            badge.Id,
+            badge.Title,
+            badge.Description,
+            badge.IconSvg,
+            badge.ColorHex))
+        .ToList();
 
     private async Task<bool> IsCourseCompleteAsync(
         Enrollment enrollment,

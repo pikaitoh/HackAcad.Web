@@ -15,6 +15,19 @@ public class BadgeItem
     public int TargetProgress { get; set; }
 }
 
+public sealed class BadgeEvaluationResult
+{
+    public List<BadgeItem> Badges { get; init; } = [];
+    public List<BadgeItem> NewlyAwardedBadges { get; init; } = [];
+}
+
+public sealed record BadgeAchievementPayload(
+    string Id,
+    string Title,
+    string Description,
+    string IconSvg,
+    string ColorHex);
+
 public class BadgesPageViewModel
 {
     public List<BadgeItem> Badges { get; set; } = [];
