@@ -1,0 +1,206 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net">
+  <diagram name="T6 - Manage Personal Terminal Notebooks Flowchart (Student or Instructor)" id="T6">
+    <mxGraphModel dx="100" dy="100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="2239" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="T6 - Manage Personal Terminal Notebooks Flowchart (Student or Instructor)" parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=16;fontStyle=1;fontColor=#232F3E;strokeColor=none;fillColor=none;">
+          <mxGeometry x="40" y="16" width="770" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s" value="Start" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="360" y="70" width="130" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="n1" value="Sign in as a Student or an Instructor&lt;br&gt;Follow (GA5) and (GA11)" style="shape=process;backgroundOutline=1;size=0.06;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="146" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n2" value="Open Terminal Notebooks (/Notebooks): list of your own notebooks with their block counts" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="248" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="d1" value="Create a new notebook or open an existing one?" style="rhombus;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="295" y="350" width="260" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="c1" value="Click + (Create New Notebook): POST /Notebooks/Create" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="580" y="375" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" value="Insert a notebook row owned by you: title Untitled Notebook, with one starter Markdown block" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="580" y="467" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="o1" value="Open the notebook: GET /Notebooks/View (reader mode)" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="492" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d2" value="Notebook found and owned by you?" style="rhombus;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="584" width="250" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="xl" value="Show: Notebook not found or no permission" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;size=18;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="604" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="el" value="Stop this attempt" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="90" y="696" width="130" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="r1" value="Read the notes, static examples and interactive terminals (simulated in the browser)" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;size=18;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="716" width="250" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="d3" value="Edit or export the notebook?" style="rhombus;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="818" width="250" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ed1" value="Click Edit Notebook: GET /Notebooks/Edit (the editor)" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="958" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ed2" value="Add and edit blocks: Markdown notes (edit or preview), interactive terminal, static command example (command and output rows); reorder or delete blocks" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="1050" width="230" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="d4" value="Configure an interactive terminal block?" style="rhombus;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="1182" width="250" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="bb" value="Open the Simulation Builder terminal block sandbox (unsaved changes are saved first), set filesystem and commands, then apply it to the block" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="580" y="1192" width="230" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="sv" value="Click Save Notebook: POST /Notebooks/Save (title and content)" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="1324" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d5" value="Title entered and content valid?" style="rhombus;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="1416" width="250" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="xs" value="Show the Save failed message" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;size=18;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="580" y="1441" width="230" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="es" value="Stop this attempt" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="630" y="1523" width="130" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="sv2" value="Update the notebook row: title, content and updated time" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="1548" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="p1" value="Show: Changes saved successfully" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;size=18;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="1640" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d6" value="Export for offline use?" style="rhombus;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="1732" width="250" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e" value="End" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="360" y="1864" width="130" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="x1" value="Click Export Standalone HTML: GET /Notebooks/Export (the last saved version)" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="1747" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="x2" value="Build one HTML file with the notes, examples and the embedded terminal engine, styles and scripts" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="1849" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="x3" value="Download {notebook title}.html" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;size=18;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="1951" width="230" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="x4" value="Open the file offline: read-only, and the interactive terminals still work" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;size=18;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="2033" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ex" value="End" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="90" y="2135" width="130" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="s" target="n1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="n1" target="n2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="n2" target="d1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_4" value="Create" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="d1" target="c1">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_5" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="c1" target="c2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_6" value="Open" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="d1" target="o1">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_7" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="o1" target="d2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_8" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="d2" target="xl">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="xl" target="el">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_10" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="d2" target="r1">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="r1" target="d3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_12" value="Edit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="d3" target="ed1">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="c2" target="ed1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="695" y="988" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_14" value="Export" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="d3" target="x1">
+          <mxGeometry relative="1" as="geometry" x="-0.5">
+            <Array as="points">
+              <mxPoint x="155" y="868" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_15" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="ed1" target="ed2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_16" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="ed2" target="d4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_17" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="d4" target="bb">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_18" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="bb" target="ed2">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="695" y="1100" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_19" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="d4" target="sv">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_20" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="sv" target="d5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_21" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="d5" target="xs">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_22" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="xs" target="es">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_23" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="d5" target="sv2">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="sv2" target="p1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="p1" target="d6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_26" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="d6" target="x1">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_27" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="d6" target="e">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_28" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="x1" target="x2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_29" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="x2" target="x3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_30" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="x3" target="x4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_31" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="x4" target="ex">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

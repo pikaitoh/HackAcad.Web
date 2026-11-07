@@ -1,0 +1,190 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net">
+  <diagram name="T5 - Student Uses a Course Terminal Notebook Flowchart" id="T5">
+    <mxGraphModel dx="100" dy="100" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1120" pageHeight="1876" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" value="T5 - Student Uses a Course Terminal Notebook Flowchart" parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;fontFamily=Helvetica;fontSize=16;fontStyle=1;fontColor=#232F3E;strokeColor=none;fillColor=none;">
+          <mxGeometry x="40" y="16" width="1040" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="s" value="Start" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="360" y="70" width="130" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="n1" value="Sign in as a Student&lt;br&gt;Follow (GA5) and (GA11)" style="shape=process;backgroundOutline=1;size=0.06;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="146" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n2" value="Open an enrolled course on its learning page&lt;br&gt;Follow (S2)" style="shape=process;backgroundOutline=1;size=0.06;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="238" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n3" value="Select a notebook under Terminal Notebooks (/Courses/Learn with the notebook id)" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="340" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="d1" value="Course published and student enrolled?" style="rhombus;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="442" width="250" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="x1" value="Show Course not found, or the Course Details page to enrol" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;size=18;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="580" y="462" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="Stop this attempt" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="630" y="554" width="130" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="d2" value="Notebook published in this course?" style="rhombus;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="574" width="250" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="x2" value="Show the first lesson instead" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;size=18;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="580" y="599" width="230" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="Stop this attempt" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="630" y="681" width="130" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="n4" value="Show the notebook in reader mode: Markdown notes, static command examples and interactive terminals (simulated in the browser). It is read-only and not part of course progress" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;size=18;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="706" width="250" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="d3" value="What does the student do?" style="rhombus;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="300" y="858" width="250" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="xe" value="Click Export Standalone HTML: GET /Courses/ExportNotebook" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="998" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="xe2" value="Build one self-contained HTML file and download it" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="1090" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="ee" value="End" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="90" y="1182" width="130" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="er" value="End" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="630" y="886" width="130" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="n5" value="Click Save to My Notebooks: POST /Courses/SaveCourseNotebookToPersonal" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="280" y="998" width="290" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="d4" value="Student already has a copy made from this course notebook?" style="rhombus;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="295" y="1090" width="260" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="xa" value="Show Already in My Notebooks and ask to open the copy or make another" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;size=18;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="580" y="1110" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="d5" value="Open the existing copy or create another?" style="rhombus;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="570" y="1212" width="250" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="oc" value="Open the existing copy in the notebook editor (/Notebooks/Edit)" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="850" y="1237" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="eo" value="End" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="900" y="1329" width="130" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="n6" value="Copy the notebook content with new block ids and note which course notebook it came from. Title gets (Copy) only when another copy is created" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="1232" width="230" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="n7" value="Insert a new row in the student's own notebooks" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="1364" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n8" value="Show: saved to your personal notebooks" style="shape=parallelogram;perimeter=parallelogramPerimeter;fixedSize=1;size=18;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="1456" width="230" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n9" value="The copy is independent: edits in My Notebooks never change the course notebook, and later instructor edits never change the copy" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="1548" width="230" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n10" value="Read, edit or export the copy in My Notebooks&lt;br&gt;Follow (T6)" style="shape=process;backgroundOutline=1;size=0.06;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="310" y="1670" width="230" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="e" value="End" style="rounded=1;arcSize=50;whiteSpace=wrap;html=1;fontFamily=Helvetica;fontSize=12;fontColor=#1A1A1A;strokeColor=#232F3E;fillColor=#FFFFFF;strokeWidth=1;" parent="1" vertex="1">
+          <mxGeometry x="360" y="1772" width="130" height="44" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_1" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="s" target="n1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_2" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="n1" target="n2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_3" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="n2" target="n3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_4" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="n3" target="d1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_5" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="d1" target="x1">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_6" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="x1" target="e1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_7" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="d1" target="d2">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_8" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="d2" target="x2">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_9" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="x2" target="e2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_10" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="d2" target="n4">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_11" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="n4" target="d3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_12" value="Export" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="d3" target="xe">
+          <mxGeometry relative="1" as="geometry" x="-0.5">
+            <Array as="points">
+              <mxPoint x="155" y="908" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_13" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="xe" target="xe2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_14" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="xe2" target="ee">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_15" value="Only read" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="d3" target="er">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_16" value="Save copy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="d3" target="n5">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_17" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="n5" target="d4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_18" value="Yes" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="d4" target="xa">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_19" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="xa" target="d5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_20" value="Open" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="d5" target="oc">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_21" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="oc" target="eo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_22" value="Another" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" edge="1" source="d5" target="n6">
+          <mxGeometry relative="1" as="geometry" x="-0.1">
+            <Array as="points">
+              <mxPoint x="695" y="1282" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="edge_23" value="No" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="d4" target="n6">
+          <mxGeometry relative="1" as="geometry" x="-0.6" />
+        </mxCell>
+        <mxCell id="edge_24" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="n6" target="n7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_25" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="n7" target="n8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_26" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="n8" target="n9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_27" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="n9" target="n10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="edge_28" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;html=1;endArrow=classic;endSize=6;fontFamily=Helvetica;fontSize=11;fontColor=#1A1A1A;strokeColor=#232F3E;strokeWidth=1;labelBackgroundColor=#FFFFFF;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" edge="1" source="n10" target="e">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
